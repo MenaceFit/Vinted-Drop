@@ -1,0 +1,67 @@
+{% extends "base.html" %}{% block content %}
+<h1>Dashboard</h1>
+<div class="grid g4">
+  {% for label, s in [("Aujourd'hui", today), ("7 jours", week), ("30 jours", month), ("Total", total)] %}
+  <div class="card kpi"><div class="l">{{ label }}</div>
+    <div class="v good">{{ s.profit|eur }}</div>
+    <div class="s">CA {{ s.revenue|eur }} · {{ s.sales }} ventes · marge {{ s.margin_pct }}%</div></div>
+  {% endfor %}
+</div>
+<div class="grid g4" style="margin-top:14px">
+  <div class="card kpi"><div class="l">En ligne</div><div class="v">{{ total.products.published }}</div></div>
+  <div class="card kpi"><div class="l">Prêts à publier</div><div class="v">{{ total.products.ready }}</div></div>
+  <div class="card kpi"><div class="l">Brouillons</div><div class="v">{{ total.products.draft }}</div></div>
+  <div class="card kpi"><div class="l">À commander</div><div class="v" style="color:var(--bad)">{{ to_order|length }}</div>
+    <div class="s">Panier moyen {{ total.avg_basket|eur }}</div></div>
+</div>
+
+<div class="card" style="margin-top:14px"><h2>Bénéfice et CA — 30 derniers jours</h2>
+  <div style="position:relative;height:260px"><canvas id="chart"></canvas></div></div>
+
+<div class="grid g2" style="margin-top:14px">
+  <div class="card"><h2>Boutiques</h2><div class="scroll"><table>
+    <tr><th>Boutique</th><th>En ligne</th><th>Ventes</th><th>Bénéfice</th></tr>
+    {% for s in shops %}<tr><td><b>{{ s.name }}</b><br><span class="muted">{{ s.niche or '-' }}</span></td>
+      <td>{{ s.online }}</td><td>{{ s.sales }}</td><td class="good">{{ s.profit|eur }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Aucune boutique — <a href="/boutiques">en créer une</a></td></tr>{% endfor %}
+  </table></div></div>
+
+  <div class="card"><h2>À commander chez le fournisseur</h2><div class="scroll"><table>
+    {% for s in to_order %}<tr><td>#{{ s.id }}</td><td>{{ (s.title or '?')[:40] }}<br><span class="muted">T. {{ s.size or '?' }} · {{ s.shop_name or '' }}</span></td>
+      <td>{% if s.supplier_url %}<a class="btn" href="{{ s.supplier_url }}" target="_blank">Commander</a>{% endif %}</td>
+      <td><form class="inline" method="post" action="/vente/{{ s.id }}/statut"><input type="hidden" name="status" value="ordered"><button class="ghost">✓ Fait</button></form></td></tr>
+    {% else %}<tr><td class="muted">Rien à commander 👌</td></tr>{% endfor %}
+  </table></div></div>
+</div>
+
+<div class="grid g2" style="margin-top:14px">
+  <div class="card"><h2>Dernières ventes</h2><div class="scroll"><table>
+    <tr><th>Date</th><th>Produit</th><th>Prix</th><th>Bénéfice</th></tr>
+    {% for s in sales %}<tr><td class="muted">{{ s.sold_at[5:16] }}</td><td>{{ (s.title or '?')[:38] }}<br><span class="muted">{{ s.shop_name or '' }}</span></td>
+      <td>{{ s.sale_price|eur }}</td><td class="good">{{ s.profit|eur }}</td></tr>
+    {% else %}<tr><td colspan="4" class="muted">Pas encore de vente.</td></tr>{% endfor %}
+  </table></div></div>
+  <div class="card"><h2>Niches du moment</h2>
+    {% for n in top_niches %}<p style="margin:0 0 10px"><b>{{ '🔥' if n.in_season else '⏳' }} {{ n.name }}</b> · {{ n.score }}/10<br>
+    <span class="muted">{{ n.why }}</span></p>{% endfor %}
+    <a href="/niches">Voir l'analyse complète et les liens →</a></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const data = {{ series|safe }};
+const css = getComputedStyle(document.documentElement);
+const c = n => css.getPropertyValue(n).trim();
+new Chart(document.getElementById('chart'), {
+  type: 'bar',
+  data: { labels: data.map(d => d.date.slice(5)),
+    datasets: [
+      { label: 'Bénéfice (€)', data: data.map(d => d.profit), backgroundColor: c('--accent'), borderRadius: 4 },
+      { label: 'CA (€)', data: data.map(d => d.revenue), type: 'line', borderColor: c('--muted'), pointRadius: 0, tension: .3 }
+    ]},
+  options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: c('--muted') } } },
+    scales: { x: { ticks: { color: c('--muted') }, grid: { display: false } },
+              y: { ticks: { color: c('--muted') }, grid: { color: c('--line') } } } }
+});
+</script>
+{% endblock %}

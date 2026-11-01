@@ -1,0 +1,27 @@
+{% extends "base.html" %}{% block content %}
+<h1>Niches & produits gagnants</h1>
+<p class="muted">Score /10 = demande × faible concurrence × saison (🔥 = en pleine saison, ⏳ = à préparer). Le score monte tout seul quand une niche vend bien dans tes boutiques. Analyse détaillée : <code>docs/NICHES.md</code>.</p>
+
+{% if perf %}<div class="card scroll" style="margin-bottom:14px"><h2>Tes résultats par niche</h2><table>
+<tr><th>Niche</th><th>Publiés</th><th>Ventes</th><th>Taux de vente</th><th>Bénéfice</th></tr>
+{% for r in perf %}<tr><td>{{ r.niche }}</td><td>{{ r.listed }}</td><td>{{ r.sales }}</td><td>{{ r.sell_through }}%</td><td class="good">{{ r.profit|eur }}</td></tr>{% endfor %}
+</table></div>{% endif %}
+
+{% for n in niches %}
+<div class="card" style="margin-bottom:14px">
+  <h2>{{ '🔥' if n.in_season else '⏳' }} {{ n.name }} — {{ n.score }}/10</h2>
+  <p style="margin:0 0 6px">{{ n.why }}</p>
+  <p class="muted" style="margin:0 0 10px">Achat {{ n.buy_price }} → vente {{ n.sell_price }} · Modèle : {{ n.persona }} · Mots-clés : {{ n.keywords|join(', ') }}</p>
+  {% if winners.get(n.id) %}<div class="scroll"><table>
+  {% for w in winners[n.id] %}<tr>
+    <td><a href="{{ w.url }}" target="_blank">{{ w.title }}</a> <span class="muted">({{ w.supplier }})</span></td>
+    <td style="white-space:nowrap">{{ w.cost|eur if w.cost else 'prix à vérifier' }}</td>
+    <td><form method="post" action="/produits/importer-gagnant" class="row">
+      <input type="hidden" name="url" value="{{ w.url }}"><input type="hidden" name="title" value="{{ w.title }}"><input type="hidden" name="niche" value="{{ n.id }}">
+      <input name="cost" type="number" step="0.01" value="{{ w.cost or '' }}" placeholder="Prix €" required style="width:90px">
+      <select name="shop_id"><option value="">Boutique…</option>{% for s in shops %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+      <button class="ghost">Importer</button></form></td></tr>{% endfor %}
+  </table></div>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}

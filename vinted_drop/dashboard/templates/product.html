@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% block content %}
+<p><a href="/produits">← Produits</a></p>
+<h1>#{{ p.id }} · {{ p.title or p.supplier_title or 'Sans titre' }} <span class="pill {{ p.status }}">{{ p.status }}</span></h1>
+{% if error %}<div class="alert">❌ {{ error }}</div>{% endif %}
+{% if running %}<div class="alert info">⏳ Génération en cours… la page se rafraîchit toute seule.</div>{% endif %}
+
+<div class="grid g2">
+<div class="card">
+  <h2>Actions</h2>
+  <div class="row">
+    <form class="inline" method="post" action="/produit/{{ p.id }}/action/preparer"><button>⚡ Photos + fiche</button></form>
+    <form class="inline" method="post" action="/produit/{{ p.id }}/action/photos"><button class="ghost">🎨 Photos</button></form>
+    <form class="inline" method="post" action="/produit/{{ p.id }}/action/fiche"><button class="ghost">📝 Fiche</button></form>
+    <form class="inline" method="post" action="/produit/{{ p.id }}/action/publie"><button class="ghost">🟢 Publié</button></form>
+  </div>
+  <form method="post" action="/produit/{{ p.id }}/action/vendu" class="row" style="margin-top:12px">
+    <input name="sale_price" type="number" step="0.01" placeholder="Prix de vente" value="{{ p.price or '' }}" style="width:140px">
+    <input name="buyer" placeholder="Acheteur (optionnel)" style="width:180px">
+    <button>💸 Vendu</button>
+  </form>
+  <p class="muted">Prix conseillé : <b>{{ prices.price|eur }}</b> (accepte jusqu'à {{ prices.min_price|eur }}) · bénéfice {{ prices.profit_at_min|eur }} → {{ prices.profit_at_price|eur }}</p>
+  {% if p.supplier_url %}<p><a href="{{ p.supplier_url }}" target="_blank">🛒 Voir chez {{ p.supplier or 'le fournisseur' }}</a></p>{% endif %}
+
+  <h2 style="margin-top:20px">Image fournisseur</h2>
+  {% if p.supplier_image %}<img src="/media/{{ p.supplier_image }}" style="max-width:200px;border-radius:8px">{% else %}<p class="muted">Aucune image : upload la photo du produit (capture d'écran de la page fournisseur).</p>{% endif %}
+  <form method="post" action="/produit/{{ p.id }}/image" enctype="multipart/form-data" class="row" style="margin-top:8px">
+    <input type="file" name="image" accept="image/*"><button class="ghost">Envoyer</button></form>
+</div>
+
+<div class="card">
+  <h2>Fiche Vinted</h2>
+  <form method="post" action="/produit/{{ p.id }}/modifier">
+    <label>Titre</label><input name="title" value="{{ p.title or '' }}" style="width:100%">
+    <label>Description</label><textarea name="description">{{ p.description or '' }}</textarea>
+    <div class="row">
+      <div><label>Prix affiché</label><input name="price" value="{{ p.price or '' }}" style="width:110px"></div>
+      <div><label>Prix mini</label><input name="min_price" value="{{ p.min_price or '' }}" style="width:110px"></div>
+      <div><label>Achat</label><input name="cost" value="{{ p.cost }}" style="width:100px"></div>
+      <div><label>Taille</label><input name="size" value="{{ p.size or '' }}" style="width:80px"></div>
+    </div>
+    <div class="row">
+      <div><label>Boutique</label><select name="shop_id"><option value="">-</option>{% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if p.shop_id==s.id }}>{{ s.name }}</option>{% endfor %}</select></div>
+      <div><label>Statut</label><select name="status">{% for s in statuses %}<option {{ 'selected' if p.status==s }}>{{ s }}</option>{% endfor %}</select></div>
+    </div>
+    <label>Lien de l'annonce Vinted</label><input name="vinted_url" value="{{ p.vinted_url or '' }}" style="width:100%">
+    <p class="muted">Catégorie : {{ p.category or '-' }} · Couleur : {{ p.color or '-' }} · Matière : {{ p.material or '-' }} · État : {{ p.condition }}</p>
+    <button>Enregistrer</button>
+  </form>
+</div>
+</div>
+
+<div class="card" style="margin-top:14px"><h2>Photos générées ({{ p.photos|length }})</h2>
+  <div class="gallery">{% for ph in p.photos %}<a href="/media/{{ ph }}" target="_blank" download><img src="/media/{{ ph }}"></a>{% else %}<p class="muted">Pas encore de photos.</p>{% endfor %}</div>
+</div>
+{% endblock %}

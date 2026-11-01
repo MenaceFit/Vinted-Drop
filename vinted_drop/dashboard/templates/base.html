@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vinted Drop</title>
+{% if running %}<meta http-equiv="refresh" content="10">{% endif %}
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#16181d;--muted:#667085;--line:#e4e7ec;--accent:#09b1ba;--accent-ink:#fff;--good:#12805c;--warn:#b54708;--bad:#c01048}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--text:#e8eaef;--muted:#98a2b3;--line:#2a2f3a;--accent:#22c3cc;--accent-ink:#06282a;--good:#47cd89;--warn:#fdb022;--bad:#f670a0}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+a{color:var(--accent);text-decoration:none}
+header{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav{max-width:1200px;margin:auto;display:flex;gap:4px;align-items:center;padding:10px 16px;overflow-x:auto}
+nav b{margin-right:16px;white-space:nowrap}
+nav a{padding:6px 12px;border-radius:8px;color:var(--muted);white-space:nowrap}
+nav a.on{background:var(--bg);color:var(--text);font-weight:600}
+main{max-width:1200px;margin:auto;padding:20px 16px 60px}
+h1{font-size:22px;margin:0 0 16px}h2{font-size:16px;margin:0 0 12px}
+.grid{display:grid;gap:14px}.g4{grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.kpi .l{color:var(--muted);font-size:13px}.kpi .v{font-size:26px;font-weight:700;margin-top:2px}
+.kpi .s{color:var(--muted);font-size:13px;margin-top:4px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+.scroll{overflow-x:auto}
+.pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;background:var(--bg);border:1px solid var(--line)}
+.pill.published,.pill.done,.pill.shipped{color:var(--good)}.pill.ready,.pill.ordered,.pill.received{color:var(--accent)}
+.pill.to_order{color:var(--bad)}.pill.sold{color:var(--warn)}
+.good{color:var(--good)}.muted{color:var(--muted)}
+input,select,textarea,button{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;max-width:100%}
+textarea{width:100%;min-height:160px}
+button,.btn{background:var(--accent);color:var(--accent-ink);border:0;font-weight:600;cursor:pointer;padding:8px 14px;border-radius:8px;display:inline-block}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+form.inline{display:inline}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.thumb{width:48px;height:64px;object-fit:cover;border-radius:6px;background:var(--bg)}
+.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.gallery img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.alert{padding:10px 14px;border-radius:8px;border:1px solid var(--bad);color:var(--bad);margin-bottom:14px}
+.info{border-color:var(--accent);color:var(--accent)}
+label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
+</style>
+</head>
+<body>
+<header><nav>
+<b>👗 Vinted Drop</b>
+<a href="/" class="{{ 'on' if page=='home' }}">Dashboard</a>
+<a href="/produits" class="{{ 'on' if page in ('products','product') }}">Produits</a>
+<a href="/ventes" class="{{ 'on' if page=='sales' }}">Ventes</a>
+<a href="/boutiques" class="{{ 'on' if page=='shops' }}">Boutiques</a>
+<a href="/niches" class="{{ 'on' if page=='niches' }}">Niches</a>
+</nav></header>
+<main>{% block content %}{% endblock %}</main>
+</body>
+</html>

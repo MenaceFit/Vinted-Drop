@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block content %}
+<h1>Ventes</h1>
+<form class="row" style="margin-bottom:16px" method="get">
+  <select name="statut" onchange="this.form.submit()"><option value="">Tous les statuts</option>
+  {% for s in statuses %}<option {{ 'selected' if statut==s }}>{{ s }}</option>{% endfor %}</select>
+</form>
+<div class="card scroll"><table>
+<tr><th>#</th><th>Date</th><th>Produit</th><th>Boutique</th><th>Prix</th><th>Achat</th><th>Bénéfice</th><th>Fournisseur</th><th>Statut</th></tr>
+{% for s in sales %}
+<tr><td>{{ s.id }}</td><td class="muted">{{ s.sold_at[:16] }}</td>
+  <td><a href="/produit/{{ s.product_id }}">{{ (s.title or '?')[:45] }}</a><br><span class="muted">T. {{ s.size or '?' }}{% if s.buyer %} · {{ s.buyer }}{% endif %}</span></td>
+  <td>{{ s.shop_name or '-' }}</td><td>{{ s.sale_price|eur }}</td><td>{{ s.cost|eur }}</td><td class="good">{{ s.profit|eur }}</td>
+  <td>{% if s.supplier_url %}<a href="{{ s.supplier_url }}" target="_blank">Commander</a>{% endif %}</td>
+  <td><form method="post" action="/vente/{{ s.id }}/statut"><select name="status" onchange="this.form.submit()">
+    {% for st in statuses %}<option {{ 'selected' if s.status==st }}>{{ st }}</option>{% endfor %}</select></form></td></tr>
+{% else %}<tr><td colspan="9" class="muted">Aucune vente.</td></tr>{% endfor %}
+</table></div>
+{% endblock %}

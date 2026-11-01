@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+data/vinted_drop.db
+data/media/
+.pytest_cache/
