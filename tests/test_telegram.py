@@ -19,6 +19,8 @@ def test_channel_id_parsing():
     assert _chat_id("https://web.telegram.org/a/#-1004303946427") == -1004303946427
     assert _chat_id("-1004303946427") == -1004303946427
     assert _chat_id("") is None
+    assert _chat_id("1004303946427") == -1004303946427   # "-" oublié
+    assert _chat_id("123456789") == 123456789            # id d'une personne : inchangé
 
 
 def test_notifications_go_to_channel_and_commands_allowed_from_both():
@@ -64,12 +66,15 @@ def test_run_with_dashboard_single_loop(monkeypatch):
         async def stop(self): calls.append("stop")
 
     class Server:
-        async def serve(self): calls.append("serve")
+        started = False
+        async def serve(self):
+            self.started = True
+            calls.append("serve")
 
     monkeypatch.setattr(telegram_bot, "build_app", lambda: App())
     asyncio.run(telegram_bot.run_with_dashboard(Server()))
-    assert calls[:3] == ["initialize", "start", "polling"]
-    assert ("msg", -1004303946427) in calls and "serve" in calls and calls[-1] == "shutdown"
+    assert calls[:4] == ["serve", "initialize", "start", "polling"]  # le dashboard démarre d'abord
+    assert ("msg", -1004303946427) in calls and calls[-1] == "shutdown"
 
 
 def test_channel_button_requires_admin(monkeypatch):

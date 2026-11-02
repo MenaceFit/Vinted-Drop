@@ -57,7 +57,9 @@ Dans `.env` :
 python -m vinted_drop.cli all     # dashboard + bot + pilote automatique
 ```
 
-Dashboard : http://localhost:8000 (ou `http://IP-DU-VPS:8000`).
+Le navigateur s'ouvre tout seul sur http://localhost:8000. Sur un VPS, mets `DASHBOARD_HOST=0.0.0.0`
+et un `DASHBOARD_PASSWORD`, puis ouvre `http://IP-DU-VPS:8000`. N'utilise jamais `http://0.0.0.0:8000`
+dans le navigateur : ce n'est pas une adresse qu'on peut ouvrir.
 
 ## Mise en route (10 minutes)
 

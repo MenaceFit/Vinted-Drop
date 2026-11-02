@@ -795,7 +795,10 @@ async def welcome(app: Application):
         try:
             await app.bot.send_message(chat_id, f"🤖 Vinted Drop démarré (@{me.username}). Tape /menu")
         except Exception as e:
-            log.warning("Impossible d'écrire dans %s : %s (le bot est-il admin du canal ?)", chat_id, e)
+            hint = ("le bot doit être ADMINISTRATEUR du canal, avec le droit de publier"
+                    if str(chat_id).startswith("-100") else
+                    "un id de canal commence par -100 : vérifie TELEGRAM_CHANNEL_ID dans .env")
+            log.warning("Impossible d'écrire dans %s : %s → %s", chat_id, e, hint)
 
 
 def main():
@@ -805,19 +808,42 @@ def main():
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
-async def run_with_dashboard(server):
-    """Bot + dashboard dans la même boucle asyncio (évite les conflits de threads sous Windows)."""
+async def run_with_dashboard(server, url=None, open_browser=False):
+    """Bot + dashboard dans la même boucle asyncio (évite les conflits de threads sous Windows).
+    Le dashboard démarre en premier : il reste accessible même si Telegram ne répond pas."""
     setup_logging()
-    app = build_app()
-    async with app:
-        await app.start()
-        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-        await welcome(app)
-        try:
-            await server.serve()       # s'arrête avec Ctrl+C
-        finally:
-            await app.updater.stop()
-            await app.stop()
+    serve_task = asyncio.create_task(server.serve())   # s'arrête avec Ctrl+C
+    for _ in range(100):
+        if getattr(server, "started", False) or serve_task.done():
+            break
+        await asyncio.sleep(0.1)
+    if url and not serve_task.done():
+        print(f"\n✅ Dashboard prêt : {url}\n   (ouvre cette adresse dans ton navigateur, pas 0.0.0.0)\n")
+        if open_browser:
+            import webbrowser
+            webbrowser.open(url)
+    from telegram.error import InvalidToken, NetworkError
+    try:
+        app = build_app()
+        async with app:
+            await app.start()
+            await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+            await welcome(app)
+            try:
+                await serve_task
+            finally:
+                await app.updater.stop()
+                await app.stop()
+    except (InvalidToken, NetworkError, SystemExit) as e:
+        # le bot ne démarre pas, mais le dashboard reste ouvert
+        msg = ("token Telegram refusé : vérifie TELEGRAM_BOT_TOKEN dans .env" if isinstance(e, InvalidToken)
+               else f"Telegram injoignable ({e})" if isinstance(e, NetworkError) else str(e))
+        print(f"\n❌ Bot Telegram non démarré : {msg}\n   Le dashboard reste accessible. Corrige puis relance.\n")
+        await serve_task
+    finally:
+        if not serve_task.done():
+            server.should_exit = True
+            await serve_task
 
 
 if __name__ == "__main__":

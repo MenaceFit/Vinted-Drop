@@ -91,7 +91,8 @@ def main(argv=None):
                           "total": db.stats()}, ensure_ascii=False, indent=2))
     elif a.cmd == "dashboard":
         import uvicorn
-        uvicorn.run("vinted_drop.dashboard.app:app", host="0.0.0.0", port=config.DASHBOARD_PORT)
+        print(f"✅ Dashboard : http://localhost:{config.DASHBOARD_PORT}")
+        uvicorn.run("vinted_drop.dashboard.app:app", host=config.DASHBOARD_HOST, port=config.DASHBOARD_PORT)
     elif a.cmd == "cycle":
         from . import autopilot
         print(json.dumps(autopilot.cycle(), ensure_ascii=False, indent=2, default=str))
@@ -113,12 +114,12 @@ def main(argv=None):
         import asyncio
         import uvicorn
         from .telegram_bot import run_with_dashboard
-        server = uvicorn.Server(uvicorn.Config("vinted_drop.dashboard.app:app", host="0.0.0.0",
-                                               port=config.DASHBOARD_PORT, log_level="info"))
-        print(f"Dashboard : http://localhost:{config.DASHBOARD_PORT}")
+        server = uvicorn.Server(uvicorn.Config("vinted_drop.dashboard.app:app", host=config.DASHBOARD_HOST,
+                                               port=config.DASHBOARD_PORT, log_level="warning"))
+        url = f"http://localhost:{config.DASHBOARD_PORT}"
         from telegram.error import InvalidToken, NetworkError
         try:
-            asyncio.run(run_with_dashboard(server))
+            asyncio.run(run_with_dashboard(server, url, config.DASHBOARD_OPEN_BROWSER))
         except KeyboardInterrupt:
             pass
         except InvalidToken:

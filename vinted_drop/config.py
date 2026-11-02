@@ -53,9 +53,7 @@ COST_PER_IMAGE = {"openai": float(os.getenv("COST_IMAGE_OPENAI", "0.05")),
                   "local": 0.0}
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_ALLOWED_CHAT_IDS = {
-    int(x) for x in os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "").replace(" ", "").split(",") if x.lstrip("-").isdigit()
-}
+TELEGRAM_ALLOWED_CHAT_IDS = set()  # rempli plus bas avec _chat_id
 DAILY_REPORT_TIME = os.getenv("DAILY_REPORT_TIME", "21:00")
 
 
@@ -66,10 +64,17 @@ def _chat_id(raw: str):
         raw = raw.rsplit("#", 1)[1]
     raw = raw.strip("/ ")
     try:
-        return int(raw)
+        cid = int(raw)
     except ValueError:
         return None
+    # un id de canal commence toujours par -100 : on remet le "-" s'il a été oublié
+    if cid > 0 and str(cid).startswith("100") and len(str(cid)) >= 13:
+        cid = -cid
+    return cid
 
+
+TELEGRAM_ALLOWED_CHAT_IDS = {c for c in (_chat_id(x) for x in os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "").split(","))
+                             if c is not None}
 
 # Canal où le bot publie ventes, validations et récaps (le bot doit y être administrateur)
 TELEGRAM_CHANNEL_ID = _chat_id(os.getenv("TELEGRAM_CHANNEL_ID", ""))
@@ -87,6 +92,9 @@ def notify_targets() -> set:
 DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
 DASHBOARD_PORT = int(os.getenv("DASHBOARD_PORT", "8000"))
+# 127.0.0.1 = accessible seulement depuis ce PC. Sur un VPS : DASHBOARD_HOST=0.0.0.0 + DASHBOARD_PASSWORD
+DASHBOARD_HOST = os.getenv("DASHBOARD_HOST", "127.0.0.1")
+DASHBOARD_OPEN_BROWSER = os.getenv("DASHBOARD_OPEN_BROWSER", "1") == "1"
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", f"http://localhost:{DASHBOARD_PORT}")
 
 TARGET_MULTIPLIER = _float("TARGET_MULTIPLIER", 2.5)
