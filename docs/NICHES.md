@@ -1,5 +1,33 @@
 # Analyse des niches Vinted — novembre 2026
 
+## 💶 Niches à forte marge (≥ 30 € de bénéfice par vente) — 3 novembre 2026
+
+Objectif : au moins **30 € de bénéfice net par vente**. Cela demande des paniers de 70 € et plus : on sort des
+petits articles de Noël pour des pièces à forte valeur, réparties sur toute l'année. Bénéfices estimés à
+partir des prix fournisseurs relevés et des prix habituels de ces pièces ; le dashboard les remplace par les
+prix réels de Vinted dès qu'un compte est connecté (Market Intelligence).
+
+| Niche | Achat | Vente | Bénéfice estimé | Saison | Pourquoi |
+|---|---|---|---|---|---|
+| Robes de mariée civile / bohème | 40-70 € | 120-200 € | ≈ 100 € | mars → septembre | énorme écart avec les boutiques (500 € et plus) |
+| Blousons aviateur homme | 40-60 € | 90-130 € | ≈ 60 € | octobre → février | hommes : achat rapide, peu de négociation |
+| Ensembles tailleur femme | 30-45 € | 80-110 € | ≈ 57 € | sept-nov, janv-mars | tendance « power dressing » AH 2026-27 |
+| Doudounes longues femme | 35-50 € | 80-120 € | ≈ 57 € | octobre → février | achat de nécessité, Temu 4,7★ (2 827 avis) |
+| Cosplay complet adulte | 35-55 € | 80-120 € | ≈ 55 € | conventions, Halloween | éviter les personnages sous licence |
+| Vestes simili cuir longues | 30-45 € | 75-110 € | ≈ 55 € | automne et printemps | « cuir total », 1re tendance (Vogue) |
+| Ski adulte | 35-60 € | 80-120 € | ≈ 52 € | novembre → mars | vacances de février |
+| Trench-coats | 25-40 € | 70-95 € | ≈ 50 € | **mars-mai**, sept-oct | la grosse saison après l'hiver |
+| Vestes chauffantes | 25-40 € | 65-95 € | ≈ 47 € | novembre → février | Temu 4,7★ (575 avis) ; batterie souvent non incluse : l'écrire |
+| Bottes hautes | 30-45 € | 70-100 € | ≈ 47 € | septembre → février | proposer toutes les pointures |
+| Robes de soirée longues | 20-35 € | 60-90 € | ≈ 47 € | **mariages avril-sept**, bals, réveillon | portée une fois : Vinted est le réflexe |
+| Abayas | 20-30 € | 55-80 € | ≈ 42 € | janvier → avril (Ramadan vers le 8 février 2027) | clientèle fidèle, peu d'offre neuve élégante |
+
+**Calendrier conseillé :** maintenant tailleurs, doudounes, aviateur, vestes chauffantes, bottes ; dès janvier
+abayas et ski ; dès février trench et robes de soirée (saison des mariages) ; dès mars robes de mariée civile.
+
+Les niches de Noël (pulls, pyjamas, robes de fête fille, pulls pour chien) se vendent bien mais restent
+**sous 30 € de bénéfice** : garde-les en complément pour faire du volume en décembre.
+
 ## 🏆 Produits gagnants avec preuves de vente (3 novembre 2026)
 
 Chaque produit a un **score /100** : preuves de vente (avis, note, nombre de ventes) 45 %, saison de

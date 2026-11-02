@@ -1,6 +1,5 @@
 """Version 2.0 : base, finances, commandes, tâches, sauvegardes, planning, prix, marché."""
 import threading
-import time
 from datetime import datetime, timedelta
 
 import pytest
@@ -101,7 +100,7 @@ def test_finance_summary_sheet_and_exports():
     from vinted_drop import db, finance
     sid, pid = _sold_product(cost=9, price=95, fees=2, ship=0)
     db.update_product(pid, other_fees=5)
-    sale_id = db.record_sale(pid, 95)
+    db.record_sale(pid, 95)
     db.log_cost("gemini", "m", "porte", 0.10, pid)
     db.add_expense(3, "tools", "abonnement")
     s, e = db.period_range("30d")

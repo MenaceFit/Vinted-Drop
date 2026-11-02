@@ -235,7 +235,25 @@ def init():
                     if col not in existing:
                         c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
             c.executescript(INDEXES)
+            _backfill_orders(c)
         _columns_cache.clear()
+
+
+def _backfill_orders(c):
+    """Migration 1.x → 2.0 : chaque vente existante reçoit sa commande fournisseur (jamais dupliquée)."""
+    mapping = {"to_order": "to_buy", "ordered": "ordered", "received": "delivered", "shipped": "delivered",
+               "done": "delivered"}
+    rows = c.execute("SELECT sa.*, p.supplier, p.supplier_url, p.cost pcost, p.supplier_fees FROM sales sa "
+                     "LEFT JOIN products p ON p.id=sa.product_id "
+                     "WHERE NOT EXISTS (SELECT 1 FROM orders o WHERE o.sale_id=sa.id)").fetchall()
+    for r in rows:
+        st = mapping.get(r["status"], "to_buy")
+        cur = c.execute("INSERT INTO orders (sale_id, product_id, shop_id, status, supplier, supplier_url, supplier_price,"
+                        " supplier_fees, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                        (r["id"], r["product_id"], r["shop_id"], st, r["supplier"], r["supplier_url"], r["pcost"],
+                         r["supplier_fees"] or 0, r["sold_at"], now()))
+        c.execute("INSERT INTO order_events (order_id, status, note, created_at) VALUES (?,?,?,?)",
+                  (cur.lastrowid, st, "Reprise de la version 1.x", now()))
 
 
 def _backup_before_migration():
@@ -816,9 +834,9 @@ DEFAULT_SETTINGS = {
     "sync_minutes": "15",
     "inbox_minutes": "10",
     "daily_goal": "100",
-    "min_profit": "30",           # bénéfice minimum par vente (€)
-    "target_multiplier": "2.5",
-    "negotiation_buffer": "0.15",
+    "min_profit": f"{config.MIN_PROFIT:g}",                # bénéfice minimum par vente (€), défaut MIN_PROFIT du .env
+    "target_multiplier": f"{config.TARGET_MULTIPLIER:g}",
+    "negotiation_buffer": f"{config.NEGOTIATION_BUFFER:g}",
     "listing_style": "naturel",   # naturel | enthousiaste | minimaliste | detaille
     "photo_disclosure": "on",     # mention honnête des photos de présentation dans la description
     "photo_provider": "auto",

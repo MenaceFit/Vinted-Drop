@@ -6,9 +6,7 @@
 """
 import asyncio
 import logging
-from datetime import time
 from functools import wraps
-from zoneinfo import ZoneInfo
 
 from telegram import InlineKeyboardButton as Btn, InlineKeyboardMarkup, InputMediaPhoto, Update
 from telegram.constants import ParseMode
@@ -19,7 +17,6 @@ from . import (assistant, autopilot, config, db, listing, niches, notify, photos
                publisher, responder, supplier)
 
 log = logging.getLogger(__name__)
-TZ = ZoneInfo("Europe/Paris")
 
 HELP = """<b>Vinted Drop</b> 🤖 — écris-moi normalement ou utilise les boutons.
 
@@ -873,23 +870,6 @@ async def on_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 
 
 # ---------------- tâches planifiées ----------------
-def _job(fn):
-    async def job(ctx: ContextTypes.DEFAULT_TYPE):
-        if not autopilot.enabled():
-            return
-        try:
-            await asyncio.to_thread(fn)
-        except Exception:
-            log.exception("tâche %s", fn.__name__)
-    job.__name__ = fn.__name__
-    return job
-
-
-async def job_daily_report(ctx: ContextTypes.DEFAULT_TYPE):
-    for chat_id in config.notify_targets():
-        await ctx.bot.send_message(chat_id, stats_text(), parse_mode=ParseMode.HTML)
-
-
 _TICK_LOCK = asyncio.Lock()
 
 
