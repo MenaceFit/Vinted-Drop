@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% block content %}
+<h1>🤖 Pilote automatique</h1>
+{% if ok %}<div class="ok">✅ {{ ok }}</div>{% endif %}
+<div class="grid g2">
+<div class="card"><h2>Réglages</h2>
+<form method="post" action="/pilote">
+  {% macro sel(name, label, opts) %}<label>{{ label }}</label><select name="{{ name }}" style="width:100%">
+    {% for v, t in opts %}<option value="{{ v }}" {{ 'selected' if settings[name]==v }}>{{ t }}</option>{% endfor %}</select>{% endmacro %}
+  {{ sel('autopilot', 'Interrupteur général', [('on','✅ Activé'),('off','⛔ Désactivé')]) }}
+  {{ sel('publish_mode', 'Publication des produits prêts', [('validate','👆 Je valide sur Telegram'),('auto','🤖 Automatique'),('off','⛔ Désactivé')]) }}
+  {{ sel('reply_mode', 'Réponses aux messages', [('validate','👆 Je valide sur Telegram'),('auto','🤖 Automatique (sinon validation)'),('off','⛔ Désactivé')]) }}
+  {{ sel('offer_mode', 'Offres des acheteurs', [('auto','🤖 Accepte ≥ prix mini, contre-propose sinon'),('validate','👆 Je décide'),('off','⛔ Désactivé')]) }}
+  {{ sel('auto_prepare', 'Préparer les brouillons la nuit (photos + fiches)', [('on','✅ Oui'),('off','⛔ Non')]) }}
+  {{ sel('price_drop', 'Baisser le prix des articles sans favoris', [('on','✅ Oui'),('off','⛔ Non')]) }}
+  <div class="row">
+    <div><label>Publier de</label><input name="publish_start" type="number" min="0" max="23" value="{{ settings.publish_start }}" style="width:70px"> h</div>
+    <div><label>à</label><input name="publish_end" type="number" min="1" max="24" value="{{ settings.publish_end }}" style="width:70px"> h</div>
+    <div><label>Préparés / nuit</label><input name="prepare_per_night" type="number" value="{{ settings.prepare_per_night }}" style="width:80px"></div>
+  </div>
+  <div class="row">
+    <div><label>Baisse après (jours)</label><input name="price_drop_days" type="number" value="{{ settings.price_drop_days }}" style="width:80px"></div>
+    <div><label>Baisse de (%)</label><input name="price_drop_pct" type="number" value="{{ settings.price_drop_pct }}" style="width:80px"></div>
+  </div>
+  <label>Délai d'envoi annoncé aux acheteurs</label><input name="ship_delay" value="{{ settings.get('ship_delay') or 'envoi sous 5 à 8 jours' }}" style="width:100%">
+  <p><button>Enregistrer</button></p>
+  <p class="muted" style="font-size:13px">Les intervalles de synchro sont pris en compte au redémarrage du bot.</p>
+</form></div>
+
+<div class="card"><h2>Planning</h2>
+<table>
+<tr><td>Toutes les 15 min</td><td>Synchro annonces, vues, favoris + <b>détection des ventes</b> → Telegram avec lien fournisseur</td></tr>
+<tr><td>Toutes les 10 min</td><td>Messages acheteurs : réponse IA + offres</td></tr>
+<tr><td>{{ settings.publish_start }}h → {{ settings.publish_end }}h</td><td>Publication des produits prêts, 1 par boutique toutes les 15 min (quota par boutique)</td></tr>
+<tr><td>2h</td><td>Préparation des brouillons (photos + fiches)</td></tr>
+<tr><td>3h</td><td>Baisse des prix (jamais sous le prix mini)</td></tr>
+<tr><td>4h</td><td>Analyse du marché Vinted → classement des niches</td></tr>
+<tr><td>21h</td><td>Récap compta sur Telegram</td></tr>
+</table>
+<h2 style="margin-top:16px">Lancer maintenant</h2>
+<div class="row">{% for j, t in [('sync','🔄 Synchro'),('messages','💬 Messages'),('publier','📤 Publier'),('preparer','⚙️ Préparer'),('prix','📉 Prix'),('marche','🔎 Marché')] %}
+<form class="inline" method="post" action="/pilote/lancer/{{ j }}"><button class="ghost">{{ t }}</button></form>{% endfor %}</div>
+</div>
+</div>
+
+{% if scan %}<div class="card" style="margin-top:14px"><h2>Dernière analyse du marché Vinted ({{ scan.date }})</h2><div class="scroll"><table>
+<tr><th>Niche</th><th>Opportunité</th><th>Prix médian</th><th>Mots-clés (annonces · favoris moyens)</th></tr>
+{% for nid, n in scan.niches.items()|sort(attribute='1.score', reverse=True) %}<tr><td>{{ nid }}</td><td><b>{{ n.score }}</b>/10</td><td>{{ n.median_price|eur if n.median_price else '-' }}</td>
+<td class="muted">{% for k in n.keywords %}{{ k.keyword }} ({{ k.total }} · {{ k.avg_fav }}){% if not loop.last %}, {% endif %}{% endfor %}</td></tr>{% endfor %}
+</table></div></div>{% endif %}
+
+<div class="card" style="margin-top:14px"><h2>Journal</h2><div class="scroll"><table>
+{% for e in events %}<tr><td class="muted" style="white-space:nowrap">{{ e.created_at[5:16] }}</td><td><span class="pill">{{ e.kind }}</span></td><td>{{ e.message }}</td></tr>
+{% else %}<tr><td class="muted">Rien pour l'instant.</td></tr>{% endfor %}</table></div></div>
+{% endblock %}

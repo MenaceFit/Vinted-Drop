@@ -74,10 +74,18 @@ def create_persona(name: str, description: str) -> dict:
     return db.get_persona(pid)
 
 
-def generate_product_photos(product_id: int, kinds=("porte", "plat", "detail")) -> list[str]:
+def default_kinds(p: dict):
+    """Enfants / animaux : jamais de photo portée par un modèle IA."""
+    from . import niches
+    n = niches.get(p.get("niche")) if p.get("niche") else None
+    return tuple(n.get("photo_kinds") or ("porte", "plat", "detail")) if n else ("porte", "plat", "detail")
+
+
+def generate_product_photos(product_id: int, kinds=None) -> list[str]:
     p = db.get_product(product_id)
     if not p:
         raise ValueError(f"Produit #{product_id} introuvable")
+    kinds = kinds or default_kinds(p)
     if not p.get("supplier_image"):
         raise ValueError("Ce produit n'a pas encore d'image fournisseur (envoie la photo au bot).")
     product_img = abs_media(p["supplier_image"])

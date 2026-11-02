@@ -1,6 +1,38 @@
 # Analyse des niches Vinted — novembre 2026
 
-Analyse faite le 1er novembre 2026. Halloween vient de passer : l'argent de la saison va maintenant
+Mise à jour le 2 novembre 2026 : **7 nouvelles niches** (voir juste dessous) et analyse du marché
+Vinted en direct chaque nuit dès qu'une boutique est connectée.
+
+## Nouvelles niches (moins de concurrence)
+
+| Niche | Achat | Vente | Pourquoi |
+|-------|-------|-------|----------|
+| **Robes de fête fille** (Noël, velours, tulle) | 12–22 € | 25–38 € | Les parents cherchent une robe pour UN repas de Noël, dans une taille précise. Peu d'offre neuve en 4–12 ans, achat rapide sans négociation. **N°1 du classement en novembre.** Photos à plat uniquement, jamais d'enfant généré par IA. |
+| **Pulls de Noël pour chien** | 5–10 € | 14–22 € | Achat coup de cœur, presque aucun vendeur en neuf, petit colis. Marge x2 à x3. |
+| **Vestes simili cuir** (bomber, marron) | 20–40 € | 45–70 € | « Cuir total » est la 1re tendance automne-hiver 2026-27 selon Vogue. Gros panier. |
+| **Cagoules tricot / balaclava** | 4–9 € | 14–20 € | Taille unique (aucun problème de taille), petit colis, se vend en lot. |
+| **Vêtements de grossesse** | 15–25 € | 30–45 € | Personne ne veut payer cher un vêtement porté 6 mois : Vinted est le 1er réflexe. Toute l'année. |
+| **Ensembles de sport sculptants** | 10–20 € | 25–38 € | Pic des bonnes résolutions en janvier : publier dès mi-décembre. |
+| **Déguisements enfant** (carnaval) | 8–15 € | 18–28 € | Carnaval des écoles en février : publier dès mi-janvier. |
+
+**Stratégie conseillée pour novembre-décembre (3 boutiques) :**
+1. Une boutique **« Noël famille »** : pulls de Noël, pyjamas assortis, robes de fête fille, pulls pour chien.
+   Elle mélange 4 niches à forte demande et couvre toute la famille, donc un acheteur prend souvent plusieurs articles.
+2. Une boutique **gothique grande taille** : peu de concurrence toute l'année, clientes fidèles.
+3. Une boutique **hiver tendance** : simili cuir, fausse fourrure, cagoules, old money homme.
+
+Dès le 15 décembre, bascule une boutique vers le **sport** (janvier), puis vers les **déguisements** et la **Saint-Valentin** (février).
+
+## Analyse en direct (automatique)
+
+Chaque nuit à 4h, le bot cherche les mots-clés de chaque niche sur Vinted avec ta session et mesure :
+le nombre d'annonces (concurrence), les favoris moyens par annonce (envie des acheteurs) et le prix
+médian. Le score « opportunité » compte pour 30 % du classement final. Le résultat est sur le
+dashboard (Pilote auto) et t'est envoyé sur Telegram.
+
+---
+
+Analyse initiale du 1er novembre 2026. Halloween vient de passer : l'argent de la saison va maintenant
 sur **Noël, le réveillon, l'hiver et le ski**. Le dashboard (onglet *Niches*) et le bot (`/niches`)
 recalculent le classement chaque mois et le corrigent avec tes vraies ventes.
 
@@ -41,7 +73,7 @@ médiévales, mariages à thème).
 
 ## Produits gagnants (liens directs)
 
-29 liens Shein / Temu, classés par niche, sont dans [`data/winning_products.json`](../data/winning_products.json).
+49 liens Shein / Temu, classés par niche, sont dans [`data/winning_products.json`](../data/winning_products.json).
 Ils s'affichent dans l'onglet *Niches* du dashboard avec un bouton **Importer**, et dans Telegram avec
 `/gagnants <niche>`.
 

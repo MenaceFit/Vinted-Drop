@@ -1,18 +1,447 @@
 {
-  "updated": "2026-11-01",
-  "method": "Score /10 = demande Vinted (recherches, volume d'annonces vendues) x faible concurrence x saisonnalité x marge possible (prix d'achat Shein/Temu vs prix Vinted constatés). Mois = mois où la niche est la plus forte.",
-  "niches": [
-    {"id": "noel-pulls", "name": "Pulls de Noël (moches / mignons)", "persona": "femme 20-30 ans, style cosy", "months": [11, 12], "demand": 9, "competition": 6, "buy_price": "10-22 €", "sell_price": "25-38 €", "why": "Pic énorme fin novembre -> 20 décembre (soirées pull moche, Secret Santa). Achat impulsif, peu de négociation.", "keywords": ["pull de noël", "pull moche noël", "pull noël femme", "ugly sweater"]},
-    {"id": "reveillon-paillettes", "name": "Robes de réveillon / paillettes", "persona": "femme 22-35 ans, glam", "months": [11, 12, 1], "demand": 9, "competition": 7, "buy_price": "15-30 €", "sell_price": "35-55 €", "why": "Noël + Nouvel An + soirées d'entreprise. Les acheteuses veulent du neuf pour un seul soir : Vinted est parfait (moins cher qu'en boutique).", "keywords": ["robe paillettes", "robe sequin", "robe réveillon", "robe nouvel an", "robe soirée"]},
-    {"id": "pyjamas-famille", "name": "Pyjamas de Noël assortis (famille / couple)", "persona": "couple / famille, photos à plat surtout", "months": [11, 12], "demand": 7, "competition": 4, "buy_price": "8-18 €", "sell_price": "20-30 €", "why": "Peu de vendeurs ont plusieurs tailles du même modèle : énorme avantage du dropshipping (tu commandes la taille demandée).", "keywords": ["pyjama noël famille", "pyjama assorti", "pyjama noël couple"]},
-    {"id": "goth-grande-taille", "name": "Gothique / alternatif grande taille", "persona": "femme ronde 25-35 ans, cheveux noirs, piercings", "months": [10, 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9], "demand": 7, "competition": 3, "buy_price": "15-30 €", "sell_price": "35-55 €", "why": "Niche citée dans la vidéo (compte Mylis). Très peu d'offre en 44-54 sur Vinted, clientèle fidèle qui revient sur la boutique. Toute l'année, pic Halloween.", "keywords": ["robe gothique grande taille", "goth plus size", "robe dentelle noire 46", "alternative grande taille"]},
-    {"id": "goth-classique", "name": "Robes gothiques / romantic goth", "persona": "femme 20-28 ans, pâle, cheveux noirs à frange", "months": [9, 10, 11, 2], "demand": 8, "competition": 6, "buy_price": "12-25 €", "sell_price": "30-45 €", "why": "Compte Sophie de la vidéo. Hors Halloween : orienter vers 'whimsigoth', 'dark academia', Saint-Valentin goth.", "keywords": ["robe gothique", "whimsigoth", "robe dentelle noire", "dark academia"]},
-    {"id": "fausse-fourrure", "name": "Vestes fausse fourrure (mob wife)", "persona": "femme 22-35 ans, glam, cheveux bruns", "months": [11, 12, 1, 2], "demand": 8, "competition": 5, "buy_price": "25-45 €", "sell_price": "50-75 €", "why": "Tendance forte hiver, panier élevé = gros bénéfice par vente même avec un x2.", "keywords": ["veste fausse fourrure", "manteau fourrure synthétique", "mob wife", "veste moumoute"]},
-    {"id": "manteau-laine", "name": "Manteaux longs laine oversize", "persona": "femme 25-35 ans, style minimal / old money", "months": [10, 11, 12, 1], "demand": 8, "competition": 7, "buy_price": "30-70 €", "sell_price": "60-110 €", "why": "Très recherché mais concurrence de marques (Zara, Mango) d'occasion : miser sur des coloris tendance (chocolat, bordeaux, chevrons).", "keywords": ["manteau long laine", "manteau oversize", "manteau chevrons", "manteau bordeaux"]},
-    {"id": "old-money-homme", "name": "Homme old money (pulls demi-zip, cols roulés)", "persona": "homme 20-30 ans, cheveux courts, style propre", "months": [10, 11, 12, 1, 2], "demand": 8, "competition": 5, "buy_price": "15-25 €", "sell_price": "30-45 €", "why": "Les hommes négocient moins et achètent vite. Peu de boutiques homme neuves sur Vinted. Cadeau de Noël.", "keywords": ["pull demi zip homme", "old money homme", "pull col camionneur", "col roulé homme"]},
-    {"id": "ski", "name": "Ensembles de ski femme", "persona": "femme 25-35 ans sportive, photos montagne", "months": [11, 12, 1, 2], "demand": 7, "competition": 4, "buy_price": "35-60 €", "sell_price": "70-110 €", "why": "Gros panier, les gens n'achètent pas du neuf hors de prix pour une semaine de ski. Vacances de Noël et février.", "keywords": ["combinaison ski femme", "ensemble ski femme", "veste ski femme", "tenue ski"]},
-    {"id": "coquette", "name": "Coquette / nœuds / velours", "persona": "femme 18-25 ans, cheveux longs avec nœud", "months": [11, 12, 2, 3, 4], "demand": 7, "competition": 6, "buy_price": "12-22 €", "sell_price": "25-40 €", "why": "Tendance Gen Z très active sur Vinted. Velours rouge/bordeaux = fêtes, puis rose pour la Saint-Valentin.", "keywords": ["robe coquette", "robe velours", "noeud", "robe bordeaux"]},
-    {"id": "medieval", "name": "Médiéval / renaissance / fée", "persona": "femme 20-30 ans, cheveux longs ondulés", "months": [9, 10, 5, 6, 7], "demand": 6, "competition": 3, "buy_price": "15-30 €", "sell_price": "35-55 €", "why": "Compte Luna de la vidéo. Hors Halloween : fêtes médiévales, GN, mariages à thème au printemps/été.", "keywords": ["robe médiévale", "robe renaissance", "robe elfe", "corset médiéval"]},
-    {"id": "saint-valentin", "name": "Saint-Valentin (lingerie soft, robes rouges)", "persona": "femme 22-30 ans", "months": [1, 2], "demand": 7, "competition": 5, "buy_price": "8-20 €", "sell_price": "20-35 €", "why": "À préparer dès mi-janvier.", "keywords": ["robe rouge", "saint valentin", "robe coeur"]}
-  ]
+ "updated": "2026-11-02",
+ "method": "Score /10 = demande Vinted (recherches, volume d'annonces vendues) x faible concurrence x saisonnalité x marge possible (prix d'achat Shein/Temu vs prix Vinted constatés). Mois = mois où la niche est la plus forte.",
+ "niches": [
+  {
+   "id": "noel-pulls",
+   "name": "Pulls de Noël (moches / mignons)",
+   "persona": "femme 20-30 ans, style cosy",
+   "months": [
+    11,
+    12
+   ],
+   "demand": 9,
+   "competition": 6,
+   "buy_price": "10-22 €",
+   "sell_price": "25-38 €",
+   "why": "Pic énorme fin novembre -> 20 décembre (soirées pull moche, Secret Santa). Achat impulsif, peu de négociation.",
+   "keywords": [
+    "pull de noël",
+    "pull moche noël",
+    "pull noël femme",
+    "ugly sweater"
+   ]
+  },
+  {
+   "id": "reveillon-paillettes",
+   "name": "Robes de réveillon / paillettes",
+   "persona": "femme 22-35 ans, glam",
+   "months": [
+    11,
+    12,
+    1
+   ],
+   "demand": 9,
+   "competition": 7,
+   "buy_price": "15-30 €",
+   "sell_price": "35-55 €",
+   "why": "Noël + Nouvel An + soirées d'entreprise. Les acheteuses veulent du neuf pour un seul soir : Vinted est parfait (moins cher qu'en boutique).",
+   "keywords": [
+    "robe paillettes",
+    "robe sequin",
+    "robe réveillon",
+    "robe nouvel an",
+    "robe soirée"
+   ]
+  },
+  {
+   "id": "pyjamas-famille",
+   "name": "Pyjamas de Noël assortis (famille / couple)",
+   "persona": "couple / famille, photos à plat surtout",
+   "months": [
+    11,
+    12
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "8-18 €",
+   "sell_price": "20-30 €",
+   "why": "Peu de vendeurs ont plusieurs tailles du même modèle : énorme avantage du dropshipping (tu commandes la taille demandée).",
+   "keywords": [
+    "pyjama noël famille",
+    "pyjama assorti",
+    "pyjama noël couple"
+   ],
+   "photo_kinds": [
+    "plat",
+    "detail"
+   ]
+  },
+  {
+   "id": "goth-grande-taille",
+   "name": "Gothique / alternatif grande taille",
+   "persona": "femme ronde 25-35 ans, cheveux noirs, piercings",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "demand": 7,
+   "competition": 3,
+   "buy_price": "15-30 €",
+   "sell_price": "35-55 €",
+   "why": "Niche citée dans la vidéo (compte Mylis). Très peu d'offre en 44-54 sur Vinted, clientèle fidèle qui revient sur la boutique. Toute l'année, pic Halloween.",
+   "keywords": [
+    "robe gothique grande taille",
+    "goth plus size",
+    "robe dentelle noire 46",
+    "alternative grande taille"
+   ]
+  },
+  {
+   "id": "goth-classique",
+   "name": "Robes gothiques / romantic goth",
+   "persona": "femme 20-28 ans, pâle, cheveux noirs à frange",
+   "months": [
+    9,
+    10,
+    11,
+    2
+   ],
+   "demand": 8,
+   "competition": 6,
+   "buy_price": "12-25 €",
+   "sell_price": "30-45 €",
+   "why": "Compte Sophie de la vidéo. Hors Halloween : orienter vers 'whimsigoth', 'dark academia', Saint-Valentin goth.",
+   "keywords": [
+    "robe gothique",
+    "whimsigoth",
+    "robe dentelle noire",
+    "dark academia"
+   ]
+  },
+  {
+   "id": "fausse-fourrure",
+   "name": "Vestes fausse fourrure (mob wife)",
+   "persona": "femme 22-35 ans, glam, cheveux bruns",
+   "months": [
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "25-45 €",
+   "sell_price": "50-75 €",
+   "why": "Tendance forte hiver, panier élevé = gros bénéfice par vente même avec un x2.",
+   "keywords": [
+    "veste fausse fourrure",
+    "manteau fourrure synthétique",
+    "mob wife",
+    "veste moumoute"
+   ]
+  },
+  {
+   "id": "manteau-laine",
+   "name": "Manteaux longs laine oversize",
+   "persona": "femme 25-35 ans, style minimal / old money",
+   "months": [
+    10,
+    11,
+    12,
+    1
+   ],
+   "demand": 8,
+   "competition": 7,
+   "buy_price": "30-70 €",
+   "sell_price": "60-110 €",
+   "why": "Très recherché mais concurrence de marques (Zara, Mango) d'occasion : miser sur des coloris tendance (chocolat, bordeaux, chevrons).",
+   "keywords": [
+    "manteau long laine",
+    "manteau oversize",
+    "manteau chevrons",
+    "manteau bordeaux"
+   ]
+  },
+  {
+   "id": "old-money-homme",
+   "name": "Homme old money (pulls demi-zip, cols roulés)",
+   "persona": "homme 20-30 ans, cheveux courts, style propre",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "15-25 €",
+   "sell_price": "30-45 €",
+   "why": "Les hommes négocient moins et achètent vite. Peu de boutiques homme neuves sur Vinted. Cadeau de Noël.",
+   "keywords": [
+    "pull demi zip homme",
+    "old money homme",
+    "pull col camionneur",
+    "col roulé homme"
+   ]
+  },
+  {
+   "id": "ski",
+   "name": "Ensembles de ski femme",
+   "persona": "femme 25-35 ans sportive, photos montagne",
+   "months": [
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "35-60 €",
+   "sell_price": "70-110 €",
+   "why": "Gros panier, les gens n'achètent pas du neuf hors de prix pour une semaine de ski. Vacances de Noël et février.",
+   "keywords": [
+    "combinaison ski femme",
+    "ensemble ski femme",
+    "veste ski femme",
+    "tenue ski"
+   ]
+  },
+  {
+   "id": "coquette",
+   "name": "Coquette / nœuds / velours",
+   "persona": "femme 18-25 ans, cheveux longs avec nœud",
+   "months": [
+    11,
+    12,
+    2,
+    3,
+    4
+   ],
+   "demand": 7,
+   "competition": 6,
+   "buy_price": "12-22 €",
+   "sell_price": "25-40 €",
+   "why": "Tendance Gen Z très active sur Vinted. Velours rouge/bordeaux = fêtes, puis rose pour la Saint-Valentin.",
+   "keywords": [
+    "robe coquette",
+    "robe velours",
+    "noeud",
+    "robe bordeaux"
+   ]
+  },
+  {
+   "id": "medieval",
+   "name": "Médiéval / renaissance / fée",
+   "persona": "femme 20-30 ans, cheveux longs ondulés",
+   "months": [
+    9,
+    10,
+    5,
+    6,
+    7
+   ],
+   "demand": 6,
+   "competition": 3,
+   "buy_price": "15-30 €",
+   "sell_price": "35-55 €",
+   "why": "Compte Luna de la vidéo. Hors Halloween : fêtes médiévales, GN, mariages à thème au printemps/été.",
+   "keywords": [
+    "robe médiévale",
+    "robe renaissance",
+    "robe elfe",
+    "corset médiéval"
+   ]
+  },
+  {
+   "id": "saint-valentin",
+   "name": "Saint-Valentin (lingerie soft, robes rouges)",
+   "persona": "femme 22-30 ans",
+   "months": [
+    1,
+    2
+   ],
+   "demand": 7,
+   "competition": 5,
+   "buy_price": "8-20 €",
+   "sell_price": "20-35 €",
+   "why": "À préparer dès mi-janvier.",
+   "keywords": [
+    "robe rouge",
+    "saint valentin",
+    "robe coeur"
+   ]
+  },
+  {
+   "id": "enfant-fetes",
+   "name": "Robes de fête fille (Noël, velours, tulle)",
+   "persona": "photos à plat + enfant non identifiable de dos ; jamais de visage d'enfant",
+   "months": [
+    11,
+    12
+   ],
+   "demand": 8,
+   "competition": 4,
+   "buy_price": "12-22 €",
+   "sell_price": "25-38 €",
+   "why": "Les parents cherchent une robe pour UN repas de Noël, en taille précise : peu d'offre neuve en 4-12 ans, achat rapide sans négociation.",
+   "keywords": [
+    "robe noël fille",
+    "robe velours fille",
+    "robe de fête fille",
+    "robe princesse fille"
+   ],
+   "photo_kinds": [
+    "plat",
+    "detail"
+   ]
+  },
+  {
+   "id": "cuir",
+   "name": "Vestes simili cuir (bomber, oversize marron)",
+   "persona": "femme 22-32 ans, style urbain",
+   "months": [
+    10,
+    11,
+    12,
+    2,
+    3
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "20-40 €",
+   "sell_price": "45-70 €",
+   "why": "« Cuir total » est la 1re tendance AH 2026-27 (Vogue). Marron chocolat et bomber très cherchés, panier élevé.",
+   "keywords": [
+    "veste simili cuir",
+    "veste cuir marron femme",
+    "bomber cuir",
+    "veste en cuir oversize"
+   ]
+  },
+  {
+   "id": "chien-noel",
+   "name": "Pulls de Noël pour chien",
+   "persona": "photos à plat + chien qui porte le pull",
+   "months": [
+    11,
+    12
+   ],
+   "demand": 7,
+   "competition": 3,
+   "buy_price": "5-10 €",
+   "sell_price": "14-22 €",
+   "why": "Achat coup de cœur, cadeau, presque aucun vendeur en neuf. Petit colis = envoi pas cher. Marge x2 à x3.",
+   "keywords": [
+    "pull chien",
+    "pull noël chien",
+    "manteau chien",
+    "vêtement chien"
+   ],
+   "photo_kinds": [
+    "plat",
+    "detail"
+   ]
+  },
+  {
+   "id": "cagoules",
+   "name": "Cagoules tricot / balaclava et accessoires d'hiver",
+   "persona": "femme 18-28 ans, photo portée en extérieur",
+   "months": [
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "4-9 €",
+   "sell_price": "14-20 €",
+   "why": "Accessoire tendance Gen Z, taille unique (zéro problème de taille), petit colis, se vend en lot (cagoule + gants).",
+   "keywords": [
+    "cagoule tricot",
+    "balaclava",
+    "cagoule femme",
+    "bonnet cagoule"
+   ]
+  },
+  {
+   "id": "maternite",
+   "name": "Vêtements de grossesse (robes séance photo, basiques)",
+   "persona": "femme enceinte 28-35 ans",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "15-25 €",
+   "sell_price": "30-45 €",
+   "why": "Les futures mamans refusent de payer cher des vêtements portés 6 mois : Vinted est leur 1er réflexe. Robes de séance photo très demandées, toute l'année.",
+   "keywords": [
+    "robe grossesse",
+    "robe séance photo grossesse",
+    "vêtement grossesse",
+    "robe maternité"
+   ]
+  },
+  {
+   "id": "sport-sculptant",
+   "name": "Ensembles de sport sculptants (leggings, brassières)",
+   "persona": "femme 22-32 ans sportive, photo miroir salle de sport",
+   "months": [
+    1,
+    2,
+    3,
+    9
+   ],
+   "demand": 8,
+   "competition": 6,
+   "buy_price": "10-20 €",
+   "sell_price": "25-38 €",
+   "why": "Pic énorme en janvier (bonnes résolutions). À préparer dès mi-décembre. Les ensembles assortis se vendent mieux que les pièces seules.",
+   "keywords": [
+    "ensemble sport femme",
+    "legging sculptant",
+    "legging push up",
+    "ensemble yoga"
+   ]
+  },
+  {
+   "id": "carnaval-enfant",
+   "name": "Déguisements enfant (carnaval, Mardi gras)",
+   "persona": "photos à plat uniquement",
+   "months": [
+    1,
+    2,
+    3
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "8-15 €",
+   "sell_price": "18-28 €",
+   "why": "Carnaval des écoles en février : les parents veulent du pas cher pour un seul jour. À publier dès mi-janvier.",
+   "keywords": [
+    "déguisement fille",
+    "déguisement enfant",
+    "déguisement licorne",
+    "déguisement carnaval"
+   ],
+   "photo_kinds": [
+    "plat",
+    "detail"
+   ]
+  }
+ ]
 }

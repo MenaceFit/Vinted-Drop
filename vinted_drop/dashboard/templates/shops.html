@@ -1,6 +1,53 @@
 {% extends "base.html" %}{% block content %}
-<h1>Boutiques & modèles</h1>
+<h1>Boutiques & connexion Vinted</h1>
 {% if error %}<div class="alert">❌ {{ error }}</div>{% endif %}
+{% if ok %}<div class="ok">✅ {{ ok }}</div>{% endif %}
+
+{% for s in all_shops %}{% set perf = shops|selectattr('id','equalto',s.id)|first %}
+<div class="card" style="margin-bottom:14px">
+  <h2><span class="dot {{ s.vinted_status }}"></span>{{ s.name }} <span class="muted">· {{ s.niche or 'sans niche' }}</span>
+    {% if s.vinted_login %}· <a href="https://www.{{ s.vinted_domain or 'vinted.fr' }}/member/{{ s.vinted_user_id }}" target="_blank">@{{ s.vinted_login }}</a>{% endif %}</h2>
+  <p class="muted">{{ perf.online }} en ligne · {{ perf.sales }} ventes · bénéfice {{ perf.profit|eur }} · Vinted : <b>{{ {'connected':'connecté','expired':'token expiré','error':'erreur','checking':'vérification…'}.get(s.vinted_status, 'non connecté') }}</b>{% if s.vinted_checked_at %} (vérifié {{ s.vinted_checked_at[5:16] }}){% endif %}</p>
+
+  <div class="grid g2">
+  <div>
+    <details {{ 'open' if s.vinted_status != 'connected' }}><summary>🔑 {{ 'Reconnecter' if s.vinted_cookies else 'Connecter' }} le compte Vinted</summary>
+    <ol class="muted" style="font-size:13px;padding-left:18px">
+      <li>Ouvre <b>vinted.fr</b> dans Chrome, connecté(e) au compte de cette boutique.</li>
+      <li>Touche <b>F12</b> → onglet <b>Réseau</b> → recharge la page (F5) → clique sur la 1<sup>re</sup> ligne.</li>
+      <li>Dans <b>En-têtes de requête</b>, copie toute la valeur de <b>Cookie</b> (elle contient <code>access_token_web</code> et <code>refresh_token_web</code>).</li>
+      <li>Optionnel : copie aussi la ligne <b>User-Agent</b>.</li>
+    </ol>
+    <form method="post" action="/boutique/{{ s.id }}/vinted">
+      <label>Cookie</label><textarea name="cookie" required style="min-height:80px" placeholder="access_token_web=...; refresh_token_web=...; ..."></textarea>
+      <div class="row">
+        <div><label>Site</label><select name="domain">{% for d in ['vinted.fr','vinted.be','vinted.es','vinted.it','vinted.de','vinted.nl','vinted.co.uk'] %}<option {{ 'selected' if (s.vinted_domain or 'vinted.fr')==d }}>{{ d }}</option>{% endfor %}</select></div>
+        <div><label>Publications / jour</label><input name="daily_quota" type="number" value="{{ s.daily_quota or 20 }}" style="width:90px"></div>
+      </div>
+      <label>User-Agent (optionnel)</label><input name="user_agent" value="{{ s.vinted_user_agent or '' }}" style="width:100%">
+      <p><button>Connecter et tester</button></p>
+    </form>
+    {% if s.vinted_cookies %}<form method="post" action="/boutique/{{ s.id }}/deconnecter"><button class="ghost">Déconnecter</button></form>{% endif %}
+    </details>
+  </div>
+  <div>
+    <label>Modèle (personne sur les photos)</label>
+    <form method="post" action="/boutique/{{ s.id }}/modele"><select name="persona_id" onchange="this.form.submit()"><option value="">-</option>
+      {% for m in personas %}<option value="{{ m.id }}" {{ 'selected' if s.persona_id==m.id }}>{{ m.name }}</option>{% endfor %}</select></form>
+    <label>Modèle d'annonce (catégorie, marque, tailles)</label>
+    <form method="post" action="/boutique/{{ s.id }}/modele-annonce"><select name="template_id" onchange="this.form.submit()"><option value="">- aucun : publication impossible -</option>
+      {% for t in templates %}<option value="{{ t.id }}" {{ 'selected' if s.template_id==t.id }}>{{ t.name }}</option>{% endfor %}</select></form>
+    {% if s.vinted_status == 'connected' %}
+    <form method="post" action="/boutique/{{ s.id }}/apprendre" style="margin-top:8px">
+      <label>Apprendre d'une de tes annonces (lien Vinted)</label>
+      <div class="row"><input name="item_url" placeholder="https://www.vinted.fr/items/1234567890-..." required style="flex:1;min-width:200px"><button class="ghost">Apprendre</button></div>
+      <p class="muted" style="font-size:13px">Publie une annonce à la main dans la bonne catégorie : le bot recopie la catégorie, la marque, la taille et le format de colis pour toutes les suivantes.</p>
+    </form>{% endif %}
+  </div>
+  </div>
+</div>
+{% endfor %}
+
 <div class="grid g2">
 <div class="card"><h2>Nouvelle boutique</h2>
 <form method="post" action="/boutiques">
@@ -20,15 +67,17 @@
 </form></div>
 </div>
 
-<div class="card scroll" style="margin-top:14px"><h2>Mes boutiques</h2><table>
-<tr><th>Boutique</th><th>Niche</th><th>Modèle</th><th>En ligne</th><th>Ventes</th><th>CA</th><th>Bénéfice</th></tr>
-{% for s in shops %}{% set full = all_shops|selectattr('id','equalto',s.id)|first %}
-<tr><td><b>{{ s.name }}</b>{% if full.vinted_url %}<br><a href="{{ full.vinted_url }}" target="_blank">profil</a>{% endif %}</td><td>{{ s.niche or '-' }}</td>
-<td><form method="post" action="/boutique/{{ s.id }}/modele"><select name="persona_id" onchange="this.form.submit()"><option value="">-</option>
-  {% for m in personas %}<option value="{{ m.id }}" {{ 'selected' if full.persona_id==m.id }}>{{ m.name }}</option>{% endfor %}</select></form></td>
-<td>{{ s.online }}</td><td>{{ s.sales }}</td><td>{{ s.revenue|eur }}</td><td class="good">{{ s.profit|eur }}</td></tr>
-{% else %}<tr><td colspan="7" class="muted">Aucune boutique.</td></tr>{% endfor %}
-</table></div>
+<div class="card" style="margin-top:14px"><h2>Modèles d'annonce</h2>
+<div class="scroll"><table><tr><th>Nom</th><th>Catégorie</th><th>Marque</th><th>Tailles</th><th>Colis</th></tr>
+{% for t in templates %}<tr><td>{{ t.name }}</td><td>{{ t.catalog_id }}</td><td>{{ t.brand or t.brand_id or '-' }}</td><td>{{ t.size_map }}</td><td>{{ t.package_size_id }}</td></tr>
+{% else %}<tr><td colspan="5" class="muted">Aucun. Connecte Vinted puis « Apprendre d'une annonce ».</td></tr>{% endfor %}</table></div>
+<details style="margin-top:10px"><summary>Créer à la main (avancé)</summary>
+<form method="post" action="/modeles-annonce" class="row" style="margin-top:8px">
+  <input name="name" placeholder="Nom" required><input name="catalog_id" type="number" placeholder="catalog_id" required style="width:120px">
+  <input name="brand_id" placeholder="brand_id" style="width:110px"><input name="brand" placeholder="Marque" style="width:120px">
+  <input name="size_map" placeholder="S=206,M=207,L=208" style="width:180px"><input name="package_size_id" type="number" value="2" style="width:70px">
+  <button class="ghost">Créer</button></form></details>
+</div>
 
 <div class="card" style="margin-top:14px"><h2>Modèles</h2>
 <div class="gallery">{% for m in personas %}<div>{% if m.reference_image %}<img src="/media/{{ m.reference_image }}">{% else %}<div class="muted">⏳ en cours</div>{% endif %}

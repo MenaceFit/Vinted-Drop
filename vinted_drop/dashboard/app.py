@@ -13,7 +13,8 @@ from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from .. import config, db, listing, niches, notify, photos, pricing, supplier
+from .. import (autopilot, config, db, listing, market, niches, notify, photos, pricing, publisher,
+               responder, supplier, vinted_client)
 
 security = HTTPBasic(auto_error=False)
 
@@ -54,7 +55,9 @@ def home(request: Request):
         today=db.today_stats(), week=db.stats(7), month=db.stats(30), total=db.stats(),
         series=json.dumps(db.daily_series(30)), shops=db.shop_breakdown(),
         sales=db.list_sales(limit=10), to_order=db.list_sales(status="to_order"),
-        top_niches=niches.ranked()[:4],
+        top_niches=niches.ranked()[:4], events=db.list_events(12), settings=db.all_settings(),
+        pending_msgs=len(db.list_conversations(status="pending")),
+        disconnected=[x for x in db.list_shops() if x.get("vinted_status") != "connected"],
     )
 
 
@@ -165,13 +168,18 @@ def product_action(pid: int, action: str, bg: BackgroundTasks, sale_price: str =
         bg.add_task(_run, pid, listing.prepare, pid)
     elif action == "publie":
         db.update_product(pid, status="published")
+    elif action == "publier-vinted":
+        try:
+            publisher.publish(pid)
+        except Exception as e:
+            JOB_ERRORS[pid] = str(e)
     elif action == "vendu":
         p = db.get_product(pid)
         price = float(sale_price.replace(",", ".")) if sale_price else p.get("price")
         if not price:
             raise HTTPException(400, "Prix de vente manquant")
         sid = db.record_sale(pid, price, buyer or None)
-        notify.send(notify.sale_message(db.get_sale(sid)))
+        notify.notify_sale(db.get_sale(sid))
     else:
         raise HTTPException(400, "Action inconnue")
     if action in ("photos", "fiche", "preparer"):
@@ -198,7 +206,8 @@ def sale_status(sid: int, status_: str = Form(..., alias="status")):
 @app.get("/boutiques")
 def shops(request: Request):
     return render(request, "shops.html", shops=db.shop_breakdown(), all_shops=db.list_shops(),
-                  personas=db.list_personas(), niches=niches.load(), error=JOB_ERRORS.pop(0, None))
+                  personas=db.list_personas(), niches=niches.load(), error=JOB_ERRORS.pop(0, None),
+                  templates=db.list_templates(), ok=request.query_params.get("ok"))
 
 
 @app.post("/boutiques")
@@ -235,3 +244,105 @@ def niches_page(request: Request):
         winners.setdefault(w["niche"], []).append(w)
     return render(request, "niches.html", niches=ranked, winners=winners, shops=db.list_shops(),
                   perf=db.niche_breakdown())
+
+
+# ---------------- connexion Vinted ----------------
+@app.post("/boutique/{sid}/vinted")
+def connect_vinted(sid: int, cookie: str = Form(...), domain: str = Form("vinted.fr"), user_agent: str = Form(""),
+                   daily_quota: int = Form(20)):
+    db.update_shop(sid, daily_quota=daily_quota)
+    try:
+        user = vinted_client.connect_shop(sid, cookie, domain, user_agent or None)
+        return RedirectResponse(f"/boutiques?ok=Connecté à @{user.get('login')}", status_code=303)
+    except Exception as e:
+        JOB_ERRORS[0] = f"Connexion Vinted : {e}"
+        return RedirectResponse("/boutiques", status_code=303)
+
+
+@app.post("/boutique/{sid}/deconnecter")
+def disconnect_vinted(sid: int):
+    db.update_shop(sid, vinted_cookies=None, vinted_status="disconnected")
+    return RedirectResponse("/boutiques", status_code=303)
+
+
+@app.post("/boutique/{sid}/apprendre")
+def learn_template(sid: int, item_url: str = Form(...), name: str = Form("")):
+    try:
+        publisher.learn_template(sid, item_url, name or None)
+        return RedirectResponse("/boutiques?ok=Modèle d'annonce enregistré", status_code=303)
+    except Exception as e:
+        JOB_ERRORS[0] = f"Apprentissage : {e}"
+        return RedirectResponse("/boutiques", status_code=303)
+
+
+@app.post("/boutique/{sid}/modele-annonce")
+def set_shop_template(sid: int, template_id: str = Form("")):
+    db.update_shop(sid, template_id=int(template_id) if template_id else None)
+    return RedirectResponse("/boutiques", status_code=303)
+
+
+@app.post("/modeles-annonce")
+def add_template_manual(name: str = Form(...), catalog_id: int = Form(...), brand_id: str = Form(""),
+                        brand: str = Form(""), size_map: str = Form(""), package_size_id: int = Form(2)):
+    sizes = {}
+    for part in size_map.split(","):
+        if "=" in part:
+            k, v = part.split("=", 1)
+            sizes[k.strip().upper()] = int(v)
+    db.add_template(name, catalog_id=catalog_id, brand_id=int(brand_id) if brand_id else None,
+                    brand=brand or None, size_map=sizes, size_id=next(iter(sizes.values()), None),
+                    package_size_id=package_size_id)
+    return RedirectResponse("/boutiques?ok=Modèle d'annonce créé", status_code=303)
+
+
+# ---------------- pilote automatique ----------------
+@app.get("/pilote")
+def autopilot_page(request: Request):
+    return render(request, "autopilot.html", settings=db.all_settings(), events=db.list_events(60),
+                  scan=market.last_scan(), shops=db.list_shops(), ok=request.query_params.get("ok"))
+
+
+@app.post("/pilote")
+async def autopilot_save(request: Request):
+    form = await request.form()
+    for k in db.DEFAULT_SETTINGS:
+        if k in form:
+            db.set_setting(k, form[k])
+    if "ship_delay" in form:
+        db.set_setting("ship_delay", form["ship_delay"])
+    return RedirectResponse("/pilote?ok=Réglages enregistrés", status_code=303)
+
+
+@app.post("/pilote/lancer/{job}")
+def autopilot_run(job: str, bg: BackgroundTasks):
+    jobs = {"sync": autopilot.run_sync, "messages": autopilot.run_inbox, "publier": autopilot.run_publish,
+            "preparer": autopilot.run_prepare_night, "prix": autopilot.run_price_drops,
+            "marche": autopilot.run_market_scan}
+    if job not in jobs:
+        raise HTTPException(404)
+
+    def safe():
+        try:
+            jobs[job]()
+        except Exception as e:
+            db.log_event("error", f"{job} : {e}")
+    bg.add_task(safe)
+    return RedirectResponse(f"/pilote?ok=Tâche « {job} » lancée", status_code=303)
+
+
+# ---------------- messages ----------------
+@app.get("/messages")
+def messages_page(request: Request):
+    return render(request, "messages.html", convs=db.list_conversations(limit=100), error=JOB_ERRORS.pop(-1, None))
+
+
+@app.post("/message/{cid}")
+def message_action(cid: int, action: str = Form(...), text: str = Form("")):
+    try:
+        if action == "send":
+            responder.send_pending(cid, text or None)
+        else:
+            db.upsert_conversation(cid, status="ignored")
+    except Exception as e:
+        JOB_ERRORS[-1] = str(e)
+    return RedirectResponse("/messages", status_code=303)

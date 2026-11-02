@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% block content %}
+<h1>Messages acheteurs</h1>
+{% if error %}<div class="alert">❌ {{ error }}</div>{% endif %}
+{% for c in convs %}
+<div class="card" style="margin-bottom:12px">
+  <p style="margin:0 0 6px"><span class="pill {{ 'to_order' if c.status=='pending' else 'done' }}">{{ c.status }}</span>
+    <b>{{ c.buyer or 'acheteur' }}</b> <span class="muted">· {{ c.updated_at[5:16] }} · {{ c.intent or '' }}{% if c.offer_price %} · offre {{ c.offer_price|eur }}{% endif %}</span>
+    {% if c.product_id %}· <a href="/produit/{{ c.product_id }}">produit #{{ c.product_id }}</a>{% endif %}</p>
+  <p style="margin:0 0 8px">« {{ c.last_buyer_message }} »</p>
+  {% if c.status == 'pending' %}
+  <form method="post" action="/message/{{ c.id }}">
+    <textarea name="text" style="min-height:70px">{{ c.draft or '' }}</textarea>
+    <div class="row" style="margin-top:6px"><button name="action" value="send">✅ Envoyer</button><button class="ghost" name="action" value="ignore">Ignorer</button></div>
+  </form>
+  {% else %}<p class="muted">Réponse : {{ c.draft or '-' }}</p>{% endif %}
+</div>
+{% else %}<p class="muted">Aucun message pour l'instant. Ils arrivent ici dès que Vinted est connecté et que le bot tourne.</p>{% endfor %}
+{% endblock %}

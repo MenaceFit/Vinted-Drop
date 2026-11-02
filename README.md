@@ -1,20 +1,26 @@
 # Vinted Drop
 
-Système pour gérer des boutiques Vinted en dropshipping (Shein, Temu, AliExpress) :
+Système complet pour faire tourner des boutiques Vinted en dropshipping (Shein, Temu, AliExpress),
+**en pilote automatique** :
 
-- **📸 Photos IA** : un modèle récurrent par boutique, et pour chaque produit une photo portée
-  (selfie miroir style amateur), une photo à plat et un gros plan matière.
-- **📝 Fiches** : titre optimisé pour la recherche Vinted, description complète, prix calculé
-  automatiquement (marge, prix plancher pour la négociation).
-- **📊 Dashboard web** : CA, bénéfice, marge, ventes par boutique, ventes à commander, niches.
-- **🤖 Bot Telegram** : ajoute des produits, génère photos et fiches, enregistre les ventes, t'envoie le
-  lien fournisseur à commander, fait la compta et t'envoie un récap chaque soir.
-- **🔎 Niches** : classement des niches du moment + 29 liens directs vers des produits gagnants
-  ([docs/NICHES.md](docs/NICHES.md)).
+- **🔑 Connexion Vinted par token** : colle le cookie de ta session dans le dashboard, c'est tout.
+- **💸 Ventes détectées toutes seules** : toutes les 15 min, le bot voit les nouvelles ventes, fait la compta
+  et t'envoie sur Telegram le bouton « Commander » qui mène au produit chez le fournisseur.
+- **📤 Publication automatique** : les produits prêts sont publiés de 10h à 15h, étalés, avec un quota par boutique.
+- **💬 Réponses aux acheteurs + négociation** : l'IA rédige la réponse. Les offres sont acceptées si elles
+  atteignent le prix mini ; sinon le bot fait une contre-offre.
+- **📉 Baisse des prix** des articles qui ne bougent pas (jamais sous le prix mini).
+- **📸 Photos IA** : un modèle récurrent par boutique, photo portée + à plat + détail.
+- **🌙 Préparation de nuit** : les brouillons reçoivent leurs photos et leur fiche pendant la nuit.
+- **🔎 Analyse des niches** : 19 niches classées par saison et par données Vinted en direct, et 49 liens
+  fournisseurs ([docs/NICHES.md](docs/NICHES.md)).
+- **🤖 Bot Telegram** : boutons partout, validation en 1 clic, et assistant à qui tu écris normalement
+  (« combien j'ai gagné cette semaine ? », « passe la publication en automatique »).
+- **📊 Dashboard** : chiffres, boutiques, ventes à commander, messages, réglages du pilote, journal.
 
-La publication automatique sur Vinted, les réponses aux clients et le planning ne sont pas encore inclus.
+## Installation (sur ton PC ou ton VPS)
 
-## Installation
+Python 3.12 ou plus récent.
 
 ```bash
 git clone <ce dépôt> && cd Vinted-Drop
@@ -24,82 +30,91 @@ cp .env.example .env      # puis remplis les clés
 python -m vinted_drop.cli init
 ```
 
-Clés nécessaires dans `.env` :
-- `OPENAI_API_KEY` : sur https://platform.openai.com/api-keys (c'est la « clé API ChatGPT » de la vidéo).
-  Compte vérifié requis pour le modèle d'image `gpt-image-1`. Coût indicatif : ~0,05 € par photo en
-  qualité `medium`, donc ~0,15 € par produit.
-- `TELEGRAM_BOT_TOKEN` : parle à [@BotFather](https://t.me/BotFather) → `/newbot`.
-- `TELEGRAM_ALLOWED_CHAT_IDS` : lance le bot, envoie-lui `/start`, il t'affiche ton chat id. Colle-le
-  ici puis relance le bot (sinon n'importe qui pourrait utiliser ton bot).
-- `DASHBOARD_PASSWORD` : obligatoire si le dashboard tourne sur un VPS.
+Dans `.env` :
+- `OPENAI_API_KEY` : sur https://platform.openai.com/api-keys (photos, fiches, réponses, assistant).
+  Environ 0,15 € de photos par produit.
+- `TELEGRAM_BOT_TOKEN` : avec [@BotFather](https://t.me/BotFather) → `/newbot`.
+- `TELEGRAM_ALLOWED_CHAT_IDS` : envoie `/start` au bot, il t'affiche ton chat id, colle-le ici.
+- `DASHBOARD_PASSWORD` : **obligatoire sur un VPS** (le dashboard contient tes tokens Vinted).
 
 ## Lancer
 
 ```bash
-python -m vinted_drop.cli dashboard   # http://localhost:8000
-python -m vinted_drop.cli bot         # bot Telegram
+python -m vinted_drop.cli all     # dashboard + bot + pilote automatique
 ```
 
-## Utilisation en 5 étapes
+Dashboard : http://localhost:8000 (ou `http://IP-DU-VPS:8000`).
 
-1. **Crée un modèle** (dashboard → Boutiques, ou CLI) :
-   ```bash
-   python -m vinted_drop.cli persona "Sophie" "a 25 year old woman, pale skin, long straight black hair with bangs, slim, gothic style, silver rings"
-   ```
-2. **Crée la boutique** et associe-lui une niche et le modèle :
-   ```bash
-   python -m vinted_drop.cli shop "Sophie" --niche goth-classique --persona 1
-   ```
-3. **Ajoute des produits** : onglet *Niches* → *Importer*, ou dans Telegram
-   `/ajouter <lien> <prix_achat> Sophie M`, ou envoie une **capture du produit** au bot avec la légende
-   `14.90 <lien> Sophie`. (Shein bloque souvent la récupération automatique de l'image : la capture
-   d'écran marche toujours.)
-4. **Prépare** : `/preparer <id>` → le bot génère les 3 photos + titre + description + prix et te les
-   envoie. Tu publies sur Vinted, puis `/publie <id>`.
-5. **Vente** : `/vendu <id> <prix>` → bénéfice calculé + lien pour commander chez le fournisseur.
-   Suis la commande avec `/commande`, `/recu`, `/envoye`. `/acommander` liste ce qui reste à commander.
+## Mise en route (10 minutes)
 
-Toutes les commandes : `/aide` dans Telegram.
+1. **Dashboard → Boutiques** : crée la boutique (nom, niche) et génère son modèle (la personne sur les photos).
+2. **Connecte Vinted** : sur la fiche de la boutique, colle le cookie (la marche à suivre est affichée).
+   Le bot vérifie le compte et affiche `@ton_pseudo` en vert.
+3. **Apprends un modèle d'annonce** : publie UNE annonce à la main dans la bonne catégorie, puis colle
+   son lien dans « Apprendre d'une annonce ». Le bot recopie la catégorie, la marque, la taille et le
+   format de colis pour toutes ses publications.
+4. **Ajoute des produits** : onglet *Niches* → *Importer*, ou envoie une capture au bot Telegram avec la
+   légende `14.90 <lien> Sophie M`.
+5. C'est tout : la nuit le bot prépare, le jour il publie, il répond, il détecte les ventes.
+
+**Conseil** : laisse la publication et les réponses en mode **« je valide sur Telegram »** la
+première semaine (c'est le réglage par défaut). Tu touches ✅ sur ton téléphone. Quand tu es en
+confiance, passe en **automatique** avec `/auto` ou dans *Pilote auto*.
+
+## Planning du pilote automatique
+
+| Quand | Quoi |
+|---|---|
+| toutes les 15 min | synchro annonces (vues, favoris) + détection des ventes |
+| toutes les 10 min | messages acheteurs et offres |
+| 10h → 15h | publication : 1 article par boutique toutes les 15 min, jusqu'au quota (20 par défaut) |
+| 2h | préparation des brouillons (photos + fiches), 15 par nuit |
+| 3h | baisse de 10 % des articles sans favoris depuis 7 jours |
+| 4h | analyse du marché Vinted → classement des niches |
+| 21h | récap compta |
+
+Tout se règle dans le dashboard (*Pilote auto*) ou dans Telegram (`/auto`).
+
+## Commandes Telegram principales
+
+`/menu` (boutons) · `/stats` · `/acommander` · `/messages` · `/auto` · `/sync` · `/vinted` ·
+`/niches` · `/gagnants` · `/preparer <id>` · `/publier <id>` · `/aide` pour tout le reste.
+Ou écris simplement ta question.
 
 ## Sur un VPS (24h/24)
 
 ```bash
-sudo tee /etc/systemd/system/vinted-bot.service >/dev/null <<UNIT
+sudo tee /etc/systemd/system/vinted-drop.service >/dev/null <<UNIT
 [Unit]
 After=network.target
 [Service]
 WorkingDirectory=$PWD
-ExecStart=$PWD/.venv/bin/python -m vinted_drop.cli bot
+ExecStart=$PWD/.venv/bin/python -m vinted_drop.cli all
 Restart=always
 [Install]
 WantedBy=multi-user.target
 UNIT
-sudo sed 's/cli bot/cli dashboard/' /etc/systemd/system/vinted-bot.service | sudo tee /etc/systemd/system/vinted-dashboard.service >/dev/null
-sudo systemctl daemon-reload && sudo systemctl enable --now vinted-bot vinted-dashboard
+sudo systemctl daemon-reload && sudo systemctl enable --now vinted-drop
 ```
 
-## Réglages des prix (`.env`)
+## Limites à connaître
 
-| Variable | Défaut | Rôle |
-|---|---|---|
-| `TARGET_MULTIPLIER` | 2.5 | Prix visé = achat × 2,5 |
-| `MIN_PROFIT` | 8 | Bénéfice minimum par article (€) |
-| `NEGOTIATION_BUFFER` | 0.15 | Prix affiché 15 % au-dessus du prix plancher |
-| `PACKAGING_COST` | 0.5 | Emballage par colis (€) |
-
-Exemple : article acheté 14,90 € → affiché 43,90 €, offre acceptée jusqu'à 37,90 € (22,50 € de bénéfice minimum).
-
-## À savoir avant de vendre
-
-- **Statut pro** : Vinted interdit la revente professionnelle depuis un compte particulier. Acheter pour
-  revendre avec bénéfice, c'est une activité commerciale : il faut un statut (micro-entreprise) et un
-  compte **Vinted Pro**, et déclarer ce que tu gagnes. Vinted transmet chaque année aux impôts les ventes
-  des comptes au-delà de 30 ventes ou 2 000 €.
-- **Photos fidèles** : les prompts demandent à l'IA de reproduire le vêtement à l'identique. Vérifie
-  chaque photo avant de publier : un article qui ne ressemble pas aux photos, c'est un litige et un
-  remboursement.
-- **État** : mets « Neuf avec étiquette » ou « Neuf sans étiquette », et des délais d'envoi qui
-  tiennent compte de la livraison du fournisseur.
+- **Vinted n'a pas d'API officielle.** La connexion utilise les mêmes adresses que le site quand tu es
+  connecté. Elles n'ont pas pu être testées sur un vrai compte pendant le développement et Vinted peut les
+  changer à tout moment. Si une action échoue, le bot te prévient sur Telegram avec l'erreur. Toutes les
+  adresses sont dans `vinted_drop/vinted_client.py` (`ENDPOINTS`) pour être corrigées facilement.
+- **Token** : il expire. Le bot le renouvelle avec le `refresh_token_web`. Si ça ne marche plus,
+  Telegram affiche « 🔑 token expiré » : recolle le cookie.
+- **Risque de blocage** : l'automatisation est contraire aux conditions d'utilisation de Vinted, qui
+  peut restreindre ou fermer un compte. Le bot reste raisonnable (une requête toutes les 2,5 s au
+  maximum, publications étalées, quota par jour), mais le risque existe. Si Vinted bloque les requêtes
+  depuis ton VPS (erreur 403), lance le bot depuis ton PC.
+- **Statut pro** : la revente avec bénéfice est une activité commerciale. Il faut une micro-entreprise
+  et un compte **Vinted Pro**, sinon le compte peut être fermé. Vinted transmet aux impôts les comptes
+  au-delà de 30 ventes ou 2 000 € par an.
+- **Photos fidèles** : vérifie les photos (mode validation). Un article différent des photos =
+  litige et remboursement. Pour les niches enfants et animaux, le bot ne fait que des photos à plat.
+- **Délais** : le délai d'envoi annoncé aux acheteurs se règle dans *Pilote auto* : mets un délai réel.
 
 ## Tests
 
@@ -107,20 +122,25 @@ Exemple : article acheté 14,90 € → affiché 43,90 €, offre acceptée jusq
 python -m pytest -q
 ```
 
+Les tests simulent Vinted (aucun appel réseau).
+
 ## Structure
 
 ```
 vinted_drop/
-  photos.py        modèles + photos portées / à plat / détail (OpenAI gpt-image-1)
-  listing.py       titre, description, prix
-  pricing.py       calcul des prix et des offres
-  supplier.py      lecture des pages Shein/Temu (titre, image)
-  niches.py        classement des niches
-  db.py            base SQLite (data/vinted_drop.db)
+  vinted_client.py connexion à ton compte Vinted (token)
+  sync.py          synchro annonces + détection des ventes
+  publisher.py     publication + modèles d'annonce
+  responder.py     réponses aux acheteurs + offres
+  market.py        analyse du marché Vinted
+  autopilot.py     planning automatique
+  assistant.py     assistant en langage naturel (Telegram)
   telegram_bot.py  bot Telegram
-  notify.py        envoi de notifications Telegram
-  dashboard/       dashboard web (FastAPI)
-  cli.py           ligne de commande
-data/niches.json, data/winning_products.json
-docs/NICHES.md     analyse des niches
+  photos.py        modèles + photos IA
+  listing.py       titres, descriptions, prix
+  pricing.py       calcul des prix et des offres
+  niches.py        classement des niches
+  db.py            base SQLite
+  dashboard/       dashboard web
+data/niches.json, data/winning_products.json, docs/NICHES.md
 ```

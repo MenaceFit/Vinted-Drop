@@ -80,3 +80,11 @@ def chat_json(system: str, user_text: str, image: Path | None = None) -> dict:
     })
     text = _check(resp)["choices"][0]["message"]["content"]
     return json.loads(text)
+
+
+def chat_tools(messages: list, tools: list) -> dict:
+    """Un tour de conversation avec appel d'outils (function calling)."""
+    resp = requests.post(f"{API}/chat/completions", headers=_headers(), timeout=120, json={
+        "model": config.OPENAI_TEXT_MODEL, "messages": messages, "tools": tools,
+    })
+    return _check(resp)["choices"][0]["message"]

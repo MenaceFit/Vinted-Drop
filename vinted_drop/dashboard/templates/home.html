@@ -1,5 +1,8 @@
 {% extends "base.html" %}{% block content %}
 <h1>Dashboard</h1>
+{% for sh in disconnected %}<div class="alert">🔑 Boutique <b>{{ sh.name }}</b> : Vinted {{ 'non connecté' if not sh.vinted_cookies else sh.vinted_status }} — <a href="/boutiques">connecter</a></div>{% endfor %}
+{% if pending_msgs %}<div class="alert info">💬 {{ pending_msgs }} message(s) acheteur en attente de validation — <a href="/messages">voir</a></div>{% endif %}
+<p class="muted">🤖 Pilote automatique : <b>{{ 'activé' if settings.autopilot=='on' else 'désactivé' }}</b> · publication {{ settings.publish_mode }} · réponses {{ settings.reply_mode }} · offres {{ settings.offer_mode }} — <a href="/pilote">régler</a></p>
 <div class="grid g4">
   {% for label, s in [("Aujourd'hui", today), ("7 jours", week), ("30 jours", month), ("Total", total)] %}
   <div class="card kpi"><div class="l">{{ label }}</div>
@@ -46,6 +49,11 @@
     <span class="muted">{{ n.why }}</span></p>{% endfor %}
     <a href="/niches">Voir l'analyse complète et les liens →</a></div>
 </div>
+
+<div class="card" style="margin-top:14px"><h2>Activité du bot</h2><div class="scroll"><table>
+  {% for e in events %}<tr><td class="muted" style="white-space:nowrap">{{ e.created_at[5:16] }}</td><td><span class="pill">{{ e.kind }}</span></td><td>{{ e.message }}</td></tr>
+  {% else %}<tr><td class="muted">Rien pour l'instant.</td></tr>{% endfor %}
+</table></div></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>

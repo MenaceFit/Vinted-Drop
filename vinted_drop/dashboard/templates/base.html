@@ -40,6 +40,10 @@ form.inline{display:inline}
 .thumb{width:48px;height:64px;object-fit:cover;border-radius:6px;background:var(--bg)}
 .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
 .gallery img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.ok{padding:10px 14px;border-radius:8px;border:1px solid var(--good);color:var(--good);margin-bottom:14px}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--muted)}
+.dot.connected{background:var(--good)}.dot.expired,.dot.error{background:var(--bad)}
+details summary{cursor:pointer;color:var(--accent)}
 .alert{padding:10px 14px;border-radius:8px;border:1px solid var(--bad);color:var(--bad);margin-bottom:14px}
 .info{border-color:var(--accent);color:var(--accent)}
 label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
@@ -52,7 +56,9 @@ label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px}
 <a href="/produits" class="{{ 'on' if page in ('products','product') }}">Produits</a>
 <a href="/ventes" class="{{ 'on' if page=='sales' }}">Ventes</a>
 <a href="/boutiques" class="{{ 'on' if page=='shops' }}">Boutiques</a>
+<a href="/messages" class="{{ 'on' if page=='messages' }}">Messages</a>
 <a href="/niches" class="{{ 'on' if page=='niches' }}">Niches</a>
+<a href="/pilote" class="{{ 'on' if page=='autopilot' }}">🤖 Pilote auto</a>
 </nav></header>
 <main>{% block content %}{% endblock %}</main>
 </body>

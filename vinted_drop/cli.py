@@ -27,7 +27,7 @@ def main(argv=None):
     s = sub.add_parser("add"); s.add_argument("url"); s.add_argument("cost", type=float)
     s.add_argument("--shop"); s.add_argument("--size"); s.add_argument("--image", help="image locale du produit")
     s = sub.add_parser("photos"); s.add_argument("id", type=int)
-    s.add_argument("--kinds", default="porte,plat,detail")
+    s.add_argument("--kinds", default="", help="porte,plat,detail (défaut : selon la niche)")
     s = sub.add_parser("listing"); s.add_argument("id", type=int); s.add_argument("--info", default="")
     s = sub.add_parser("prepare"); s.add_argument("id", type=int)
     s = sub.add_parser("sold"); s.add_argument("id", type=int); s.add_argument("price", type=float)
@@ -36,6 +36,12 @@ def main(argv=None):
     s = sub.add_parser("niches"); s.add_argument("--month", type=int)
     sub.add_parser("stats")
     sub.add_parser("dashboard")
+    sub.add_parser("cycle", help="un passage du pilote automatique (synchro, messages, publication)")
+    s = sub.add_parser("connect", help="connecte une boutique à Vinted avec le cookie")
+    s.add_argument("shop"); s.add_argument("cookie"); s.add_argument("--domain", default="vinted.fr")
+    s = sub.add_parser("publish", help="publie un produit sur Vinted"); s.add_argument("id", type=int)
+    sub.add_parser("scan", help="analyse du marché Vinted pour toutes les niches")
+    sub.add_parser("all", help="lance le dashboard ET le bot (pilote automatique inclus)")
     sub.add_parser("bot")
     a = ap.parse_args(argv)
     db.init()
@@ -63,7 +69,7 @@ def main(argv=None):
             db.update_product(pid, supplier_image=photos.rel(img))
         print(f"Produit #{pid} ajouté" + ("" if img else " (sans image : utilise --image)"))
     elif a.cmd == "photos":
-        for ph in photos.generate_product_photos(a.id, tuple(a.kinds.split(","))):
+        for ph in photos.generate_product_photos(a.id, tuple(a.kinds.split(",")) if a.kinds else None):
             print(config.MEDIA_DIR / ph)
     elif a.cmd == "listing":
         print(json.dumps(listing.generate_listing(a.id, a.info), ensure_ascii=False, indent=2))
@@ -86,6 +92,30 @@ def main(argv=None):
     elif a.cmd == "dashboard":
         import uvicorn
         uvicorn.run("vinted_drop.dashboard.app:app", host="0.0.0.0", port=config.DASHBOARD_PORT)
+    elif a.cmd == "cycle":
+        from . import autopilot
+        print(json.dumps(autopilot.cycle(), ensure_ascii=False, indent=2, default=str))
+    elif a.cmd == "connect":
+        from . import vinted_client
+        shop = db.find_shop(a.shop)
+        if not shop:
+            raise SystemExit("Boutique introuvable")
+        user = vinted_client.connect_shop(shop["id"], a.cookie, a.domain)
+        print(f"Connecté à @{user.get('login')}")
+    elif a.cmd == "publish":
+        from . import publisher
+        print(publisher.publish(a.id))
+    elif a.cmd == "scan":
+        from . import autopilot
+        for n in autopilot.run_market_scan() or []:
+            print(n["score"], n["name"])
+    elif a.cmd == "all":
+        import threading
+        import uvicorn
+        threading.Thread(target=lambda: uvicorn.run("vinted_drop.dashboard.app:app", host="0.0.0.0",
+                                                    port=config.DASHBOARD_PORT), daemon=True).start()
+        from .telegram_bot import main as bot_main
+        bot_main()
     elif a.cmd == "bot":
         from .telegram_bot import main as bot_main
         bot_main()
