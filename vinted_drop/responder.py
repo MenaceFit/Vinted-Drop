@@ -135,6 +135,10 @@ def process_shop(client: VintedClient, limit=15) -> dict:
 
 def send_reply(client: VintedClient, cid: int, text: str):
     client.reply(cid, text)
+    if client.simulated:
+        db.log_event("reply", f"[simulation] Réponse non envoyée : {text[:80]}", shop_id=client.shop["id"],
+                     source="simulation")
+        return
     db.upsert_conversation(cid, status="sent", draft=text)
     db.log_event("reply", f"Réponse envoyée : {text[:80]}", shop_id=client.shop["id"])
 

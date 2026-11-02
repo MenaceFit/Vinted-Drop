@@ -59,6 +59,10 @@ def publish(product_id: int) -> dict:
     client = VintedClient(shop)
     photos = [abs_media(x) for x in p["photos"]][:20]
     item = client.create_item(build_fields(p, tpl), photos)
+    if client.simulated:
+        db.log_event("publish", f"[simulation] Publication de « {p['title']} » à {p['price']:.2f} € (rien envoyé)",
+                     shop_id=shop["id"], product_id=product_id, source="simulation")
+        return {"item_id": None, "url": None, "simulated": True}
     item_id = item.get("id")
     if not item_id:
         raise VintedError(f"Vinted n'a pas renvoyé d'identifiant d'annonce : {str(item)[:200]}")

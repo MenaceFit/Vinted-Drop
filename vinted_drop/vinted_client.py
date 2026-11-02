@@ -19,6 +19,7 @@ from datetime import datetime
 import requests
 
 from . import db
+from .security import decrypt, encrypt
 
 DEFAULT_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
               "Chrome/130.0 Safari/537.36")
@@ -82,7 +83,7 @@ class VintedClient:
             "Referer": self.base + "/",
             "Origin": self.base,
         })
-        cookies = shop.get("vinted_cookies")
+        cookies = decrypt(shop.get("vinted_cookies"))
         if not cookies:
             raise VintedAuthError(f"La boutique {shop.get('name')} n'est pas connectée à Vinted")
         for k, v in json.loads(cookies).items():
@@ -105,7 +106,7 @@ class VintedClient:
     def _save_cookies(self):
         if self.shop.get("id"):
             jar = {c.name: c.value for c in self.s.cookies}
-            db.update_shop(self.shop["id"], vinted_cookies=json.dumps(jar))
+            db.update_shop(self.shop["id"], vinted_cookies=encrypt(json.dumps(jar)))
 
     def refresh_session(self):
         """Recharge la page d'accueil : Vinted renvoie un nouveau access_token si le refresh_token est valide.
@@ -119,8 +120,17 @@ class VintedClient:
         self._save_cookies()
         return r.status_code
 
+    @property
+    def simulated(self) -> bool:
+        return db.get_setting("simulation") == "on"
+
     def call(self, name, path_args=None, retry=True, **kw):
         method, path = ENDPOINTS[name].split(" ", 1)
+        if method != "GET" and self.simulated:
+            # mode simulation : aucune écriture sur le compte réel
+            db.log_event("vinted", f"[simulation] {name} non envoyé à Vinted", shop_id=self.shop.get("id"),
+                         source="simulation")
+            return {"simulated": True, "item": {"id": None}, "id": None}
         url = self.api + path.format(**(path_args or {}))
         headers = kw.pop("headers", {})
         if method != "GET":
@@ -268,7 +278,7 @@ def connect_shop(shop_id: int, raw_cookie: str, domain="vinted.fr", user_agent=N
     cookies = parse_cookie_header(raw_cookie)
     if "access_token_web" not in cookies:
         raise VintedAuthError("Le cookie doit contenir access_token_web (copie toute la valeur Cookie)")
-    db.update_shop(shop_id, vinted_cookies=json.dumps(cookies), vinted_domain=domain,
+    db.update_shop(shop_id, vinted_cookies=encrypt(json.dumps(cookies)), vinted_domain=domain,
                    vinted_user_agent=user_agent or None, vinted_status="checking")
     client = VintedClient.for_shop(shop_id)
     try:

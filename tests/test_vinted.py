@@ -83,7 +83,9 @@ def test_connect_shop(fake):
     sid = _shop()
     s = db.get_shop(sid)
     assert s["vinted_status"] == "connected" and s["vinted_login"] == "sophie_goth" and s["vinted_user_id"] == 42
-    assert json.loads(s["vinted_cookies"])["refresh_token_web"] == "def"
+    from vinted_drop.security import decrypt
+    assert s["vinted_cookies"].startswith("enc:v1:")           # chiffré en base
+    assert json.loads(decrypt(s["vinted_cookies"]))["refresh_token_web"] == "def"
 
 
 def test_sync_detects_sale_and_notifies(fake, env):
@@ -160,6 +162,7 @@ def test_price_drop_never_below_min(fake):
 def test_inbox_offer_counter_and_draft(fake, env, monkeypatch):
     from vinted_drop import ai, autopilot, db
     sid = _shop()
+    db.set_setting("offer_mode", "auto")   # par défaut : validation humaine
     pid = db.add_product(cost=12, shop_id=sid)
     db.update_product(pid, status="published", vinted_item_id=999, price=34.9, min_price=29.9, title="Robe")
     monkeypatch.setattr(ai, "chat_json", lambda *a, **k: {"intent": "offer", "reply": "Je peux te la faire à 32 € 😊", "confidence": 0.9})

@@ -98,8 +98,18 @@ DASHBOARD_OPEN_BROWSER = os.getenv("DASHBOARD_OPEN_BROWSER", "1") == "1"
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", f"http://localhost:{DASHBOARD_PORT}")
 
 TARGET_MULTIPLIER = _float("TARGET_MULTIPLIER", 2.5)
-MIN_PROFIT = _float("MIN_PROFIT", 8)
+MIN_PROFIT = _float("MIN_PROFIT", 30)
 NEGOTIATION_BUFFER = _float("NEGOTIATION_BUFFER", 0.15)
 PACKAGING_COST = _float("PACKAGING_COST", 0.5)
+# Frais de plateforme payés par le vendeur (% du prix). Particulier Vinted : 0 (l'acheteur paie la protection).
+# Vérifie les conditions de ton compte (Vinted Pro) et ajuste.
+PLATFORM_FEE_PCT = _float("PLATFORM_FEE_PCT", 0)
+
+# --- Sécurité / sauvegardes ---
+# Clé de chiffrement des tokens Vinted. Vide = générée dans data/secret.key (à sauvegarder avec la base).
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+BACKUP_KEEP = int(os.getenv("BACKUP_KEEP", "14"))
+# Nombre de tâches de fond simultanées (photos, fiches, synchro)
+TASK_WORKERS = int(os.getenv("TASK_WORKERS", "3"))
 
 MEDIA_DIR.mkdir(parents=True, exist_ok=True)

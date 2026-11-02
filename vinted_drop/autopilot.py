@@ -152,7 +152,12 @@ def run_price_drops(now=None):
         if new >= p["price"]:
             continue
         try:
-            VintedClient.for_shop(p["shop_id"]).update_price(p["vinted_item_id"], new)
+            client = VintedClient.for_shop(p["shop_id"])
+            client.update_price(p["vinted_item_id"], new)
+            if client.simulated:
+                db.log_event("price", f"[simulation] {p['title']} : {p['price']:.2f} → {new:.2f} € (non appliqué)",
+                             shop_id=p["shop_id"], product_id=p["id"], source="simulation")
+                continue
             db.update_product(p["id"], price=new, last_price_drop_at=now.isoformat(timespec="seconds"))
             db.log_event("price", f"Prix baissé : {p['title']} {p['price']:.2f} → {new:.2f} €",
                          shop_id=p["shop_id"], product_id=p["id"])

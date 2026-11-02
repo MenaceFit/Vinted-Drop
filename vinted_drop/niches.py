@@ -20,22 +20,18 @@ def score(n: dict, month: int) -> float:
     return round(raw, 1)
 
 
-def ranked(month: int | None = None):
-    from .market import last_scan
+def ranked(month: int | None = None, profitable_only=False):
+    """Niches triées par score de potentiel /100 (voir market.potential pour le détail)."""
+    from . import market
     month = month or date.today().month
     perf = {r["niche"]: r for r in db.niche_breakdown()}
-    live = (last_scan() or {}).get("niches", {})
     out = []
     for n in load():
-        s = score(n, month)
-        m = live.get(n["id"])
-        if m and m.get("score"):  # données Vinted en direct : 30 % du score
-            s = round(0.7 * s + 0.3 * m["score"] * (1 if month in n["months"] else 0.5), 1)
-        p = perf.get(n["id"])
-        # Bonus si la niche vend déjà bien chez toi (le système apprend de tes ventes)
-        if p and p["listed"] >= 10:
-            s = round(s + min(p["sell_through"] / 20, 2), 1)
-        out.append({**n, "score": s, "in_season": month in n["months"], "perf": p, "live": m})
+        pot = market.potential(n, month, perf.get(n["id"]))
+        out.append({**n, "score": pot["score"], "potential": pot, "in_season": month in n["months"],
+                    "perf": perf.get(n["id"]), "live": pot["market"]})
+    if profitable_only:
+        out = [n for n in out if n["potential"]["meets_min_profit"]]
     return sorted(out, key=lambda x: x["score"], reverse=True)
 
 

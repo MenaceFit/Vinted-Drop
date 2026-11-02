@@ -5,3 +5,8 @@ __pycache__/
 data/vinted_drop.db
 data/media/
 .pytest_cache/
+data/secret.key
+data/backups/
+data/exports/
+*.db-wal
+*.db-shm

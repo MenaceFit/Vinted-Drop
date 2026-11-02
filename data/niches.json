@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-02",
+ "updated": "2026-11-03",
  "method": "Score /10 = demande Vinted (recherches, volume d'annonces vendues) x faible concurrence x saisonnalité x marge possible (prix d'achat Shein/Temu vs prix Vinted constatés). Mois = mois où la niche est la plus forte.",
  "niches": [
   {
@@ -20,6 +20,11 @@
     "pull moche noël",
     "pull noël femme",
     "ugly sweater"
+   ],
+   "brands": [
+    "H&M",
+    "Primark",
+    "Zara"
    ]
   },
   {
@@ -42,6 +47,11 @@
     "robe réveillon",
     "robe nouvel an",
     "robe soirée"
+   ],
+   "brands": [
+    "Zara",
+    "Mango",
+    "Naf Naf"
    ]
   },
   {
@@ -65,6 +75,10 @@
    "photo_kinds": [
     "plat",
     "detail"
+   ],
+   "brands": [
+    "Primark",
+    "Kiabi"
    ]
   },
   {
@@ -95,6 +109,11 @@
     "goth plus size",
     "robe dentelle noire 46",
     "alternative grande taille"
+   ],
+   "brands": [
+    "Killstar",
+    "Hell Bunny",
+    "Restyle"
    ]
   },
   {
@@ -117,6 +136,11 @@
     "whimsigoth",
     "robe dentelle noire",
     "dark academia"
+   ],
+   "brands": [
+    "Killstar",
+    "Dark in Love",
+    "Restyle"
    ]
   },
   {
@@ -139,6 +163,11 @@
     "manteau fourrure synthétique",
     "mob wife",
     "veste moumoute"
+   ],
+   "brands": [
+    "Zara",
+    "Bershka",
+    "Mango"
    ]
   },
   {
@@ -161,6 +190,11 @@
     "manteau oversize",
     "manteau chevrons",
     "manteau bordeaux"
+   ],
+   "brands": [
+    "Zara",
+    "Mango",
+    "Sézane"
    ]
   },
   {
@@ -184,6 +218,11 @@
     "old money homme",
     "pull col camionneur",
     "col roulé homme"
+   ],
+   "brands": [
+    "Ralph Lauren",
+    "Lacoste",
+    "Massimo Dutti"
    ]
   },
   {
@@ -206,6 +245,11 @@
     "ensemble ski femme",
     "veste ski femme",
     "tenue ski"
+   ],
+   "brands": [
+    "Rossignol",
+    "Wedze",
+    "Picture"
    ]
   },
   {
@@ -229,6 +273,11 @@
     "robe velours",
     "noeud",
     "robe bordeaux"
+   ],
+   "brands": [
+    "Sézane",
+    "Rouje",
+    "Zara"
    ]
   },
   {
@@ -252,6 +301,10 @@
     "robe renaissance",
     "robe elfe",
     "corset médiéval"
+   ],
+   "brands": [
+    "Axes Femme",
+    "Restyle"
    ]
   },
   {
@@ -271,6 +324,10 @@
     "robe rouge",
     "saint valentin",
     "robe coeur"
+   ],
+   "brands": [
+    "Zara",
+    "Etam"
    ]
   },
   {
@@ -295,6 +352,11 @@
    "photo_kinds": [
     "plat",
     "detail"
+   ],
+   "brands": [
+    "Tartine et Chocolat",
+    "Jacadi",
+    "Zara Kids"
    ]
   },
   {
@@ -318,6 +380,11 @@
     "veste cuir marron femme",
     "bomber cuir",
     "veste en cuir oversize"
+   ],
+   "brands": [
+    "Zara",
+    "Bershka",
+    "Schott"
    ]
   },
   {
@@ -342,6 +409,10 @@
    "photo_kinds": [
     "plat",
     "detail"
+   ],
+   "brands": [
+    "Kiabi",
+    "Zooplus"
    ]
   },
   {
@@ -364,6 +435,10 @@
     "balaclava",
     "cagoule femme",
     "bonnet cagoule"
+   ],
+   "brands": [
+    "Zara",
+    "H&M"
    ]
   },
   {
@@ -394,6 +469,11 @@
     "robe séance photo grossesse",
     "vêtement grossesse",
     "robe maternité"
+   ],
+   "brands": [
+    "H&M Mama",
+    "Kiabi",
+    "Envie de Fraise"
    ]
   },
   {
@@ -416,6 +496,11 @@
     "legging sculptant",
     "legging push up",
     "ensemble yoga"
+   ],
+   "brands": [
+    "Gymshark",
+    "Lululemon",
+    "Decathlon"
    ]
   },
   {
@@ -441,6 +526,366 @@
    "photo_kinds": [
     "plat",
     "detail"
+   ],
+   "brands": [
+    "Rubie's",
+    "Kiabi"
+   ]
+  },
+  {
+   "id": "tailleur-femme",
+   "name": "Ensembles tailleur femme (power dressing)",
+   "persona": "femme 25-35 ans, style bureau chic",
+   "months": [
+    9,
+    10,
+    11,
+    1,
+    2,
+    3
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "30-45 €",
+   "sell_price": "80-110 €",
+   "brands": [
+    "Zara",
+    "Mango",
+    "Sézane",
+    "The Kooples"
+   ],
+   "why": "« Power dressing » est une tendance forte AH 2026-27 (Mango). Ensemble 2 pièces = gros panier, entretiens, rentrée, fêtes de bureau. Peu de tailleurs neufs complets sur Vinted.",
+   "keywords": [
+    "ensemble tailleur femme",
+    "costume femme",
+    "blazer pantalon femme",
+    "tailleur pantalon"
+   ]
+  },
+  {
+   "id": "trench",
+   "name": "Trench-coats femme et homme",
+   "persona": "femme 25-40 ans, style parisien",
+   "months": [
+    3,
+    4,
+    5,
+    9,
+    10
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "25-40 €",
+   "sell_price": "70-95 €",
+   "brands": [
+    "Zara",
+    "Mango",
+    "Burberry",
+    "Comptoir des Cotonniers"
+   ],
+   "why": "Pièce phare du printemps et de la mi-saison : la prochaine grosse saison après l'hiver. Les acheteuses cherchent du beige classique à bon prix.",
+   "keywords": [
+    "trench femme",
+    "trench coat",
+    "imperméable beige",
+    "trench long"
+   ]
+  },
+  {
+   "id": "robe-soiree-longue",
+   "name": "Robes de soirée longues / invitée de mariage",
+   "persona": "femme 25-35 ans, élégante",
+   "months": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    12
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "20-35 €",
+   "sell_price": "60-90 €",
+   "brands": [
+    "Asos",
+    "Mango",
+    "Zara",
+    "Sézane"
+   ],
+   "why": "Saison des mariages (avril-septembre), bals de promo (mai-juin) et réveillon. Robe portée une fois : Vinted est le premier réflexe.",
+   "keywords": [
+    "robe invitée mariage",
+    "robe longue satin",
+    "robe de soirée longue",
+    "robe cocktail"
+   ]
+  },
+  {
+   "id": "abaya",
+   "name": "Abayas et mode modeste",
+   "persona": "photos à plat et sur cintre, ou modèle voilée de dos",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    6
+   ],
+   "demand": 8,
+   "competition": 4,
+   "buy_price": "20-30 €",
+   "sell_price": "55-80 €",
+   "brands": [
+    "Aab",
+    "Inayah",
+    "Shein Modely"
+   ],
+   "why": "Pic avant le Ramadan (début prévu vers le 8 février 2027) et l'Aïd. Clientèle fidèle, peu d'offre neuve et élégante sur Vinted.",
+   "keywords": [
+    "abaya",
+    "abaya femme",
+    "robe longue musulmane",
+    "abaya dubai"
+   ],
+   "photo_kinds": [
+    "plat",
+    "cintre",
+    "detail"
+   ]
+  },
+  {
+   "id": "bottes-hautes",
+   "name": "Bottes hautes et cuissardes",
+   "persona": "femme 22-35 ans, photo portée en pied",
+   "months": [
+    9,
+    10,
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 8,
+   "competition": 6,
+   "buy_price": "30-45 €",
+   "sell_price": "70-100 €",
+   "brands": [
+    "Zara",
+    "Minelli",
+    "Bershka",
+    "Jonak"
+   ],
+   "why": "Chaussure tendance de l'hiver, panier élevé. Attention aux tailles : propose toutes les pointures, commande à la vente.",
+   "keywords": [
+    "bottes hautes femme",
+    "cuissardes",
+    "bottes cavalières",
+    "bottes marron femme"
+   ]
+  },
+  {
+   "id": "doudoune-longue",
+   "name": "Doudounes longues femme",
+   "persona": "femme 25-40 ans, photo extérieure",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 8,
+   "competition": 6,
+   "buy_price": "35-50 €",
+   "sell_price": "80-120 €",
+   "brands": [
+    "The North Face",
+    "Zara",
+    "Uniqlo",
+    "Pyrenex"
+   ],
+   "why": "Achat de nécessité en hiver, panier élevé. Les acheteurs comparent avec 150-300 € en boutique.",
+   "keywords": [
+    "doudoune longue femme",
+    "doudoune noire femme",
+    "manteau doudoune",
+    "parka femme"
+   ]
+  },
+  {
+   "id": "aviateur-homme",
+   "name": "Blousons aviateur homme (col fourrure)",
+   "persona": "homme 22-35 ans, style urbain",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "40-60 €",
+   "sell_price": "90-130 €",
+   "brands": [
+    "Schott",
+    "Redskins",
+    "Zara Man"
+   ],
+   "why": "Les hommes négocient peu et achètent vite. Pièce iconique, cadeau de Noël, peu de neufs sur Vinted.",
+   "keywords": [
+    "blouson aviateur homme",
+    "veste aviateur",
+    "bomber col fourrure",
+    "veste cuir homme"
+   ]
+  },
+  {
+   "id": "gilet-chauffant",
+   "name": "Vestes et gilets chauffants",
+   "persona": "photo portée en extérieur, homme ou femme",
+   "months": [
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 7,
+   "competition": 3,
+   "buy_price": "25-40 €",
+   "sell_price": "65-95 €",
+   "brands": [
+    "Ororo",
+    "Decathlon"
+   ],
+   "why": "Produit pratique très recherché quand il fait froid (travail en extérieur, moto, ski). ⚠️ Batterie souvent NON incluse : à écrire clairement dans l'annonce.",
+   "keywords": [
+    "veste chauffante",
+    "gilet chauffant",
+    "doudoune chauffante",
+    "veste chauffante usb"
+   ]
+  },
+  {
+   "id": "cosplay",
+   "name": "Cosplay et costumes complets adulte",
+   "persona": "photos à plat ou sur cintre (pas de personnage protégé en photo portée)",
+   "months": [
+    2,
+    6,
+    7,
+    9,
+    10
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "35-55 €",
+   "sell_price": "80-120 €",
+   "brands": [
+    "Rubie's",
+    "Leg Avenue"
+   ],
+   "why": "Conventions (Paris Manga en février et septembre, Japan Expo en juillet) et Halloween. Costumes complets = gros panier. ⚠️ Évite les personnages sous licence (contrefaçon).",
+   "keywords": [
+    "costume cosplay",
+    "cosplay femme",
+    "déguisement adulte complet",
+    "costume anime"
+   ],
+   "photo_kinds": [
+    "plat",
+    "cintre",
+    "detail"
+   ]
+  },
+  {
+   "id": "robe-mariee-civile",
+   "name": "Robes de mariée civile / bohème",
+   "persona": "femme 25-35 ans, photo extérieure lumineuse",
+   "months": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "demand": 6,
+   "competition": 3,
+   "buy_price": "40-70 €",
+   "sell_price": "120-200 €",
+   "brands": [
+    "Asos Edition",
+    "Mango",
+    "Rime Arodaky"
+   ],
+   "why": "Mariages civils, renouvellement de vœux, séances photo : énorme écart avec les prix boutique (500 € et plus). Très forte marge par vente.",
+   "keywords": [
+    "robe de mariée",
+    "robe mariée civile",
+    "robe blanche bohème",
+    "robe mariage simple"
+   ]
+  },
+  {
+   "id": "ski-adulte",
+   "name": "Vestes et ensembles de ski (homme et femme)",
+   "persona": "photo en extérieur, neige",
+   "months": [
+    11,
+    12,
+    1,
+    2,
+    3
+   ],
+   "demand": 7,
+   "competition": 5,
+   "buy_price": "35-60 €",
+   "sell_price": "80-120 €",
+   "brands": [
+    "Rossignol",
+    "Wedze",
+    "Picture",
+    "Columbia"
+   ],
+   "why": "Vacances de février : les familles s'équipent sans payer 300 € en magasin. Gros panier.",
+   "keywords": [
+    "veste de ski",
+    "combinaison ski",
+    "ensemble ski homme",
+    "pantalon ski"
+   ]
+  },
+  {
+   "id": "veste-cuir-femme",
+   "name": "Vestes simili cuir premium femme (longues, trench cuir)",
+   "persona": "femme 25-35 ans, style rock chic",
+   "months": [
+    9,
+    10,
+    11,
+    2,
+    3,
+    4
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "30-45 €",
+   "sell_price": "75-110 €",
+   "brands": [
+    "Zara",
+    "The Kooples",
+    "IRO"
+   ],
+   "why": "« Cuir total » est la 1re tendance AH 2026-27 (Vogue) : la version longue se vend plus cher que le bomber.",
+   "keywords": [
+    "trench cuir femme",
+    "veste longue simili cuir",
+    "manteau cuir femme",
+    "veste cuir marron"
    ]
   }
  ]
