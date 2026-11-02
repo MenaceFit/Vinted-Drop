@@ -5,7 +5,13 @@
 {% block content %}
 <div class="grid g4">
   <div class="card kpi hero reveal"><div class="label"><span class="ic">{{ icon('camera',16) }}</span> Images générées (30 j)</div>
-    <div class="value num" data-count="{{ costs.images }}">0</div><div class="sub">coût estimé {{ costs.eur|eur }}</div></div>
+    <div class="value num" data-count="{{ costs.images }}">0</div><div class="sub">coût estimé {{ costs.eur|eur }} · aujourd'hui {{ today_cost|eur }}{% if budget %} / {{ budget|eur }}{% endif %}</div>
+    {% if budget %}<div class="bar" style="background:rgba(255,255,255,.2);margin-top:10px"><i data-w="{{ [100, (100 * today_cost / budget)|round]|min }}" style="background:#fff"></i></div>{% endif %}</div>
+  <div class="card kpi hover reveal"><div class="label"><span class="ic">{{ icon('home',16) }}</span> Ton PC · gratuit</div>
+    <div class="value num" style="font-size:22px">{% if local.ok %}<span class="good">En ligne</span>{% elif 'local' in providers %}<span class="bad">Éteint</span>{% else %}Non configuré{% endif %}</div>
+    <div class="sub">{% if local.ok %}{{ local.gpu }} · {{ local.vram_gb }} Go{% else %}{{ local.error }}{% endif %}</div>
+    <form method="post" action="/studio/test-local" style="margin-top:8px"><button class="btn ghost sm">{{ icon('refresh',14) }} Tester</button>
+      <a class="btn ghost sm" href="https://github.com/menacefit/vinted-drop/blob/claude/vigilant-goodall-xdxrej/docs/PHOTOS_GRATUITES.md" target="_blank">Guide</a></form></div>
   {% for name, label in [('gemini','Gemini · Nano Banana'),('openai','OpenAI · GPT Image')] %}
   {% set st = costs.by_provider|selectattr('provider','equalto',name)|first %}
   <div class="card kpi hover reveal"><div class="label"><span class="ic">{{ icon('spark',16) }}</span> {{ label }}</div>
@@ -20,17 +26,21 @@
   <div class="card reveal"><div class="card-head"><h2>Réglages photo</h2></div>
   <form method="post" action="/studio/reglages">
     <label>Fournisseur</label><select name="photo_provider" class="w-full">
-      {% for v, l in [('auto','🤖 Auto : ' ~ (providers[0] if providers else '—') ~ ' puis l\'autre en secours'),('gemini','Gemini (Nano Banana) : meilleur pour garder le même modèle'),('openai','OpenAI (GPT Image) : très fidèle sur les détails')] %}
+      {% for v, l in [('auto','🤖 Auto : ' ~ (providers[0] if providers else '—') ~ ' d\'abord, les autres en secours'),('local','🖥️ Mon PC uniquement (gratuit, Qwen-Image-Edit)'),('gemini','Gemini (Nano Banana) : meilleur pour garder le même modèle'),('openai','OpenAI (GPT Image) : très fidèle sur les détails')] %}
       <option value="{{ v }}" {{ 'selected' if settings.photo_provider==v }}>{{ l }}</option>{% endfor %}</select>
     <label>Jeu de photos par défaut</label><select name="photo_set" class="w-full">
       <option value="standard" {{ 'selected' if settings.photo_set=='standard' }}>Standard : portée, à plat, détail (3 photos)</option>
       <option value="complet" {{ 'selected' if settings.photo_set=='complet' }}>Complet : 2 portées, à plat, cintre, détail (5 photos)</option></select>
     <label>Nettoyage de l'image fournisseur</label><select name="photo_clean" class="w-full">
-      <option value="on" {{ 'selected' if settings.photo_clean=='on' }}>✅ Isoler le vêtement d'abord (retire texte, collage, mannequin) : +1 image</option>
+      <option value="auto" {{ 'selected' if settings.photo_clean=='auto' }}>🤖 Seulement quand c'est gratuit (sur mon PC)</option>
+      <option value="on" {{ 'selected' if settings.photo_clean=='on' }}>✅ Toujours isoler le vêtement d'abord (retire texte, collage, mannequin) : +1 image</option>
       <option value="off" {{ 'selected' if settings.photo_clean=='off' }}>⛔ Utiliser l'image telle quelle</option></select>
     <label>Contrôle qualité IA</label><select name="photo_qa" class="w-full">
       <option value="on" {{ 'selected' if settings.photo_qa=='on' }}>✅ Noter chaque photo, refaire si fidélité &lt; {{ qa_min }}/10 (avec l'autre fournisseur)</option>
       <option value="off" {{ 'selected' if settings.photo_qa=='off' }}>⛔ Pas de contrôle</option></select>
+    <label>Budget max par jour en images payantes (€, 0 = illimité)</label>
+    <input name="daily_budget" type="number" step="0.5" min="0" value="{{ settings.daily_budget }}" style="width:140px">
+    <p class="faint" style="font-size:12.5px;margin:6px 0 0">Une fois le budget atteint, seul ton PC génère (gratuit). Les photos sur ton PC ne comptent pas.</p>
     <div class="mt"><button class="btn">{{ icon('check',16) }} Enregistrer</button></div>
   </form></div>
 

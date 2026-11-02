@@ -45,11 +45,11 @@
         <div class="chips">{% for k, sh in shots.items() %}
           <label class="chip check"><input type="checkbox" name="kinds" value="{{ k }}" {{ 'checked' if k in default_kinds }}> {{ sh.emoji }} {{ sh.label }}</label>{% endfor %}</div>
         <div class="row mt">
-          <select name="provider">{% for v, l in [('', 'Fournisseur : ' ~ settings.photo_provider)] + [('gemini','Gemini (Nano Banana)'),('openai','OpenAI (GPT Image)')] %}
+          <select name="provider">{% for v, l in [('', 'Fournisseur : ' ~ settings.photo_provider)] + [('local','Mon PC (gratuit)'),('gemini','Gemini (Nano Banana)'),('openai','OpenAI (GPT Image)')] %}
             {% if not v or v in providers %}<option value="{{ v }}">{{ l }}</option>{% endif %}{% endfor %}</select>
           <button class="btn">{{ icon('spark',16) }} Générer ces photos</button>
         </div>
-        {% if not providers %}<p class="bad" style="font-size:13px">Ajoute GEMINI_API_KEY ou OPENAI_API_KEY dans le fichier .env.</p>{% endif %}
+        {% if not providers %}<p class="bad" style="font-size:13px">Configure COMFYUI_URL (gratuit), GEMINI_API_KEY ou OPENAI_API_KEY dans le fichier .env.</p>{% endif %}
       </form>{% endif %}
     </div>
 

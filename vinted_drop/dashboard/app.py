@@ -395,7 +395,13 @@ def photo_action(pid: int, bg: BackgroundTasks, path: str = Form(...), action: s
 def studio_page(request: Request):
     from ..image_providers import available
     todo = [p for p in db.list_products(limit=300) if p["status"] in ("draft", "ready") and p.get("supplier_image")]
+    from .. import comfyui
+    try:
+        budget = float(db.get_setting("daily_budget") or 0)
+    except ValueError:
+        budget = 0
     return render(request, "studio.html", todo=todo, settings=db.all_settings(), costs=db.cost_stats(30),
+                  local=comfyui.status(timeout=2), today_cost=db.cost_today(), budget=budget,
                   personas=db.list_personas(), providers=available(), sets=photos.SETS, shots=photos.SHOTS,
                   running=JOBS_RUNNING, qa_min=config.PHOTO_QA_MIN, error=JOB_ERRORS.pop(0, None),
                   models={"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL})
@@ -404,7 +410,7 @@ def studio_page(request: Request):
 @app.post("/studio/reglages")
 async def studio_settings(request: Request):
     form = await request.form()
-    for k in ("photo_provider", "photo_set", "photo_clean", "photo_qa"):
+    for k in ("photo_provider", "photo_set", "photo_clean", "photo_qa", "daily_budget"):
         if k in form:
             db.set_setting(k, form[k])
     return RedirectResponse("/studio?ok=Réglages photo enregistrés", status_code=303)
@@ -418,3 +424,13 @@ async def studio_batch(request: Request, bg: BackgroundTasks):
         JOBS_RUNNING.add(pid)
         bg.add_task(_run, pid, photos.generate_product_photos, pid)
     return RedirectResponse(f"/studio?ok={len(ids)} produit(s) en cours de génération", status_code=303)
+
+
+@app.post("/studio/test-local")
+def studio_test_local():
+    from .. import comfyui
+    st = comfyui.status(timeout=5)
+    if st["ok"]:
+        return RedirectResponse(f"/studio?ok=ComfyUI connecté : {st['gpu']} ({st['vram_gb']} Go)", status_code=303)
+    JOB_ERRORS[0] = st["error"]
+    return RedirectResponse("/studio", status_code=303)

@@ -27,7 +27,7 @@ HELP = """<b>Vinted Drop</b> 🤖 — écris-moi normalement ou utilise les bout
 📷 Envoie une capture du produit avec la légende <code>prix lien boutique taille</code>
 /ajouter &lt;lien&gt; &lt;prix&gt; [boutique] [taille]
 /produits [draft|ready|published|sold] · /voir &lt;id&gt;
-/preparer &lt;id&gt; · /photos &lt;id&gt; [gemini|openai] · /fiche &lt;id&gt;
+/preparer &lt;id&gt; · /photos &lt;id&gt; [local|gemini|openai] · /fiche &lt;id&gt;
 /studio [id] — réglages photo, ou retouches d'un produit (⭐ couverture, 🔄 refaire, 🗑 supprimer)
 /couts — dépenses IA
 /publier &lt;id&gt; — publie sur Vinted maintenant
@@ -240,7 +240,7 @@ async def cmd_voir(update: Update, ctx):
 
 
 async def do_photos(update, pid, provider=None):
-    label = {"gemini": "Gemini", "openai": "OpenAI"}.get(provider, "auto")
+    label = {"gemini": "Gemini", "openai": "OpenAI", "local": "ton PC (gratuit)"}.get(provider, "auto")
     await reply(update, f"🎨 Studio photo · produit #{pid} · {label}\nNettoyage, prises de vue en parallèle et "
                         "contrôle qualité… (1 à 3 min)")
     await run(photos.generate_product_photos, pid, None, provider)
@@ -263,7 +263,8 @@ def studio_buttons(p):
         row = [] if g["cover"] else [(f"⭐ {n}", f"pc:{p['id']}:{i}")]
         row += [(f"🔄 {n}", f"pr:{p['id']}:{i}"), (f"🗑 {n}", f"pd:{p['id']}:{i}")]
         rows.append(row)
-    rows.append([("➕ Gemini", f"ph:{p['id']}:gemini"), ("➕ OpenAI", f"ph:{p['id']}:openai")])
+    rows.append([("➕ PC gratuit", f"ph:{p['id']}:local"), ("➕ Gemini", f"ph:{p['id']}:gemini"),
+                 ("➕ OpenAI", f"ph:{p['id']}:openai")])
     if p["status"] in ("draft", "ready"):
         rows.append([("📝 Fiche", f"fiche:{p['id']}"), ("✅ Publier", f"pub:{p['id']}")])
     return rows
@@ -298,25 +299,31 @@ async def do_publish(update, pid):
 @authorized
 async def cmd_photos(update, ctx):
     pid = _int(ctx.args, 0)
-    provider = ctx.args[1].lower() if len(ctx.args) > 1 and ctx.args[1].lower() in ("gemini", "openai") else None
+    provider = ctx.args[1].lower() if len(ctx.args) > 1 and ctx.args[1].lower() in ("gemini", "openai", "local") else None
     if not db.get_product(pid):
         raise ValueError("Produit introuvable")
     if provider or len(ctx.args) > 1:
         return await do_photos(update, pid, provider)
     await reply(update, f"Avec quelle IA faire les photos du produit #{pid} ?",
-                [[("🤖 Auto", f"ph:{pid}:auto"), ("✨ Gemini", f"ph:{pid}:gemini"), ("🎨 OpenAI", f"ph:{pid}:openai")]])
+                [[("🤖 Auto", f"ph:{pid}:auto"), ("🖥 PC gratuit", f"ph:{pid}:local")],
+                 [("✨ Gemini", f"ph:{pid}:gemini"), ("🎨 OpenAI", f"ph:{pid}:openai")]])
 
 
 @authorized
 async def cmd_studio(update, ctx):
     if ctx.args:
         return await send_studio(update, _int(ctx.args, 0))
+    from . import comfyui
     from .image_providers import available
     s, c = db.all_settings(), db.cost_stats(30)
     keys = available()
+    local = await run(comfyui.status, 3)
+    pc = (f"✅ PC : {local['gpu']} ({local['vram_gb']} Go)" if local["ok"]
+          else ("❌ PC éteint ou ComfyUI fermé" if "local" in keys else "⚪ PC non configuré"))
     await reply(update,
                 "📸 <b>Studio photo</b>\n"
-                f"Clés : {'✅ Gemini' if 'gemini' in keys else '❌ Gemini'} · {'✅ OpenAI' if 'openai' in keys else '❌ OpenAI'}\n"
+                f"{pc}\nClés : {'✅ Gemini' if 'gemini' in keys else '❌ Gemini'} · {'✅ OpenAI' if 'openai' in keys else '❌ OpenAI'}\n"
+                f"Aujourd'hui : {db.cost_today():.2f} € / budget {s['daily_budget']} €\n"
                 f"Fournisseur : <b>{s['photo_provider']}</b> · jeu : <b>{s['photo_set']}</b> · nettoyage : {s['photo_clean']} · "
                 f"contrôle qualité : {s['photo_qa']}\n30 jours : {c['images']} images · {c['eur']:.2f} €\n\n"
                 "/studio &lt;id&gt; pour retoucher les photos d'un produit",
@@ -616,8 +623,8 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if action == "noop":
         return
     if action == "st":
-        cycles = {"photo_provider": ["auto", "gemini", "openai"], "photo_set": ["standard", "complet"],
-                  "photo_clean": ["on", "off"], "photo_qa": ["on", "off"]}
+        cycles = {"photo_provider": ["auto", "local", "gemini", "openai"], "photo_set": ["standard", "complet"],
+                  "photo_clean": ["auto", "on", "off"], "photo_qa": ["on", "off"]}
         vals = cycles[arg]
         cur = db.get_setting(arg)
         db.set_setting(arg, vals[(vals.index(cur) + 1) % len(vals)] if cur in vals else vals[0])
@@ -653,7 +660,8 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await do_prepare(update, pid)
     if action == "photos":
         return await reply(update, f"Avec quelle IA faire les photos du produit #{pid} ?",
-                           [[("🤖 Auto", f"ph:{pid}:auto"), ("✨ Gemini", f"ph:{pid}:gemini"), ("🎨 OpenAI", f"ph:{pid}:openai")]])
+                           [[("🤖 Auto", f"ph:{pid}:auto"), ("🖥 PC gratuit", f"ph:{pid}:local")],
+                 [("✨ Gemini", f"ph:{pid}:gemini"), ("🎨 OpenAI", f"ph:{pid}:openai")]])
     if action == "redo":
         db.update_product(pid, approval_sent_at=None)
         return await send_studio(update, pid)

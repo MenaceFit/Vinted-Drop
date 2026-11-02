@@ -28,16 +28,29 @@ OPENAI_TEXT_FALLBACKS = [m for m in os.getenv("OPENAI_TEXT_FALLBACKS", "gpt-5.6-
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-nano-banana-2.1")
-GEMINI_IMAGE_SIZE = os.getenv("GEMINI_IMAGE_SIZE", "2K")
+GEMINI_IMAGE_SIZE = os.getenv("GEMINI_IMAGE_SIZE", "1K")  # 1K = 0,034 $/image, 2K = 0,050 $
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-flash-preview")
 
-# Fournisseur de photos par défaut quand on choisit "auto" : gemini ou openai
-PHOTO_PROVIDER = os.getenv("PHOTO_PROVIDER", "gemini")
+# --- Photos gratuites sur ton PC : ComfyUI + Qwen-Image-Edit-2509 (voir docs/PHOTOS_GRATUITES.md) ---
+COMFYUI_URL = os.getenv("COMFYUI_URL", "")          # ex. http://127.0.0.1:8188
+COMFY_WORKFLOW = os.getenv("COMFY_WORKFLOW", "")    # vide = workflow fourni
+COMFY_UNET = os.getenv("COMFY_UNET", "qwen_image_edit_2509_fp8_e4m3fn.safetensors")
+COMFY_CLIP = os.getenv("COMFY_CLIP", "qwen_2.5_vl_7b_fp8_scaled.safetensors")
+COMFY_VAE = os.getenv("COMFY_VAE", "qwen_image_vae.safetensors")
+COMFY_LORA = os.getenv("COMFY_LORA", "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors")
+COMFY_STEPS = int(os.getenv("COMFY_STEPS", "4"))
+COMFY_CFG = float(os.getenv("COMFY_CFG", "1.0"))
+COMFY_TIMEOUT = int(os.getenv("COMFY_TIMEOUT", "600"))
+
+# Fournisseur préféré en mode "auto" : local (gratuit), gemini ou openai.
+# Par défaut : local s'il est configuré, sinon gemini.
+PHOTO_PROVIDER = os.getenv("PHOTO_PROVIDER", "local" if COMFYUI_URL else "gemini")
 # Note minimale de fidélité (0-10) d'une photo ; en dessous elle est refaite une fois
 PHOTO_QA_MIN = int(os.getenv("PHOTO_QA_MIN", "7"))
 # Estimation du coût par image (€) pour le suivi des dépenses
 COST_PER_IMAGE = {"openai": float(os.getenv("COST_IMAGE_OPENAI", "0.05")),
-                  "gemini": float(os.getenv("COST_IMAGE_GEMINI", "0.04"))}
+                  "gemini": float(os.getenv("COST_IMAGE_GEMINI", "0.03")),
+                  "local": 0.0}
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_ALLOWED_CHAT_IDS = {

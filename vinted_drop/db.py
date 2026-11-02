@@ -388,8 +388,9 @@ DEFAULT_SETTINGS = {
     "daily_goal": "100",          # objectif de bénéfice par jour (€), affiché sur le dashboard
     "photo_provider": "auto",     # auto | gemini | openai
     "photo_set": "standard",      # standard (3 photos) | complet (5 photos)
-    "photo_clean": "on",          # nettoie d'abord l'image fournisseur (texte, collage, mannequin)
+    "photo_clean": "auto",        # nettoyage de l'image fournisseur : auto = seulement si gratuit (local)
     "photo_qa": "on",             # contrôle qualité IA + nouvel essai si la photo n'est pas fidèle
+    "daily_budget": "2",          # dépense max par jour (€) en images payantes ; 0 = illimité
 }
 
 
@@ -499,3 +500,8 @@ def cost_stats(days=30):
 def product_cost(pid):
     with connect() as c:
         return round(c.execute("SELECT COALESCE(SUM(cost),0) FROM ai_costs WHERE product_id=?", (pid,)).fetchone()[0], 2)
+
+
+def cost_today():
+    with connect() as c:
+        return c.execute("SELECT COALESCE(SUM(cost),0) FROM ai_costs WHERE date(created_at)=date('now')").fetchone()[0]

@@ -1,9 +1,9 @@
-"""Générateurs d'images : OpenAI (GPT Image) et Google Gemini (Nano Banana).
+"""Générateurs d'images : local gratuit (ComfyUI + Qwen-Image-Edit), Google Gemini (Nano Banana), OpenAI (GPT Image).
 
 Interface unique : generate(prompt, refs, out_path, provider="auto", aspect="3:4")
 - refs : images de référence (modèle de la boutique, produit...), dans l'ordre du prompt
-- provider : "openai", "gemini" ou "auto" (Gemini d'abord pour la cohérence du modèle,
-  OpenAI en secours, ou le seul des deux qui a une clé)
+- provider : "local", "gemini", "openai" ou "auto" (le fournisseur préféré, puis les autres en secours)
+- les fournisseurs payants respectent le budget du jour (réglage daily_budget)
 Chaque image générée est enregistrée dans le suivi des coûts.
 """
 import base64
@@ -25,8 +25,13 @@ class ImageError(RuntimeError):
     pass
 
 
+PAID = ("gemini", "openai")
+
+
 def available() -> list[str]:
     out = []
+    if config.COMFYUI_URL:
+        out.append("local")
     if config.GEMINI_API_KEY:
         out.append("gemini")
     if config.OPENAI_API_KEY:
@@ -37,8 +42,8 @@ def available() -> list[str]:
 def order(provider: str) -> list[str]:
     keys = available()
     if not keys:
-        raise ImageError("Aucune clé d'image : ajoute GEMINI_API_KEY et/ou OPENAI_API_KEY dans .env")
-    if provider in ("openai", "gemini"):
+        raise ImageError("Aucun générateur d'images : configure COMFYUI_URL (gratuit), GEMINI_API_KEY ou OPENAI_API_KEY dans .env")
+    if provider in ("openai", "gemini", "local"):
         if provider not in keys:
             raise ImageError(f"Clé manquante pour {provider} dans .env")
         return [provider] + [k for k in keys if k != provider]  # l'autre en secours
@@ -123,22 +128,46 @@ def gemini_generate(prompt, refs, aspect="3:4") -> bytes:
     return base64.b64decode(data)
 
 
+# ---------------- budget ----------------
+def budget_left():
+    """Budget restant aujourd'hui (€) pour les fournisseurs payants, None = illimité."""
+    raw = db.get_setting("daily_budget")
+    try:
+        budget = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if budget <= 0:
+        return None
+    return round(budget - db.cost_today(), 4)
+
+
 # ---------------- interface ----------------
 def generate(prompt: str, refs, out_path: Path, provider="auto", aspect="3:4", kind="photo", product_id=None) -> dict:
     """Génère une image et l'enregistre. Renvoie {"path", "provider", "model", "cost", "fallback_from"}."""
     refs = [Path(r) for r in (refs or [])]
     errors = []
+    from . import comfyui
     for name in order(provider):
+        cost = config.COST_PER_IMAGE.get(name, 0.05)
+        left = budget_left() if name in PAID else None
+        if left is not None and left < cost:
+            errors.append(f"{name} : budget du jour atteint ({db.get_setting('daily_budget')} €)")
+            continue
         try:
-            raw = gemini_generate(prompt, refs, aspect) if name == "gemini" else openai_generate(prompt, refs, aspect)
-        except (ImageError, requests.RequestException) as e:
+            if name == "local":
+                raw = comfyui.generate(prompt, refs, aspect)
+            elif name == "gemini":
+                raw = gemini_generate(prompt, refs, aspect)
+            else:
+                raw = openai_generate(prompt, refs, aspect)
+        except (ImageError, comfyui.ComfyError, requests.RequestException) as e:
             errors.append(f"{name} : {e}")
             continue
         out_path = Path(out_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(raw)
-        model = config.GEMINI_IMAGE_MODEL if name == "gemini" else config.OPENAI_IMAGE_MODEL
-        cost = config.COST_PER_IMAGE.get(name, 0.05)
+        model = {"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL,
+                 "local": config.COMFY_UNET.split(".")[0]}[name]
         db.log_cost(name, model, kind, cost, product_id)
         return {"path": out_path, "provider": name, "model": model, "cost": cost,
                 "fallback_from": errors[0].split(" : ")[0] if errors else None}

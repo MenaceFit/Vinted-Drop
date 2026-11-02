@@ -170,8 +170,10 @@ def qa_check(original: Path, generated: Path, persona_ref: Path | None = None) -
 # ---------------- produit ----------------
 def clean_reference(p: dict, provider=None) -> Path:
     """Image du vêtement seul (sans texte ni mannequin), créée une fois puis réutilisée."""
+    from .image_providers import available
     original = abs_media(p["supplier_image"])
-    if db.get_setting("photo_clean") != "on":
+    mode = db.get_setting("photo_clean")
+    if mode == "off" or (mode == "auto" and "local" not in available()):
         return original
     d = product_dir(p["id"])
     existing = next(iter(sorted(d.glob("clean.*"))), None)
@@ -211,9 +213,9 @@ def _shot(p, kind, provider, product_ref, persona, n, original):
     tries = 2 if db.get_setting("photo_qa") == "on" else 1
     prov, last = _provider(provider), None
     for i in range(tries):
-        if i and last:  # 2e essai : l'autre fournisseur s'il a une clé
-            other = {"gemini": "openai", "openai": "gemini"}[last]
-            prov = other if other in available() else last
+        if i and last:  # 2e essai : un autre fournisseur s'il y en a un
+            others = [x for x in available() if x != last]
+            prov = others[0] if others else last
         try:
             res = generate(prompt, refs, out_dir / f"{kind}_{n}{'_r' if i else ''}.png", provider=prov,
                            kind=kind, product_id=p["id"])

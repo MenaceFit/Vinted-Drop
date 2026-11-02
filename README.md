@@ -10,7 +10,9 @@ Système complet pour faire tourner des boutiques Vinted en dropshipping (Shein,
 - **💬 Réponses aux acheteurs + négociation** : l'IA rédige la réponse. Les offres sont acceptées si elles
   atteignent le prix mini ; sinon le bot fait une contre-offre.
 - **📉 Baisse des prix** des articles qui ne bougent pas (jamais sous le prix mini).
-- **📸 Studio photo IA (Gemini + OpenAI)** : un modèle récurrent par boutique (2 photos de référence +
+- **🆓 Photos gratuites sur ton PC** : ComfyUI + Qwen-Image-Edit-2509 sur ta carte graphique NVIDIA, 0 € par
+  image ; Gemini / OpenAI seulement en secours avec un **budget max par jour**. Guide : [docs/PHOTOS_GRATUITES.md](docs/PHOTOS_GRATUITES.md).
+- **📸 Studio photo IA (PC, Gemini, OpenAI)** : un modèle récurrent par boutique (2 photos de référence +
   un décor fixe), 5 prises de vue (portée miroir, portée pose, à plat, cintre, détail), nettoyage de
   l'image fournisseur, **contrôle qualité IA** de chaque photo (fidélité notée sur 10, nouvel essai avec
   l'autre IA si la photo n'est pas fidèle), recadrage 3:4 en JPEG, suivi des coûts. Retouches photo par
@@ -38,6 +40,7 @@ python -m vinted_drop.cli init
 ```
 
 Dans `.env` :
+- `COMFYUI_URL` (facultatif, gratuit) : adresse de ComfyUI sur ton PC, voir [docs/PHOTOS_GRATUITES.md](docs/PHOTOS_GRATUITES.md).
 - `GEMINI_API_KEY` : sur https://aistudio.google.com/apikey (photos avec Nano Banana, `gemini-nano-banana-2.1`).
 - `OPENAI_API_KEY` : sur https://platform.openai.com/api-keys (photos avec `gpt-image-2.5-sunburst`, fiches,
   réponses, assistant). Mets les deux clés : si l'une échoue ou fait une photo pas fidèle, l'autre prend le relais.
@@ -148,7 +151,8 @@ vinted_drop/
   assistant.py     assistant en langage naturel (Telegram)
   telegram_bot.py  bot Telegram
   photos.py        studio photo : modèles, prises de vue, contrôle qualité, retouches
-  image_providers.py  Gemini (Nano Banana) et OpenAI (GPT Image), avec secours automatique
+  image_providers.py  PC (ComfyUI), Gemini (Nano Banana) et OpenAI (GPT Image), secours + budget du jour
+  comfyui.py       génération gratuite sur ton PC (workflow data/comfyui/qwen_image_edit_2509.json)
   listing.py       titres, descriptions, prix
   pricing.py       calcul des prix et des offres
   niches.py        classement des niches
