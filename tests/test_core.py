@@ -60,3 +60,13 @@ def test_dashboard_pages_render():
         r = c.post(f"/produit/{pid}/action/vendu", data={"sale_price": "39"}, follow_redirects=False)
         assert r.status_code == 303
     assert db.stats()["sales"] == 1
+
+
+def test_product_score_rewards_proof_and_margin():
+    from vinted_drop import niches
+    n = niches.get("noel-pulls")
+    strong = niches.product_score({"reviews": 15000, "rating": 4.8, "cost": 10}, n, 12)
+    weak = niches.product_score({"cost": 30}, n, 12)
+    assert strong["score"] > weak["score"]
+    ranked = niches.winning_products(month=11)
+    assert ranked[0]["score"] >= ranked[-1]["score"]

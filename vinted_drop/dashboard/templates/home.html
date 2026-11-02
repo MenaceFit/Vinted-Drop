@@ -1,75 +1,98 @@
-{% extends "base.html" %}{% block content %}
-<h1>Dashboard</h1>
-{% for sh in disconnected %}<div class="alert">🔑 Boutique <b>{{ sh.name }}</b> : Vinted {{ 'non connecté' if not sh.vinted_cookies else sh.vinted_status }} — <a href="/boutiques">connecter</a></div>{% endfor %}
-{% if pending_msgs %}<div class="alert info">💬 {{ pending_msgs }} message(s) acheteur en attente de validation — <a href="/messages">voir</a></div>{% endif %}
-<p class="muted">🤖 Pilote automatique : <b>{{ 'activé' if settings.autopilot=='on' else 'désactivé' }}</b> · publication {{ settings.publish_mode }} · réponses {{ settings.reply_mode }} · offres {{ settings.offer_mode }} — <a href="/pilote">régler</a></p>
-<div class="grid g4">
-  {% for label, s in [("Aujourd'hui", today), ("7 jours", week), ("30 jours", month), ("Total", total)] %}
-  <div class="card kpi"><div class="l">{{ label }}</div>
-    <div class="v good">{{ s.profit|eur }}</div>
-    <div class="s">CA {{ s.revenue|eur }} · {{ s.sales }} ventes · marge {{ s.margin_pct }}%</div></div>
-  {% endfor %}
-</div>
-<div class="grid g4" style="margin-top:14px">
-  <div class="card kpi"><div class="l">En ligne</div><div class="v">{{ total.products.published }}</div></div>
-  <div class="card kpi"><div class="l">Prêts à publier</div><div class="v">{{ total.products.ready }}</div></div>
-  <div class="card kpi"><div class="l">Brouillons</div><div class="v">{{ total.products.draft }}</div></div>
-  <div class="card kpi"><div class="l">À commander</div><div class="v" style="color:var(--bad)">{{ to_order|length }}</div>
-    <div class="s">Panier moyen {{ total.avg_basket|eur }}</div></div>
-</div>
-
-<div class="card" style="margin-top:14px"><h2>Bénéfice et CA — 30 derniers jours</h2>
-  <div style="position:relative;height:260px"><canvas id="chart"></canvas></div></div>
-
-<div class="grid g2" style="margin-top:14px">
-  <div class="card"><h2>Boutiques</h2><div class="scroll"><table>
-    <tr><th>Boutique</th><th>En ligne</th><th>Ventes</th><th>Bénéfice</th></tr>
-    {% for s in shops %}<tr><td><b>{{ s.name }}</b><br><span class="muted">{{ s.niche or '-' }}</span></td>
-      <td>{{ s.online }}</td><td>{{ s.sales }}</td><td class="good">{{ s.profit|eur }}</td></tr>
-    {% else %}<tr><td colspan="4" class="muted">Aucune boutique — <a href="/boutiques">en créer une</a></td></tr>{% endfor %}
-  </table></div></div>
-
-  <div class="card"><h2>À commander chez le fournisseur</h2><div class="scroll"><table>
-    {% for s in to_order %}<tr><td>#{{ s.id }}</td><td>{{ (s.title or '?')[:40] }}<br><span class="muted">T. {{ s.size or '?' }} · {{ s.shop_name or '' }}</span></td>
-      <td>{% if s.supplier_url %}<a class="btn" href="{{ s.supplier_url }}" target="_blank">Commander</a>{% endif %}</td>
-      <td><form class="inline" method="post" action="/vente/{{ s.id }}/statut"><input type="hidden" name="status" value="ordered"><button class="ghost">✓ Fait</button></form></td></tr>
-    {% else %}<tr><td class="muted">Rien à commander 👌</td></tr>{% endfor %}
-  </table></div></div>
-</div>
-
-<div class="grid g2" style="margin-top:14px">
-  <div class="card"><h2>Dernières ventes</h2><div class="scroll"><table>
-    <tr><th>Date</th><th>Produit</th><th>Prix</th><th>Bénéfice</th></tr>
-    {% for s in sales %}<tr><td class="muted">{{ s.sold_at[5:16] }}</td><td>{{ (s.title or '?')[:38] }}<br><span class="muted">{{ s.shop_name or '' }}</span></td>
-      <td>{{ s.sale_price|eur }}</td><td class="good">{{ s.profit|eur }}</td></tr>
-    {% else %}<tr><td colspan="4" class="muted">Pas encore de vente.</td></tr>{% endfor %}
-  </table></div></div>
-  <div class="card"><h2>Niches du moment</h2>
-    {% for n in top_niches %}<p style="margin:0 0 10px"><b>{{ '🔥' if n.in_season else '⏳' }} {{ n.name }}</b> · {{ n.score }}/10<br>
-    <span class="muted">{{ n.why }}</span></p>{% endfor %}
-    <a href="/niches">Voir l'analyse complète et les liens →</a></div>
-</div>
-
-<div class="card" style="margin-top:14px"><h2>Activité du bot</h2><div class="scroll"><table>
-  {% for e in events %}<tr><td class="muted" style="white-space:nowrap">{{ e.created_at[5:16] }}</td><td><span class="pill">{{ e.kind }}</span></td><td>{{ e.message }}</td></tr>
-  {% else %}<tr><td class="muted">Rien pour l'instant.</td></tr>{% endfor %}
-</table></div></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script>
-const data = {{ series|safe }};
-const css = getComputedStyle(document.documentElement);
-const c = n => css.getPropertyValue(n).trim();
-new Chart(document.getElementById('chart'), {
-  type: 'bar',
-  data: { labels: data.map(d => d.date.slice(5)),
-    datasets: [
-      { label: 'Bénéfice (€)', data: data.map(d => d.profit), backgroundColor: c('--accent'), borderRadius: 4 },
-      { label: 'CA (€)', data: data.map(d => d.revenue), type: 'line', borderColor: c('--muted'), pointRadius: 0, tension: .3 }
-    ]},
-  options: { maintainAspectRatio: false, plugins: { legend: { labels: { color: c('--muted') } } },
-    scales: { x: { ticks: { color: c('--muted') }, grid: { display: false } },
-              y: { ticks: { color: c('--muted') }, grid: { color: c('--line') } } } }
-});
-</script>
+{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
+{% block title %}Dashboard{% endblock %}
+{% block heading %}Bonjour 👋{% endblock %}
+{% block subtitle %}<p class="muted">Voici ce qui se passe dans tes boutiques aujourd'hui.</p>{% endblock %}
+{% block actions %}
+<form method="post" action="/pilote/lancer/sync"><button class="btn ghost">{{ icon('refresh',16) }} Synchroniser</button></form>
+<a class="btn" href="/niches">{{ icon('plus',16) }} Ajouter des produits</a>
 {% endblock %}
+{% block content %}
+{% for sh in disconnected %}<div class="alert bad reveal">{{ icon('key') }} <span>Boutique <b>{{ sh.name }}</b> : Vinted {{ 'non connecté' if not sh.vinted_cookies else sh.vinted_status }}.</span> <a href="/boutiques" style="margin-left:auto">Connecter →</a></div>{% endfor %}
+{% if pending_msgs %}<div class="alert info reveal">{{ icon('chat') }} <span><b>{{ pending_msgs }}</b> message{{ 's' if pending_msgs > 1 }} acheteur à valider.</span> <a href="/messages" style="margin-left:auto">Répondre →</a></div>{% endif %}
+
+{% set spark_profit = series_list | map(attribute='profit') | list %}
+{% set spark_sales = series_list | map(attribute='sales') | list %}
+<div class="grid g4">
+  <div class="card kpi hero reveal">
+    <div class="label"><span class="ic">{{ icon('euro',16) }}</span> Bénéfice aujourd'hui</div>
+    <div class="value num" data-count="{{ today.profit }}" data-format="eur" data-live="today.profit">0 €</div>
+    <div class="sub">{{ today.sales }} vente{{ 's' if today.sales != 1 }} · CA {{ today.revenue|eur }}</div>
+    <div style="margin-top:14px"><div class="bar" style="background:rgba(255,255,255,.2)"><i data-w="{{ [100, (100 * today.profit / goal)|round]|min if goal else 0 }}" style="background:#fff"></i></div>
+    <div class="sub" style="margin-top:6px">Objectif du jour : {{ goal|eur }}</div></div>
+  </div>
+  <div class="card kpi hover reveal">
+    <div class="label"><span class="ic">{{ icon('trend',16) }}</span> Bénéfice 7 jours</div>
+    <div class="value num" data-count="{{ week.profit }}" data-format="eur" data-live="7d.profit">0 €</div>
+    <div class="sub">CA {{ week.revenue|eur }} · marge {{ week.margin_pct }} %</div>
+    <span class="spark good" data-spark='{{ spark_profit[-14:]|tojson }}'></span>
+  </div>
+  <div class="card kpi hover reveal">
+    <div class="label"><span class="ic">{{ icon('receipt',16) }}</span> Ventes 30 jours</div>
+    <div class="value num" data-count="{{ month.sales }}" data-live="30d.sales">0</div>
+    <div class="sub">Panier moyen {{ month.avg_basket|eur }}</div>
+    <span class="spark" style="color:var(--accent)" data-spark='{{ spark_sales[-14:]|tojson }}'></span>
+  </div>
+  <div class="card kpi hover reveal">
+    <div class="label"><span class="ic">{{ icon('box',16) }}</span> En ligne</div>
+    <div class="value num" data-count="{{ total.products.published }}">0</div>
+    <div class="sub">{{ total.products.ready }} prêts · {{ total.products.draft }} brouillons</div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card reveal span2">
+    <div class="card-head"><div><h2>Chiffre d'affaires et bénéfice</h2><span class="muted">30 derniers jours · total {{ month.revenue|eur }}</span></div>
+      <div class="legend"><span><i style="background:var(--accent-soft)"></i>CA</span><span><i style="background:var(--grad)"></i>Bénéfice</span></div></div>
+    <div class="chart"><div id="chart" style="height:100%"></div><div class="tip"></div></div>
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card reveal">
+    <div class="card-head"><h2>🛒 À commander</h2><a class="muted" href="/ventes?statut=to_order">Tout voir</a></div>
+    {% if to_order %}<div class="table-wrap"><table><tbody>
+    {% for s in to_order[:6] %}<tr><td><b>{{ (s.title or '?')[:42] }}</b><br><span class="muted">T. {{ s.size or '?' }} · {{ s.shop_name or '' }} · +{{ s.profit|eur }}</span></td>
+      <td style="text-align:right;white-space:nowrap">{% if s.supplier_url %}<a class="btn sm" href="{{ s.supplier_url }}" target="_blank">Commander {{ icon('ext',14) }}</a>{% endif %}
+      <form class="inline" method="post" action="/vente/{{ s.id }}/statut"><input type="hidden" name="status" value="ordered"><button class="btn ghost sm">{{ icon('check',14) }}</button></form></td></tr>{% endfor %}
+    </tbody></table></div>
+    {% else %}<div class="empty"><span class="big">📦</span>Rien à commander, tout est à jour.</div>{% endif %}
+  </div>
+
+  <div class="card reveal">
+    <div class="card-head"><h2>🏪 Boutiques</h2><a class="muted" href="/boutiques">Gérer</a></div>
+    {% if shops %}{% set maxp = (shops|map(attribute='profit')|max) or 1 %}
+    <div class="stack" style="gap:14px">{% for s in shops %}
+      <div><div class="row" style="justify-content:space-between"><b>{{ s.name }}</b><span class="num good">{{ s.profit|eur }}</span></div>
+      <div class="muted" style="font-size:12.5px;margin:2px 0 6px">{{ s.niche or '—' }} · {{ s.online }} en ligne · {{ s.sales }} ventes</div>
+      <div class="bar"><i data-w="{{ (100 * s.profit / maxp)|round if maxp > 0 else 0 }}"></i></div></div>
+    {% endfor %}</div>
+    {% else %}<div class="empty"><span class="big">🏪</span>Aucune boutique. <a href="/boutiques">Créer la première</a></div>{% endif %}
+  </div>
+</div>
+
+<div class="grid g3 mt">
+  <div class="card reveal">
+    <div class="card-head"><h2>💸 Dernières ventes</h2><a class="muted" href="/ventes">Tout voir</a></div>
+    {% if sales %}<ul class="timeline">{% for s in sales[:7] %}
+      <li><span class="dot">💸</span><span>{{ (s.title or '?')[:34] }}<br><span class="faint" style="font-size:12px">{{ s.shop_name or '' }} · {{ s.sold_at[5:16] }}</span></span><span class="num good">+{{ s.profit|eur }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><span class="big">⏳</span>Pas encore de vente.</div>{% endif %}
+  </div>
+  <div class="card reveal">
+    <div class="card-head"><h2>🔥 Top produits gagnants</h2><a class="muted" href="/niches">Voir tout</a></div>
+    <div class="stack" style="gap:12px">{% for w in top_products %}
+      <a href="{{ w.url }}" target="_blank" class="row" style="color:inherit;text-decoration:none;flex-wrap:nowrap">
+        <span class="ring" style="--size:42px" data-p="{{ w.score }}"><span style="font-size:12px">{{ w.score }}</span></span>
+        <span style="min-width:0"><b style="font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.title }}</b>
+        <span class="muted" style="font-size:12px">{% if w.reviews %}{{ w.rating }}★ · {{ '{:,}'.format(w.reviews).replace(',', ' ') }} avis{% elif w.sold %}{{ w.sold }}{% else %}{{ w.niche_name }}{% endif %}</span></span></a>
+    {% endfor %}</div>
+  </div>
+  <div class="card reveal">
+    <div class="card-head"><h2>🤖 Activité du bot</h2><a class="muted" href="/pilote">Journal</a></div>
+    {% set ico = {'sale':'💸','publish':'📤','reply':'💬','offer':'🤝','price':'📉','import':'📥','market':'🔎','vinted':'🔑','error':'⚠️'} %}
+    {% if events %}<ul class="timeline">{% for e in events[:7] %}
+      <li><span class="dot">{{ ico.get(e.kind, '•') }}</span><span style="font-size:13px">{{ e.message[:70] }}</span><span class="faint" style="font-size:12px">{{ e.created_at[11:16] }}</span></li>{% endfor %}</ul>
+    {% else %}<div class="empty"><span class="big">🤖</span>Le bot n'a encore rien fait.<br>Lance-le avec <code>cli all</code>.</div>{% endif %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>window.SERIES = {{ series|safe }};</script>{% endblock %}

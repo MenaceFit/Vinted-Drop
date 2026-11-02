@@ -1,27 +1,70 @@
-{% extends "base.html" %}{% block content %}
-<h1>Niches & produits gagnants</h1>
-<p class="muted">Score /10 = demande × faible concurrence × saison (🔥 = en pleine saison, ⏳ = à préparer). Le score monte tout seul quand une niche vend bien dans tes boutiques. Analyse détaillée : <code>docs/NICHES.md</code>.</p>
+{% extends "base.html" %}{% from "_ui.html" import icon, stars %}
+{% block title %}Produits gagnants{% endblock %}
+{% block heading %}Produits gagnants{% endblock %}
+{% block subtitle %}<p class="muted">{{ products|length }} produits classés par score : preuve de vente (avis, notes, ventes) 45 % · saison 35 % · marge 20 %.</p>{% endblock %}
+{% block content %}
+{% macro import_form(w, nid) %}
+<form method="post" action="/produits/importer-gagnant" class="row" style="gap:6px;flex-wrap:nowrap">
+  <input type="hidden" name="url" value="{{ w.url }}"><input type="hidden" name="title" value="{{ w.title }}"><input type="hidden" name="niche" value="{{ nid }}">
+  <input name="cost" type="number" step="0.01" value="{{ w.cost or '' }}" placeholder="Prix €" required style="width:84px;padding:7px 9px">
+  <select name="shop_id" style="padding:7px 9px;max-width:120px"><option value="">Boutique</option>{% for s in shops %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+  <button class="btn sm">{{ icon('plus',14) }}</button>
+</form>{% endmacro %}
 
-{% if perf %}<div class="card scroll" style="margin-bottom:14px"><h2>Tes résultats par niche</h2><table>
-<tr><th>Niche</th><th>Publiés</th><th>Ventes</th><th>Taux de vente</th><th>Bénéfice</th></tr>
-{% for r in perf %}<tr><td>{{ r.niche }}</td><td>{{ r.listed }}</td><td>{{ r.sales }}</td><td>{{ r.sell_through }}%</td><td class="good">{{ r.profit|eur }}</td></tr>{% endfor %}
-</table></div>{% endif %}
-
-{% for n in niches %}
-<div class="card" style="margin-bottom:14px">
-  <h2>{{ '🔥' if n.in_season else '⏳' }} {{ n.name }} — {{ n.score }}/10</h2>
-  <p style="margin:0 0 6px">{{ n.why }}</p>
-  <p class="muted" style="margin:0 0 10px">Achat {{ n.buy_price }} → vente {{ n.sell_price }} · Modèle : {{ n.persona }} · Mots-clés : {{ n.keywords|join(', ') }}</p>
-  {% if winners.get(n.id) %}<div class="scroll"><table>
-  {% for w in winners[n.id] %}<tr>
-    <td><a href="{{ w.url }}" target="_blank">{{ w.title }}</a> <span class="muted">({{ w.supplier }})</span></td>
-    <td style="white-space:nowrap">{{ w.cost|eur if w.cost else 'prix à vérifier' }}</td>
-    <td><form method="post" action="/produits/importer-gagnant" class="row">
-      <input type="hidden" name="url" value="{{ w.url }}"><input type="hidden" name="title" value="{{ w.title }}"><input type="hidden" name="niche" value="{{ n.id }}">
-      <input name="cost" type="number" step="0.01" value="{{ w.cost or '' }}" placeholder="Prix €" required style="width:90px">
-      <select name="shop_id"><option value="">Boutique…</option>{% for s in shops %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
-      <button class="ghost">Importer</button></form></td></tr>{% endfor %}
-  </table></div>{% endif %}
+<div class="chips reveal">
+  <a class="chip {{ 'on' if not sel }}" href="/niches">🔥 Tous</a>
+  {% for n in niches[:10] %}<a class="chip {{ 'on' if sel==n.id }}" href="/niches?niche={{ n.id }}">{{ n.name.split('(')[0]|trim }}</a>{% endfor %}
 </div>
+
+<div class="grid g3 mt">
+{% for w in products %}
+  <div class="card hover reveal" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row" style="flex-wrap:nowrap;align-items:flex-start">
+      <span class="ring" data-p="{{ w.score }}"><span>{{ w.score }}</span></span>
+      <div style="min-width:0">
+        <a href="{{ w.url }}" target="_blank" style="color:var(--text);font-weight:650;line-height:1.35;display:block">{{ w.title }} {{ icon('ext',13) }}</a>
+        <span class="faint" style="font-size:12.5px">{{ w.supplier }} · {{ w.niche_name }}</span>
+      </div>
+    </div>
+    <div class="row" style="gap:6px">
+      {% if loop.index <= 3 and not sel %}<span class="badge fire">🏆 Top {{ loop.index }}</span>{% endif %}
+      {% if w.in_season %}<span class="badge sold">En saison</span>{% endif %}
+      {% if w.reviews %}<span class="badge plain">{{ stars(w.rating) }} · {{ '{:,}'.format(w.reviews).replace(',', ' ') }} avis</span>{% endif %}
+      {% if w.sold %}<span class="badge published">{{ w.sold }}</span>{% endif %}
+      {% if w.multiplier %}<span class="badge {{ 'ready' if w.multiplier >= 1.6 else 'error' }}">x{{ w.multiplier }} marge{{ ' · trop faible' if w.multiplier < 1.6 }}</span>{% endif %}
+    </div>
+    <div class="row" style="justify-content:space-between;margin-top:auto">
+      <span><span class="faint" style="font-size:12px">Achat</span><br><b class="num">{{ w.cost|eur if w.cost else 'à vérifier' }}</b>
+        {% if w.est_sell %}<span class="faint"> → </span><b class="num good">~{{ w.est_sell|round|int }} €</b>{% endif %}</span>
+      {{ import_form(w, w.niche) }}
+    </div>
+  </div>
 {% endfor %}
+</div>
+
+<h2 class="mt reveal" style="font-size:20px;margin-top:40px">Niches du moment</h2>
+<p class="muted reveal">Classement par saison, demande, concurrence{% if scan %} et analyse Vinted en direct du {{ scan.date }}{% endif %}. Les barres montrent les mois forts, le mois en cours est entouré.</p>
+{% if perf %}<div class="card mt reveal"><div class="card-head"><h2>Tes résultats par niche</h2></div><div class="table-wrap"><table>
+<thead><tr><th>Niche</th><th>Publiés</th><th>Ventes</th><th>Taux de vente</th><th>Bénéfice</th></tr></thead><tbody>
+{% for r in perf %}<tr><td>{{ r.niche }}</td><td>{{ r.listed }}</td><td>{{ r.sales }}</td><td><div class="bar" style="width:120px"><i data-w="{{ [r.sell_through,100]|min }}"></i></div></td><td class="good num">{{ r.profit|eur }}</td></tr>{% endfor %}
+</tbody></table></div></div>{% endif %}
+
+<div class="grid g3 mt">
+{% for n in niches %}
+  <div class="card hover reveal">
+    <div class="row" style="flex-wrap:nowrap;align-items:flex-start;justify-content:space-between">
+      <div><h3 style="font-size:15px">{{ n.name }}</h3><span class="faint" style="font-size:12.5px">Achat {{ n.buy_price }} → vente {{ n.sell_price }}</span></div>
+      <span class="ring" style="--size:48px" data-p="{{ (n.score * 10)|round }}"><span style="font-size:13px">{{ n.score }}</span></span>
+    </div>
+    <div class="months" title="Mois forts">{% for m in range(1,13) %}<i class="{{ 'on' if m in n.months }} {{ 'now' if m == month }}"></i>{% endfor %}</div>
+    <p style="font-size:13.5px;margin:12px 0 8px">{{ n.why }}</p>
+    <p class="faint" style="font-size:12.5px;margin:0">👤 {{ n.persona }}</p>
+    {% if n.live %}<p class="faint" style="font-size:12.5px;margin:6px 0 0">📊 Vinted : opportunité {{ n.live.score }}/10{% if n.live.median_price %} · prix médian {{ n.live.median_price|eur }}{% endif %}</p>{% endif %}
+    <div class="row mt" style="justify-content:space-between">
+      <span class="badge {{ 'fire' if n.in_season else 'plain' }}">{{ '🔥 En saison' if n.in_season else '⏳ À préparer' }}</span>
+      <a class="btn ghost sm" href="/niches?niche={{ n.id }}">{{ counts.get(n.id, 0) }} produits →</a>
+    </div>
+  </div>
+{% endfor %}
+</div>
 {% endblock %}

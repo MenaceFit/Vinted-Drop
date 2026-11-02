@@ -1,0 +1,33 @@
+{# Icônes (style trait 1.8px) et petits composants réutilisables #}
+{% macro icon(name, size=18) -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'home' -%}<rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/>
+{%- elif name == 'box' -%}<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>
+{%- elif name == 'receipt' -%}<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>
+{%- elif name == 'store' -%}<path d="M3 9 5 4h14l2 5"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/>
+{%- elif name == 'chat' -%}<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>
+{%- elif name == 'target' -%}<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>
+{%- elif name == 'bot' -%}<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 4v4M9 14h.01M15 14h.01"/>
+{%- elif name == 'plus' -%}<path d="M12 5v14M5 12h14"/>
+{%- elif name == 'refresh' -%}<path d="M21 12a9 9 0 0 1-15.5 6.3L3 16M3 12a9 9 0 0 1 15.5-6.3L21 8"/><path d="M21 3v5h-5M3 21v-5h5"/>
+{%- elif name == 'ext' -%}<path d="M14 4h6v6M20 4l-9 9"/><path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>
+{%- elif name == 'moon' -%}<path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/>
+{%- elif name == 'euro' -%}<path d="M17 6.5A7 7 0 1 0 17 17.5M4 10h9M4 14h9"/>
+{%- elif name == 'trend' -%}<path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/>
+{%- elif name == 'cart' -%}<circle cx="9" cy="20" r="1"/><circle cx="18" cy="20" r="1"/><path d="M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.6a1 1 0 0 0 1-.8L21 7H6"/>
+{%- elif name == 'spark' -%}<path d="m12 3 2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>
+{%- elif name == 'key' -%}<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/>
+{%- elif name == 'check' -%}<path d="m5 12 5 5L20 7"/>
+{%- elif name == 'upload' -%}<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% macro badge(status) -%}
+<span class="badge {{ status }}">{{ {'draft':'Brouillon','ready':'Prêt','published':'En ligne','sold':'Vendu','archived':'Archivé',
+ 'to_order':'À commander','ordered':'Commandé','received':'Reçu','shipped':'Envoyé','done':'Terminé',
+ 'pending':'À valider','sent':'Envoyé','ignored':'Ignoré','connected':'Connecté','expired':'Token expiré','error':'Erreur',
+ 'disconnected':'Non connecté','checking':'Vérification'}.get(status, status) }}</span>
+{%- endmacro %}
+
+{% macro stars(r) -%}{% if r %}<span class="stars">{{ '★' * (r|round|int) }}{{ '☆' * (5 - (r|round|int)) }}</span> <b>{{ r }}</b>{% endif %}{%- endmacro %}

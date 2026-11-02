@@ -431,8 +431,13 @@ async def _winners(update, niche_id):
     items = niches.winning_products(niche_id)[:15]
     if not items:
         return await reply(update, "Aucun produit pour cette niche.")
-    lines = [f'• <a href="{i["url"]}">{i["title"]}</a> ({i["supplier"]}, '
-             f'{f"{i["cost"]:.2f} €" if i.get("cost") else "prix à vérifier"})' for i in items]
+    lines = ["🏆 <b>Produits gagnants</b> (score /100 : preuves de vente, saison, marge)"]
+    for i in items:
+        proof = (f"{i['rating']}★ · {i['reviews']:,} avis".replace(",", " ") if i.get("reviews")
+                 else i.get("sold") or "")
+        cost = f"{i['cost']:.2f} €" if i.get("cost") else "prix à vérifier"
+        lines.append(f'<b>{i["score"]}</b> · <a href="{i["url"]}">{i["title"]}</a>\n   {i["supplier"]} · {cost}'
+                     + (f" · {proof}" if proof else ""))
     lines.append("\nAjoute-en un : envoie sa capture avec la légende <code>prix lien boutique</code>")
     await reply(update, "\n".join(lines))
 

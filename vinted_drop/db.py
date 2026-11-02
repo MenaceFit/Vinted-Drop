@@ -371,6 +371,7 @@ DEFAULT_SETTINGS = {
     "price_drop_pct": "10",
     "sync_minutes": "15",
     "inbox_minutes": "10",
+    "daily_goal": "100",          # objectif de bénéfice par jour (€), affiché sur le dashboard
 }
 
 

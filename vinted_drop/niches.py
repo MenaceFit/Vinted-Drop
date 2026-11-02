@@ -1,5 +1,6 @@
 """Analyse des niches : score saisonnier + performance réelle de tes boutiques."""
 import json
+import re
 from datetime import date
 
 from . import config, db
@@ -38,9 +39,45 @@ def ranked(month: int | None = None):
     return sorted(out, key=lambda x: x["score"], reverse=True)
 
 
-def winning_products(niche_id: str | None = None):
+def _midpoint(price_range: str):
+    nums = [float(x) for x in re.findall(r"\d+(?:[.,]\d+)?", (price_range or "").replace(",", "."))]
+    return sum(nums) / len(nums) if nums else None
+
+
+def product_score(item: dict, niche: dict | None, month: int) -> dict:
+    """Score /100 d'un produit gagnant :
+    preuve de vente (avis, note, ventes) 45 % · saison de la niche 35 % · marge estimée 20 %."""
+    import math
+    reviews = item.get("reviews") or 0
+    proof = min(1, math.log10(reviews + 1) / 4)                 # 10 000 avis = max
+    if item.get("rating"):
+        proof = proof * 0.7 + max(0, (item["rating"] - 4) / 1) * 0.3
+    if item.get("sold"):
+        proof = max(proof, 0.8)
+    niche_part = min(1, score(niche, month) / 8) if niche else 0.4
+    sell = _midpoint(niche.get("sell_price")) if niche else None
+    margin = None
+    if item.get("cost") and sell:
+        margin = sell / item["cost"]
+        margin_part = min(1, max(0, (margin - 1.2) / 1.8))      # x3 = max
+    else:
+        margin_part = 0.5
+    total = round(100 * (0.45 * proof + 0.35 * niche_part + 0.20 * margin_part))
+    return {"score": total, "multiplier": round(margin, 1) if margin else None, "est_sell": sell}
+
+
+def winning_products(niche_id: str | None = None, month: int | None = None, ranked_only=False):
     items = json.loads((config.DATA_DIR / "winning_products.json").read_text(encoding="utf-8"))
-    return [i for i in items if niche_id is None or i["niche"] == niche_id]
+    month = month or date.today().month
+    by_id = {n["id"]: n for n in load()}
+    out = []
+    for i in items:
+        if niche_id and i["niche"] != niche_id:
+            continue
+        n = by_id.get(i["niche"])
+        out.append({**i, **product_score(i, n, month), "niche_name": n["name"] if n else i["niche"],
+                    "in_season": bool(n and month in n["months"])})
+    return sorted(out, key=lambda x: x["score"], reverse=True)
 
 
 def get(niche_id):

@@ -16,7 +16,10 @@ Système complet pour faire tourner des boutiques Vinted en dropshipping (Shein,
   fournisseurs ([docs/NICHES.md](docs/NICHES.md)).
 - **🤖 Bot Telegram** : boutons partout, validation en 1 clic, et assistant à qui tu écris normalement
   (« combien j'ai gagné cette semaine ? », « passe la publication en automatique »).
-- **📊 Dashboard** : chiffres, boutiques, ventes à commander, messages, réglages du pilote, journal.
+- **📊 Dashboard** : site web complet, thème sombre / clair, animations, graphique interactif,
+  chiffres en direct (mis à jour toutes les 30 s), objectif du jour, version mobile avec barre d'onglets.
+- **🏆 Produits gagnants** : 64 produits avec un score /100 basé sur les preuves de vente (avis, notes,
+  nombre de ventes), la saison et la marge, importables en un clic.
 
 ## Installation (sur ton PC ou ton VPS)
 

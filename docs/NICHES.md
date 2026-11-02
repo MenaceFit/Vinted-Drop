@@ -1,5 +1,28 @@
 # Analyse des niches Vinted — novembre 2026
 
+## 🏆 Produits gagnants avec preuves de vente (3 novembre 2026)
+
+Chaque produit a un **score /100** : preuves de vente (avis, note, nombre de ventes) 45 %, saison de
+la niche 35 %, marge estimée 20 %. Le classement complet est sur le dashboard (*Produits gagnants*)
+et dans Telegram (`/gagnants`). Les chiffres viennent des fiches Temu au 2 novembre 2026.
+
+| Score | Produit | Preuve |
+|------:|---------|--------|
+| 82 | [Pull de Noël flocons col montant femme](https://www.temu.com/fr/pull-en-tricot-imprim%C3%A9-flocon-de-neige-de-no%C3%ABl-pull-d%C3%A9contract%C3%A9-%C3%A0-manches-longues-et-col-montant-v%C3%AAtements-pour-femmes-g-601099524632929.html) | 4,7★ · 14 971 avis |
+| 81 | [Pull de Noël col roulé mi-haut femme](https://www.temu.com/fr/pull-femme-hiver-col-roul%C3%A9-mi-haut-avec--de-no%C3%ABl-haut-manches-longues-chaud-et-d%C3%A9contract%C3%A9-v%C3%AAtement-femme-pour-les-f%C3%AAtes-de-no%C3%ABl-g-601099663001246.html) | 4,9★ · 3 598 avis |
+| 80 | [Pyjamas de Noël famille motif ours](https://www.temu.com/fr/ensembles-de-pyjamas-assortis-pour-la-famille-%C3%A0-imprim%C3%A9-ours-de-no%C3%ABl-patpat-r%C3%A9sistant-aux-flammes-g-601099525057400.html) | 4,8★ · 6 703 avis |
+| 78 | [Robe de Noël fille velours rouge et tulle](https://www.temu.com/fr/robe-de-no%C3%ABl-pour-fille-robe-de-princesse--en-velours-rouge--%C3%A0-manches-bouffantes-pour-fille-jupe-en-tulle-printemps-automne---avec-perles-brillantes-ourlet-en-tulle-ciel-%C3%A9toil%C3%A9-d%C3%A9coration-%C3%A0-n%C5%93ud-%C3%A0-la-taille-design--%C3%A0-manches-bouffantes-convient-pour-g-601104018748973.html) | best-seller de la catégorie |
+| 77 | [Pyjamas de Noël famille sapins et rennes](https://www.temu.com/fr/ensembles-de-pyjamas-naia-%C3%A0-manches-longues-et-imprim%C3%A9s-de-rennes-et-d-arbres-de-no%C3%ABl-assortis-pour-toute-la-famille-de-no%C3%ABl-r%C3%A9sistants-aux-flammes-g-601099526947873.html) | 4,8★ · 2 974 avis |
+| 69 | [Robe de grossesse pour séance photo](https://www.temu.com/fr/robe--maternit%C3%A9-femme-%C3%A0-manches-longues--nu-%C3%A9lastique-pour--photo-ou-soir%C3%A9e-confortable-et-lavable-en-machine--pour-portraits-de-grossesse-et-shoots-mode-v%C3%AAtements-de-maternit%C3%A9-confortables-g-601099514643097.html) | 4,9★ · 187 avis |
+| 67 | [Tenues de Noël parent-enfant](https://www.temu.com/lu-fr/tenues-de-no%C3%ABl-pratiques-es-parent-enfant-pour-plusieurs-occasions-r%C3%A9unions-de-famille-pyjama-%C3%A0-manches-longues-et-col-ras-du-cou-ensemble-de-v%C3%AAtements-de--pyjama-tenues-es-parent-enfant--ensemble--pour--pyjamas-de-f%C3%AAte-pyjamas-%C3%A0-col-ras-du-cou-g-601105472363022.html) | 82 000+ vendus, mais marge faible à 18,56 € |
+
+**À retenir :**
+- Un produit avec des milliers d'avis prouve la demande, mais **beaucoup de vendeurs Vinted peuvent l'avoir aussi**.
+  Avant d'en publier 20, cherche-le sur Vinted : s'il y a déjà plein d'annonces identiques, change de coloris ou de modèle.
+- Le dashboard signale en rouge les produits dont la marge estimée est trop faible (moins de x1,6), comme
+  le manteau fausse fourrure à 61,83 €.
+- Shein bloque la lecture automatique de ses pages : pour ses produits, le prix et les avis sont à vérifier à la main.
+
 Mise à jour le 2 novembre 2026 : **7 nouvelles niches** (voir juste dessous) et analyse du marché
 Vinted en direct chaque nuit dès qu'une boutique est connectée.
 

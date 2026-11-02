@@ -36,6 +36,7 @@ async def lifespan(_app):
 
 app = FastAPI(title="Vinted Drop", dependencies=[Depends(auth)], lifespan=lifespan)
 app.mount("/media", StaticFiles(directory=config.MEDIA_DIR), name="media")
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 templates.env.filters["eur"] = lambda v: f"{(v or 0):,.2f} €".replace(",", " ").replace(".", ",")
 
@@ -45,15 +46,24 @@ JOBS_RUNNING: set[int] = set()
 
 
 def render(request, name, **ctx):
-    return templates.TemplateResponse(request, name, {"page": name.split(".")[0], **ctx})
+    shops_all = db.list_shops()
+    nav = {
+        "nav_pending": len(db.list_conversations(status="pending")),
+        "nav_to_order": len(db.list_sales(status="to_order")),
+        "nav_autopilot": db.get_setting("autopilot"),
+        "nav_connected": sum(1 for x in shops_all if x.get("vinted_status") == "connected"),
+    }
+    return templates.TemplateResponse(request, name, {"page": name.split(".")[0], **nav, **ctx})
 
 
 @app.get("/")
 def home(request: Request):
+    series = db.daily_series(30)
     return render(
         request, "home.html",
         today=db.today_stats(), week=db.stats(7), month=db.stats(30), total=db.stats(),
-        series=json.dumps(db.daily_series(30)), shops=db.shop_breakdown(),
+        series=json.dumps(series), series_list=series, shops=db.shop_breakdown(),
+        goal=float(db.get_setting("daily_goal") or 100), top_products=niches.winning_products()[:5],
         sales=db.list_sales(limit=10), to_order=db.list_sales(status="to_order"),
         top_niches=niches.ranked()[:4], events=db.list_events(12), settings=db.all_settings(),
         pending_msgs=len(db.list_conversations(status="pending")),
@@ -237,13 +247,16 @@ def set_shop_persona(sid: int, persona_id: str = Form("")):
 
 # ---------------- niches ----------------
 @app.get("/niches")
-def niches_page(request: Request):
-    ranked = niches.ranked()
-    winners = {}
-    for w in niches.winning_products():
-        winners.setdefault(w["niche"], []).append(w)
-    return render(request, "niches.html", niches=ranked, winners=winners, shops=db.list_shops(),
-                  perf=db.niche_breakdown())
+def niches_page(request: Request, niche: str | None = None):
+    from datetime import date
+    allp = niches.winning_products()
+    counts = {}
+    for w in allp:
+        counts[w["niche"]] = counts.get(w["niche"], 0) + 1
+    return render(request, "niches.html", niches=niches.ranked(), sel=niche,
+                  products=[w for w in allp if not niche or w["niche"] == niche],
+                  counts=counts, shops=db.list_shops(), perf=db.niche_breakdown(),
+                  scan=market.last_scan(), month=date.today().month)
 
 
 # ---------------- connexion Vinted ----------------
@@ -299,6 +312,7 @@ def add_template_manual(name: str = Form(...), catalog_id: int = Form(...), bran
 @app.get("/pilote")
 def autopilot_page(request: Request):
     return render(request, "autopilot.html", settings=db.all_settings(), events=db.list_events(60),
+                  ship_delay=db.get_setting("ship_delay") or "envoi sous 5 à 8 jours",
                   scan=market.last_scan(), shops=db.list_shops(), ok=request.query_params.get("ok"))
 
 

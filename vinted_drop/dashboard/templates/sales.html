@@ -1,18 +1,24 @@
-{% extends "base.html" %}{% block content %}
-<h1>Ventes</h1>
-<form class="row" style="margin-bottom:16px" method="get">
-  <select name="statut" onchange="this.form.submit()"><option value="">Tous les statuts</option>
-  {% for s in statuses %}<option {{ 'selected' if statut==s }}>{{ s }}</option>{% endfor %}</select>
-</form>
-<div class="card scroll"><table>
-<tr><th>#</th><th>Date</th><th>Produit</th><th>Boutique</th><th>Prix</th><th>Achat</th><th>Bénéfice</th><th>Fournisseur</th><th>Statut</th></tr>
+{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
+{% block title %}Ventes{% endblock %}
+{% block heading %}Ventes{% endblock %}
+{% block subtitle %}<p class="muted">{{ sales|length }} vente{{ 's' if sales|length != 1 }} · bénéfice {{ sales|sum(attribute='profit')|eur }}</p>{% endblock %}
+{% block content %}
+<div class="chips reveal">
+  <a class="chip {{ 'on' if not statut }}" href="/ventes">Toutes</a>
+  {% for s, l in [('to_order','🛒 À commander'),('ordered','Commandées'),('received','Reçues'),('shipped','Envoyées'),('done','Terminées')] %}
+  <a class="chip {{ 'on' if statut==s }}" href="/ventes?statut={{ s }}">{{ l }}</a>{% endfor %}
+</div>
+<div class="card mt reveal">
+{% if sales %}<div class="table-wrap"><table>
+<thead><tr><th>Produit</th><th>Boutique</th><th>Date</th><th>Prix</th><th>Bénéfice</th><th>Fournisseur</th><th>Statut</th></tr></thead><tbody>
 {% for s in sales %}
-<tr><td>{{ s.id }}</td><td class="muted">{{ s.sold_at[:16] }}</td>
-  <td><a href="/produit/{{ s.product_id }}">{{ (s.title or '?')[:45] }}</a><br><span class="muted">T. {{ s.size or '?' }}{% if s.buyer %} · {{ s.buyer }}{% endif %}</span></td>
-  <td>{{ s.shop_name or '-' }}</td><td>{{ s.sale_price|eur }}</td><td>{{ s.cost|eur }}</td><td class="good">{{ s.profit|eur }}</td>
-  <td>{% if s.supplier_url %}<a href="{{ s.supplier_url }}" target="_blank">Commander</a>{% endif %}</td>
+<tr><td><a href="/produit/{{ s.product_id }}" style="color:inherit"><b>{{ (s.title or '?')[:46] }}</b></a><br><span class="faint" style="font-size:12px">#{{ s.id }} · T. {{ s.size or '?' }}{% if s.buyer %} · {{ s.buyer }}{% endif %}{% if s.source == 'vinted' %} · auto{% endif %}</span></td>
+  <td>{{ s.shop_name or '—' }}</td><td class="muted num" style="white-space:nowrap">{{ s.sold_at[5:16] }}</td>
+  <td class="num">{{ s.sale_price|eur }}</td><td class="num good"><b>+{{ s.profit|eur }}</b></td>
+  <td>{% if s.supplier_url %}<a class="btn ghost sm" href="{{ s.supplier_url }}" target="_blank">Commander {{ icon('ext',13) }}</a>{% endif %}</td>
   <td><form method="post" action="/vente/{{ s.id }}/statut"><select name="status" onchange="this.form.submit()">
-    {% for st in statuses %}<option {{ 'selected' if s.status==st }}>{{ st }}</option>{% endfor %}</select></form></td></tr>
-{% else %}<tr><td colspan="9" class="muted">Aucune vente.</td></tr>{% endfor %}
-</table></div>
+    {% for st, l in [('to_order','À commander'),('ordered','Commandé'),('received','Reçu'),('shipped','Envoyé'),('done','Terminé')] %}<option value="{{ st }}" {{ 'selected' if s.status==st }}>{{ l }}</option>{% endfor %}</select></form></td></tr>
+{% endfor %}</tbody></table></div>
+{% else %}<div class="empty"><span class="big">💸</span>Aucune vente{{ ' avec ce statut' if statut }}.</div>{% endif %}
+</div>
 {% endblock %}
