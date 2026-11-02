@@ -49,23 +49,49 @@ HELP = """<b>Vinted Drop</b> 🤖 — écris-moi normalement ou utilise les bout
 """
 
 
+_ADMIN_CACHE: dict = {}
+
+
+async def _is_channel_admin(bot, chat_id, user_id) -> bool:
+    key = (chat_id, user_id)
+    if key not in _ADMIN_CACHE:
+        try:
+            member = await bot.get_chat_member(chat_id, user_id)
+            _ADMIN_CACHE[key] = member.status in ("administrator", "creator")
+        except Exception:
+            _ADMIN_CACHE[key] = False
+    return _ADMIN_CACHE[key]
+
+
 def authorized(func):
     @wraps(func)
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
-        chat_id = update.effective_chat.id
-        if config.TELEGRAM_ALLOWED_CHAT_IDS and chat_id not in config.TELEGRAM_ALLOWED_CHAT_IDS:
+        chat = update.effective_chat
+        allowed = config.telegram_chats()
+        ok = not allowed or chat.id in allowed
+        # Dans un canal, n'importe quel abonné peut toucher un bouton : on vérifie qu'il est admin
+        if ok and update.callback_query and chat.type == "channel":
+            ok = await _is_channel_admin(ctx.bot, chat.id, update.callback_query.from_user.id)
+        if not ok:
             if update.callback_query:
-                await update.callback_query.answer("⛔")
-            else:
+                await update.callback_query.answer("⛔ Réservé aux administrateurs", show_alert=True)
+            elif update.effective_message:
                 await update.effective_message.reply_text(
-                    f"⛔ Accès refusé. Ton chat id : {chat_id} (ajoute-le dans TELEGRAM_ALLOWED_CHAT_IDS)")
+                    f"⛔ Accès refusé. Id de cette discussion : {chat.id} "
+                    "(ajoute-le dans TELEGRAM_ALLOWED_CHAT_IDS ou TELEGRAM_CHANNEL_ID)")
             return
         try:
             return await func(update, ctx)
         except Exception as e:
             log.exception("Erreur")
-            await update.effective_message.reply_text(f"❌ {e}")
+            if update.effective_message:
+                await update.effective_message.reply_text(f"❌ {e}")
     return wrapper
+
+
+def store(ctx) -> dict:
+    """Mémoire de la discussion (marche en privé, en groupe et dans un canal)."""
+    return ctx.chat_data if ctx.chat_data is not None else {}
 
 
 def kb(rows):
@@ -618,7 +644,7 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         if action == "ri":
             db.upsert_conversation(cid, status="ignored")
             return await q.edit_message_reply_markup(kb([[("Ignoré", "noop:0")]]))
-        ctx.user_data["edit_reply"] = cid
+        store(ctx)["edit_reply"] = cid
         return await reply(update, "✏️ Écris la réponse à envoyer (elle partira telle quelle) :")
     if action == "noop":
         return
@@ -683,14 +709,15 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
 @authorized
 async def on_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     text = update.effective_message.text
-    cid = ctx.user_data.pop("edit_reply", None)
+    mem = store(ctx)
+    cid = mem.pop("edit_reply", None)
     if cid:
         await run(responder.send_pending, cid, text)
         return await reply(update, "✅ Réponse envoyée sur Vinted.")
     if not config.OPENAI_API_KEY:
         return await reply(update, "Tape /menu ou /aide.")
     await update.effective_chat.send_action("typing")
-    answer, ctx.user_data["history"] = await run(assistant.ask, text, ctx.user_data.get("history"))
+    answer, mem["history"] = await run(assistant.ask, text, mem.get("history"))
     await update.effective_message.reply_text(answer[:4000], disable_web_page_preview=True)
 
 
@@ -708,7 +735,7 @@ def _job(fn):
 
 
 async def job_daily_report(ctx: ContextTypes.DEFAULT_TYPE):
-    for chat_id in config.TELEGRAM_ALLOWED_CHAT_IDS:
+    for chat_id in config.notify_targets():
         await ctx.bot.send_message(chat_id, stats_text(), parse_mode=ParseMode.HTML)
 
 
@@ -723,7 +750,7 @@ def schedule(app: Application):
     jq.run_daily(_job(autopilot.run_prepare_night), time(2, 0, tzinfo=TZ))
     jq.run_daily(_job(autopilot.run_price_drops), time(3, 0, tzinfo=TZ))
     jq.run_daily(_job(autopilot.run_market_scan), time(4, 0, tzinfo=TZ))
-    if config.TELEGRAM_ALLOWED_CHAT_IDS:
+    if config.notify_targets():
         h, m = (int(x) for x in config.DAILY_REPORT_TIME.split(":"))
         jq.run_daily(job_daily_report, time(h, m, tzinfo=TZ))
 
@@ -742,18 +769,55 @@ def build_app() -> Application:
         "sync": cmd_sync, "messages": cmd_messages, "vinted": cmd_vinted, "activite": cmd_activite,
         "studio": cmd_studio, "couts": cmd_couts,
     }
+    # messages privés, groupes ET publications du canal
+    where = filters.UpdateType.MESSAGES | filters.UpdateType.CHANNEL_POSTS
     for name, fn in commands.items():
-        app.add_handler(CommandHandler(name, fn))
+        app.add_handler(CommandHandler(name, fn, filters=where))
     app.add_handler(CallbackQueryHandler(on_button))
-    app.add_handler(MessageHandler(filters.PHOTO, on_photo))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
+    app.add_handler(MessageHandler(where & filters.PHOTO, on_photo))
+    app.add_handler(MessageHandler(where & filters.TEXT & ~filters.COMMAND, on_text))
     schedule(app)
     return app
 
 
-def main():
+def setup_logging():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    build_app().run_polling()
+    # httpx écrit chaque URL Telegram, qui contient le token du bot : on le fait taire
+    for noisy in ("httpx", "httpcore", "apscheduler", "telegram.ext.Application"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
+
+
+async def welcome(app: Application):
+    """Message de démarrage dans le canal / la discussion de notification."""
+    me = await app.bot.get_me()
+    log.info("Bot @%s connecté", me.username)
+    for chat_id in config.notify_targets():
+        try:
+            await app.bot.send_message(chat_id, f"🤖 Vinted Drop démarré (@{me.username}). Tape /menu")
+        except Exception as e:
+            log.warning("Impossible d'écrire dans %s : %s (le bot est-il admin du canal ?)", chat_id, e)
+
+
+def main():
+    setup_logging()
+    app = build_app()
+    app.post_init = welcome
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+async def run_with_dashboard(server):
+    """Bot + dashboard dans la même boucle asyncio (évite les conflits de threads sous Windows)."""
+    setup_logging()
+    app = build_app()
+    async with app:
+        await app.start()
+        await app.updater.start_polling(allowed_updates=Update.ALL_TYPES)
+        await welcome(app)
+        try:
+            await server.serve()       # s'arrête avec Ctrl+C
+        finally:
+            await app.updater.stop()
+            await app.stop()
 
 
 if __name__ == "__main__":

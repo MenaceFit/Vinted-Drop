@@ -16,11 +16,12 @@ def _markup(buttons):
 
 
 def send(text: str, photo_path=None, buttons=None) -> bool:
-    if not config.TELEGRAM_BOT_TOKEN or not config.TELEGRAM_ALLOWED_CHAT_IDS:
+    targets = config.notify_targets()
+    if not config.TELEGRAM_BOT_TOKEN or not targets:
         return False
     base = f"https://api.telegram.org/bot{config.TELEGRAM_BOT_TOKEN}"
     ok = True
-    for chat_id in config.TELEGRAM_ALLOWED_CHAT_IDS:
+    for chat_id in targets:
         try:
             if photo_path:
                 with open(photo_path, "rb") as f:

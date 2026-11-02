@@ -110,15 +110,29 @@ def main(argv=None):
         for n in autopilot.run_market_scan() or []:
             print(n["score"], n["name"])
     elif a.cmd == "all":
-        import threading
+        import asyncio
         import uvicorn
-        threading.Thread(target=lambda: uvicorn.run("vinted_drop.dashboard.app:app", host="0.0.0.0",
-                                                    port=config.DASHBOARD_PORT), daemon=True).start()
-        from .telegram_bot import main as bot_main
-        bot_main()
+        from .telegram_bot import run_with_dashboard
+        server = uvicorn.Server(uvicorn.Config("vinted_drop.dashboard.app:app", host="0.0.0.0",
+                                               port=config.DASHBOARD_PORT, log_level="info"))
+        print(f"Dashboard : http://localhost:{config.DASHBOARD_PORT}")
+        from telegram.error import InvalidToken, NetworkError
+        try:
+            asyncio.run(run_with_dashboard(server))
+        except KeyboardInterrupt:
+            pass
+        except InvalidToken:
+            raise SystemExit("❌ Token Telegram refusé : vérifie TELEGRAM_BOT_TOKEN dans .env "
+                             "(si tu l'as révoqué chez @BotFather, colle le nouveau).")
+        except NetworkError as e:
+            raise SystemExit(f"❌ Impossible de joindre Telegram ({e}). Vérifie ta connexion Internet.")
     elif a.cmd == "bot":
+        from telegram.error import InvalidToken
         from .telegram_bot import main as bot_main
-        bot_main()
+        try:
+            bot_main()
+        except InvalidToken:
+            raise SystemExit("❌ Token Telegram refusé : vérifie TELEGRAM_BOT_TOKEN dans .env")
 
 
 if __name__ == "__main__":

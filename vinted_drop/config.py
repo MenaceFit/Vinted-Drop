@@ -54,9 +54,35 @@ COST_PER_IMAGE = {"openai": float(os.getenv("COST_IMAGE_OPENAI", "0.05")),
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_ALLOWED_CHAT_IDS = {
-    int(x) for x in os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "").replace(" ", "").split(",") if x
+    int(x) for x in os.getenv("TELEGRAM_ALLOWED_CHAT_IDS", "").replace(" ", "").split(",") if x.lstrip("-").isdigit()
 }
 DAILY_REPORT_TIME = os.getenv("DAILY_REPORT_TIME", "21:00")
+
+
+def _chat_id(raw: str):
+    """Accepte -1001234567890, 1234567890 ou un lien web.telegram.org/a/#-1001234567890."""
+    raw = (raw or "").strip()
+    if "#" in raw:
+        raw = raw.rsplit("#", 1)[1]
+    raw = raw.strip("/ ")
+    try:
+        return int(raw)
+    except ValueError:
+        return None
+
+
+# Canal où le bot publie ventes, validations et récaps (le bot doit y être administrateur)
+TELEGRAM_CHANNEL_ID = _chat_id(os.getenv("TELEGRAM_CHANNEL_ID", ""))
+
+
+def telegram_chats() -> set:
+    """Discussions autorisées à piloter le bot."""
+    return TELEGRAM_ALLOWED_CHAT_IDS | ({TELEGRAM_CHANNEL_ID} if TELEGRAM_CHANNEL_ID else set())
+
+
+def notify_targets() -> set:
+    """Où envoyer les notifications : le canal s'il est configuré, sinon les discussions autorisées."""
+    return {TELEGRAM_CHANNEL_ID} if TELEGRAM_CHANNEL_ID else set(TELEGRAM_ALLOWED_CHAT_IDS)
 
 DASHBOARD_USER = os.getenv("DASHBOARD_USER", "admin")
 DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
