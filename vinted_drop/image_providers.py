@@ -141,6 +141,26 @@ def budget_left():
     return round(budget - db.cost_today(), 4)
 
 
+def _budget_alert(blocked=False):
+    """Prévient une fois par jour quand la dépense approche ou atteint le budget (ou bloque une génération)."""
+    try:
+        budget = float(db.get_setting("daily_budget") or 0)
+        pct = float(db.get_setting("budget_alert_pct") or 80)
+    except ValueError:
+        return
+    if budget <= 0:
+        return
+    spent = db.cost_today()
+    from . import notify
+    today = db.now()[:10]
+    if (blocked or spent >= budget) and db.notify_once(f"budget-over-{today}"):
+        notify.send(f"🛑 <b>Budget IA du jour atteint</b> : {spent:.2f} € / {budget:.2f} €. Seul ton PC (gratuit) "
+                    "génère encore des photos aujourd'hui.", buttons=[[("📸 Studio", "m:studio")]])
+        db.log_event("photo", f"Budget IA du jour atteint ({spent:.2f} €)", level="warning")
+    elif spent >= budget * pct / 100 and db.notify_once(f"budget-warn-{today}"):
+        notify.send(f"⚠️ Budget IA à {100 * spent / budget:.0f} % : {spent:.2f} € / {budget:.2f} € aujourd'hui.")
+
+
 # ---------------- interface ----------------
 def generate(prompt: str, refs, out_path: Path, provider="auto", aspect="3:4", kind="photo", product_id=None) -> dict:
     """Génère une image et l'enregistre. Renvoie {"path", "provider", "model", "cost", "fallback_from"}."""
@@ -152,6 +172,7 @@ def generate(prompt: str, refs, out_path: Path, provider="auto", aspect="3:4", k
         left = budget_left() if name in PAID else None
         if left is not None and left < cost:
             errors.append(f"{name} : budget du jour atteint ({db.get_setting('daily_budget')} €)")
+            _budget_alert(blocked=True)
             continue
         try:
             if name == "local":
@@ -169,6 +190,8 @@ def generate(prompt: str, refs, out_path: Path, provider="auto", aspect="3:4", k
         model = {"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL,
                  "local": config.COMFY_UNET.split(".")[0]}[name]
         db.log_cost(name, model, kind, cost, product_id)
+        if name in PAID:
+            _budget_alert()
         return {"path": out_path, "provider": name, "model": model, "cost": cost,
                 "fallback_from": errors[0].split(" : ")[0] if errors else None}
     raise ImageError(" | ".join(errors))

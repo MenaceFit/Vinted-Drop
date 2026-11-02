@@ -43,8 +43,12 @@ def fake_ai(monkeypatch):
 
     monkeypatch.setattr(image_providers, "gemini_generate", gem)
     monkeypatch.setattr(image_providers, "openai_generate", oai)
-    monkeypatch.setattr(ai, "chat_json", lambda *a, **k: {"fidelity": scores.pop(0) if scores else 9,
-                                                           "realism": 8, "issues": [], "verdict": "ok"})
+    def fake_chat(system, *a, **k):
+        if "analyses la photo fournisseur" in system:   # analyse du vêtement
+            calls["analysis"] = calls.get("analysis", 0) + 1
+            return {"type": "robe", "color": "noir", "closures": [], "visible_logos_or_labels": [], "details": ["dentelle"]}
+        return {"fidelity": scores.pop(0) if scores else 9, "realism": 8, "issues": [], "verdict": "ok"}
+    monkeypatch.setattr(ai, "chat_json", fake_chat)
     calls["scores"] = scores
     return calls
 
@@ -183,3 +187,51 @@ def test_studio_pages(fake_ai):
         assert r.status_code == 303 and db.get_product(pid)["photos"][0] == path
         assert c.post("/studio/reglages", data={"photo_provider": "openai"}, follow_redirects=False).status_code == 303
     assert db.get_setting("photo_provider") == "openai"
+
+
+def test_unfaithful_photo_is_refused_and_logged(fake_ai):
+    from vinted_drop import db, photos
+    db.set_setting("photo_clean", "off")
+    pid = _product()
+    fake_ai["scores"].extend([3, 4])               # les deux essais sont infidèles
+    with pytest.raises(photos.ImageError, match="refusée"):
+        photos.generate_product_photos(pid, kinds=["plat"])
+    assert db.get_product(pid)["photos"] == []     # aucune photo infidèle gardée
+    gens = db.list_generations(pid)
+    assert [g["status"] for g in gens] == ["rejected", "rejected"]
+    assert all(g["duration_s"] is not None for g in gens)
+
+
+def test_garment_analysis_is_used_in_prompt_and_cached(fake_ai):
+    from vinted_drop import db, photos
+    db.set_setting("photo_clean", "off")
+    pid = _product()
+    photos.generate_product_photos(pid, kinds=["plat"])
+    photos.generate_product_photos(pid, kinds=["detail"])
+    assert fake_ai["analysis"] == 1                # analysé une seule fois
+    assert "closures: NONE" in fake_ai["prompts"][0] and "logos/labels: NONE" in fake_ai["prompts"][0]
+    assert db.get_product(pid)["garment"]["type"] == "robe"
+
+
+def test_scene_is_applied(fake_ai):
+    from vinted_drop import db, photos
+    db.set_setting("photo_clean", "off")
+    pid = _product()
+    photos.generate_product_photos(pid, kinds=["porte"], scene="rue")
+    assert "Parisian street" in fake_ai["prompts"][-1]
+    p = db.get_product(pid)
+    assert p["photo_meta"][p["photos"][0]]["scene"] == "rue"
+
+
+def test_budget_alert_sent_once(fake_ai, monkeypatch, tmp_path):
+    from vinted_drop import db, image_providers, notify
+    sent = []
+    monkeypatch.setattr(notify, "send", lambda text, **k: sent.append(text) or True)
+    db.set_setting("daily_budget", "0.05")
+    for i in range(3):
+        try:
+            image_providers.generate("x", [], tmp_path / f"{i}.png", provider="gemini")
+        except image_providers.ImageError:
+            pass
+    assert sum("Budget" in t or "budget" in t.lower() for t in sent) <= 2
+    assert any("80" in t or "atteint" in t for t in sent)

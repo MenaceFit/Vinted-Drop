@@ -15,7 +15,19 @@ def _markup(buttons):
         for t, d in row] for row in buttons]})
 
 
-def send(text: str, photo_path=None, buttons=None) -> bool:
+NOTIFY_CATEGORIES = {"sales": "Ventes détectées", "offers": "Offres reçues", "messages": "Messages acheteurs",
+                     "publish": "Publications (validées / échouées)", "auth": "Token expiré / connexion",
+                     "photos": "Génération photo terminée", "budget": "Budget IA", "opportunities": "Opportunités",
+                     "errors": "Erreurs des tâches automatiques", "reports": "Rapports financiers"}
+
+
+def send(text: str, photo_path=None, buttons=None, category=None, dedupe=None, within_hours=24) -> bool:
+    """Envoie une notification. `category` : réglable on/off dans Pilote auto ; `dedupe` : clé anti-doublon."""
+    from . import db
+    if category and db.get_setting(f"notify_{category}") == "off":
+        return False
+    if dedupe and not db.notify_once(dedupe, within_hours):
+        return False
     targets = config.notify_targets()
     if not config.TELEGRAM_BOT_TOKEN or not targets:
         return False
@@ -56,10 +68,12 @@ def sale_buttons(sale: dict):
     rows = []
     if sale.get("supplier_url"):
         rows.append([("🛒 Commander", sale["supplier_url"])])
-    rows.append([("✅ Commandé", f"ss:{sale['id']}:ordered"), ("📦 Reçu", f"ss:{sale['id']}:received"),
-                 ("🚚 Envoyé", f"ss:{sale['id']}:shipped")])
+    rows.append([("✅ Commandé", f"os:{sale['id']}:ordered"), ("🚚 Expédié", f"os:{sale['id']}:shipped"),
+                 ("📦 Livré", f"os:{sale['id']}:delivered")])
+    rows.append([("⚠️ Problème fournisseur", f"os:{sale['id']}:problem")])
     return rows
 
 
 def notify_sale(sale: dict):
-    return send(sale_message(sale), buttons=sale_buttons(sale))
+    return send(sale_message(sale), buttons=sale_buttons(sale), category="sales", dedupe=f"sale-{sale['id']}",
+                within_hours=24 * 365)

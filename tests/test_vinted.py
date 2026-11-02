@@ -14,7 +14,7 @@ def env(tmp_path, monkeypatch):
     from vinted_drop import db, notify
     db.init()
     sent = []
-    monkeypatch.setattr(notify, "send", lambda text, photo_path=None, buttons=None: sent.append((text, buttons)) or True)
+    monkeypatch.setattr(notify, "send", lambda text, photo_path=None, buttons=None, **kw: sent.append((text, buttons)) or True)
     yield sent
 
 

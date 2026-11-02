@@ -8,6 +8,7 @@
      l'autre fournisseur si disponible. On garde la meilleure.
   4. Finition : format 3:4 (1200x1600) en JPEG, comme une photo de téléphone.
 """
+import json
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -155,11 +156,15 @@ def persona_for(p: dict):
 
 
 # ---------------- contrôle qualité ----------------
-def qa_check(original: Path, generated: Path, persona_ref: Path | None = None) -> dict:
+def qa_check(original: Path, generated: Path, persona_ref: Path | None = None, garment: dict | None = None) -> dict:
     images = [original, generated] + ([persona_ref] if persona_ref else [])
     note = " ; image 3 = la personne de référence (doit être la même personne)" if persona_ref else ""
+    facts = ""
+    if garment:
+        facts = ("Fiche du vêtement d'origine (tout ajout = défaut grave) : " + json.dumps(garment, ensure_ascii=False)
+                 + "\nVérifie en particulier : aucun logo, étiquette, couture, fermeture, matière ou couleur inventés.")
     try:
-        r = ai.chat_json(QA_SYSTEM.format(persona_note=note), "Évalue la photo générée.", images=images)
+        r = ai.chat_json(QA_SYSTEM.format(persona_note=note), "Évalue la photo générée.\n" + facts, images=images)
     except Exception as e:  # pas de contrôle possible : on n'invente pas une note
         return {"fidelity": None, "realism": None, "issues": [f"contrôle indisponible : {str(e)[:80]}"], "verdict": "ok"}
     r["fidelity"] = int(r.get("fidelity") or 0)
@@ -193,12 +198,83 @@ def clean_reference(p: dict, provider=None) -> Path:
     return clean
 
 
-def _shot(p, kind, provider, product_ref, persona, n, original):
+SCENES = {
+    "auto": None,  # décor du modèle de la boutique
+    "chambre": "a bright tidy bedroom with white walls, light oak floor and a tall standing mirror",
+    "salon": "a cosy living room with a beige sofa, plants and soft window light",
+    "rue": "a calm Parisian street with stone buildings, natural daylight",
+    "parc": "a park path with trees and soft natural daylight",
+    "mur": "a plain white wall in natural daylight",
+    "cafe": "the terrace of a small café, natural daylight",
+}
+SCENE_LABELS = {"auto": "Décor de la boutique", "chambre": "Chambre", "salon": "Salon", "rue": "Rue", "parc": "Parc",
+                "mur": "Mur blanc", "cafe": "Terrasse de café"}
+POSES = {
+    "auto": "",
+    "face": "standing straight facing the camera, ",
+    "trois-quarts": "three-quarter view, relaxed natural pose, ",
+    "marche": "walking naturally, candid photo, ",
+    "assise": "sitting casually on a chair, the garment still fully visible, ",
+}
+POSE_LABELS = {"auto": "Automatique", "face": "De face", "trois-quarts": "Trois-quarts", "marche": "En marchant",
+               "assise": "Assise"}
+
+ANALYZE_SYSTEM = """Tu analyses la photo fournisseur d'un vêtement pour qu'une IA d'image le reproduise
+fidèlement. Décris UNIQUEMENT ce qui est visible. Réponds en JSON :
+{"type": str, "color": str, "pattern": str|null, "material_guess": str|null, "neckline": str|null,
+"sleeves": str|null, "length": str|null, "closures": [str] (vide si aucune fermeture visible),
+"details": [str], "visible_logos_or_labels": [str] (vide si aucun), "source_defects": [str]
+(texte, prix, filigrane, collage, mannequin, autre produit...)}"""
+
+
+def analyze_garment(p: dict) -> dict:
+    """Identifie le vêtement (forme, couleur, détails) une fois, et le garde sur le produit."""
+    if p.get("garment"):
+        return p["garment"]
+    try:
+        g = ai.chat_json(ANALYZE_SYSTEM, "Analyse ce vêtement.", images=[abs_media(p["supplier_image"])])
+    except Exception:
+        return {}
+    db.update_product(p["id"], garment=g)
+    return g
+
+
+def garment_rules(g: dict) -> str:
+    """Contraintes explicites pour l'IA d'image : ce qui existe ET ce qui n'existe pas."""
+    if not g:
+        return ""
+    parts = [f"Garment facts: {g.get('type') or 'garment'}, color {g.get('color') or 'as in reference'}"]
+    for key, label in (("pattern", "pattern"), ("neckline", "neckline"), ("sleeves", "sleeves"), ("length", "length")):
+        if g.get(key):
+            parts.append(f"{label}: {g[key]}")
+    if g.get("details"):
+        parts.append("details: " + ", ".join(g["details"][:8]))
+    parts.append("closures: " + (", ".join(g["closures"]) if g.get("closures") else "NONE (do not add any zipper or buttons)"))
+    parts.append("logos/labels: " + (", ".join(g["visible_logos_or_labels"]) if g.get("visible_logos_or_labels")
+                                    else "NONE (do not add any logo, tag or label)"))
+    return ". ".join(parts) + ". "
+
+
+def _record(p, kind, scene, res, duration, attempt, qa, status, path=None, error=None):
+    db.log_generation(product_id=p["id"], kind=kind, scene=scene, provider=(res or {}).get("provider"),
+                      model=(res or {}).get("model"), duration_s=round(duration, 1), cost=(res or {}).get("cost", 0),
+                      attempt=attempt, fidelity=(qa or {}).get("fidelity"), realism=(qa or {}).get("realism"),
+                      issues=(qa or {}).get("issues") or [], status=status, path=path, error=error)
+
+
+class PhotoRejected(ImageError):
+    """Aucune tentative n'a atteint la fidélité minimale : la photo n'est pas gardée."""
+
+
+def _shot(p, kind, provider, product_ref, persona, n, original, scene="auto", pose="auto"):
     spec = SHOTS[kind]
-    decor = (persona or {}).get("decor") or DEFAULT_DECOR
+    decor = SCENES.get(scene) or (persona or {}).get("decor") or DEFAULT_DECOR
     persona_refs = [abs_media(x) for x in ((persona or {}).get("refs") or ([persona["reference_image"]] if persona and persona.get("reference_image") else []))]
     persona_refs = [x for x in persona_refs if x.exists()]
     prompt = spec["prompt"].format(decor=decor)
+    if spec["persona"]:
+        prompt = prompt.replace("standing relaxed near the window", POSES.get(pose, "") + "near the window") \
+            if pose not in ("auto", "") else prompt
     if spec["persona"] and persona_refs:
         refs = persona_refs[:2] + [product_ref]
         prompt = (f"Reference images: images 1-{len(persona_refs[:2])} = PERSON, last image = PRODUCT. " + prompt)
@@ -206,27 +282,34 @@ def _shot(p, kind, provider, product_ref, persona, n, original):
         refs = [product_ref]
         prompt = "Reference image = PRODUCT. " + prompt.replace("the person from the PERSON reference image",
                                                                   "a young woman")
-    prompt += FIDELITY + " " + AMATEUR
+    prompt += garment_rules(p.get("garment") or {}) + FIDELITY + " " + AMATEUR
     out_dir = product_dir(p["id"])
     from .image_providers import available
     attempts, best = [], None
-    tries = 2 if db.get_setting("photo_qa") == "on" else 1
+    qa_on = db.get_setting("photo_qa") == "on"
+    tries = 2 if qa_on else 1
     prov, last = _provider(provider), None
     for i in range(tries):
         if i and last:  # 2e essai : un autre fournisseur s'il y en a un
             others = [x for x in available() if x != last]
             prov = others[0] if others else last
+        t0 = time.time()
         try:
             res = generate(prompt, refs, out_dir / f"{kind}_{n}{'_r' if i else ''}.png", provider=prov,
                            kind=kind, product_id=p["id"])
         except ImageError as e:
             attempts.append({"error": str(e)})
+            _record(p, kind, scene, None, time.time() - t0, i + 1, None, "error", error=str(e)[:300])
             continue
         path = finish(res["path"])
-        qa = qa_check(original, path, persona_refs[0] if spec["persona"] and persona_refs else None) \
-            if db.get_setting("photo_qa") == "on" else {"fidelity": None, "issues": [], "verdict": "ok"}
+        qa = qa_check(original, path, persona_refs[0] if spec["persona"] and persona_refs else None, p.get("garment")) \
+            if qa_on else {"fidelity": None, "issues": [], "verdict": "ok"}
         last = res["provider"]
-        cand = {"path": path, "provider": res["provider"], "model": res["model"], "qa": qa, "kind": kind}
+        ok = qa.get("fidelity") is None or qa["fidelity"] >= config.PHOTO_QA_MIN
+        cand = {"path": path, "provider": res["provider"], "model": res["model"], "qa": qa, "kind": kind,
+                "duration": round(time.time() - t0, 1), "cost": res.get("cost", 0), "ok": ok}
+        _record(p, kind, scene, res, time.time() - t0, i + 1, qa, "accepted" if ok else "rejected",
+                path=rel(path) if ok else None)
         attempts.append(cand)
         if best is None or (qa.get("fidelity") or 0) > (best["qa"].get("fidelity") or 0):
             if best:
@@ -234,15 +317,27 @@ def _shot(p, kind, provider, product_ref, persona, n, original):
             best = cand
         else:
             path.unlink(missing_ok=True)
-        if qa.get("fidelity") is None or qa["fidelity"] >= config.PHOTO_QA_MIN:
+        if ok:
             break
     if not best:
         raise ImageError("; ".join(a.get("error", "") for a in attempts))
+    if not best["ok"]:
+        # fidélité insuffisante après tous les essais : on refuse la photo
+        Path(best["path"]).unlink(missing_ok=True)
+        raise PhotoRejected(f"photo refusée (fidélité {best['qa'].get('fidelity')}/10 < {config.PHOTO_QA_MIN}) : "
+                            + ", ".join(best["qa"].get("issues") or []) + " → relance un essai ou change de fournisseur")
     best["tries"] = len(attempts)
     return best
 
 
-def generate_product_photos(product_id: int, kinds=None, provider=None) -> list[str]:
+def _meta(kind, res, scene):
+    return {"kind": kind, "provider": res["provider"], "model": res["model"], "scene": scene,
+            "fidelity": res["qa"].get("fidelity"), "realism": res["qa"].get("realism"),
+            "issues": res["qa"].get("issues") or [], "tries": res["tries"], "duration": res.get("duration"),
+            "cost": round(sum([res.get("cost") or 0]), 3)}
+
+
+def generate_product_photos(product_id: int, kinds=None, provider=None, scene="auto", pose="auto") -> list[str]:
     p = db.get_product(product_id)
     if not p:
         raise ValueError(f"Produit #{product_id} introuvable")
@@ -251,14 +346,15 @@ def generate_product_photos(product_id: int, kinds=None, provider=None) -> list[
     kinds = list(kinds or default_kinds(p))
     original = abs_media(p["supplier_image"])
     persona = persona_for(p)
+    p = {**p, "garment": analyze_garment(p)}
     product_ref = clean_reference(p, provider)
     existing = list(p.get("photos") or [])
     errors = []
 
     def run(kind):
-        n = sum(1 for x in existing if Path(x).name.startswith(kind + "_")) + 1 + int(time.time()) % 1000
+        n = sum(1 for x in existing if Path(x).name.startswith(kind + "_")) + 1 + int(time.time() * 1000) % 100000
         try:
-            res = _shot(p, kind, provider, product_ref, persona, n, original)
+            res = _shot(p, kind, provider, product_ref, persona, n, original, scene, pose)
         except Exception as e:
             errors.append(f"{SHOTS[kind]['label']} : {e}")
             return
@@ -267,9 +363,7 @@ def generate_product_photos(product_id: int, kinds=None, provider=None) -> list[
             photos, meta = list(cur.get("photos") or []), dict(cur.get("photo_meta") or {})
             r = rel(res["path"])
             photos.append(r)
-            meta[r] = {"kind": kind, "provider": res["provider"], "model": res["model"],
-                       "fidelity": res["qa"].get("fidelity"), "realism": res["qa"].get("realism"),
-                       "issues": res["qa"].get("issues") or [], "tries": res["tries"]}
+            meta[r] = _meta(kind, res, scene)
             photos.sort(key=lambda x: list(SHOTS).index(meta.get(x, {}).get("kind", "detail"))
                         if meta.get(x, {}).get("kind") in SHOTS else 99)
             db.update_product(product_id, photos=photos, photo_meta=meta)
@@ -279,7 +373,9 @@ def generate_product_photos(product_id: int, kinds=None, provider=None) -> list[
     if errors and len(errors) == len(kinds):
         raise ImageError(" | ".join(errors))
     if errors:
-        db.log_event("error", "Photos partielles : " + " | ".join(errors), product_id=product_id)
+        db.log_event("photo", "Photos partielles : " + " | ".join(errors), product_id=product_id, level="warning")
+    db.log_event("photo", f"{len(kinds) - len(errors)} photo(s) générée(s)", product_id=product_id,
+                 shop_id=p.get("shop_id"))
     return db.get_product(product_id)["photos"]
 
 
@@ -289,8 +385,10 @@ def regenerate_photo(product_id: int, relpath: str, provider=None) -> str:
     kind = (p.get("photo_meta") or {}).get(relpath, {}).get("kind") or Path(relpath).stem.split("_")[0]
     if kind not in SHOTS:
         kind = "plat"
-    res = _shot(p, kind, provider, clean_reference(p, provider), persona_for(p), int(time.time()) % 100000,
-                abs_media(p["supplier_image"]))
+    scene = (p.get("photo_meta") or {}).get(relpath, {}).get("scene") or "auto"
+    p = {**p, "garment": analyze_garment(p)}
+    res = _shot(p, kind, provider, clean_reference(p, provider), persona_for(p), int(time.time() * 1000) % 100000,
+                abs_media(p["supplier_image"]), scene)
     with _lock:
         cur = db.get_product(product_id)
         photos, meta = list(cur["photos"]), dict(cur.get("photo_meta") or {})
@@ -302,9 +400,7 @@ def regenerate_photo(product_id: int, relpath: str, provider=None) -> str:
             meta.pop(relpath, None)
         else:
             photos.append(new)
-        meta[new] = {"kind": kind, "provider": res["provider"], "model": res["model"],
-                     "fidelity": res["qa"].get("fidelity"), "realism": res["qa"].get("realism"),
-                     "issues": res["qa"].get("issues") or [], "tries": res["tries"]}
+        meta[new] = _meta(kind, res, scene)
         db.update_product(product_id, photos=photos, photo_meta=meta)
     return new
 
@@ -323,7 +419,7 @@ def set_cover(product_id: int, relpath: str):
         db.update_product(product_id, photos=[relpath] + [x for x in p["photos"] if x != relpath])
 
 
-def summary(p: dict) -> list[dict]:
+def summary(p: dict) -> list[dict]:  # noqa: D401
     """Photos + métadonnées, dans l'ordre (la 1re = couverture)."""
     meta = p.get("photo_meta") or {}
     out = []
