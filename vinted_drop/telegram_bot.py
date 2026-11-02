@@ -27,7 +27,9 @@ HELP = """<b>Vinted Drop</b> 🤖 — écris-moi normalement ou utilise les bout
 📷 Envoie une capture du produit avec la légende <code>prix lien boutique taille</code>
 /ajouter &lt;lien&gt; &lt;prix&gt; [boutique] [taille]
 /produits [draft|ready|published|sold] · /voir &lt;id&gt;
-/preparer &lt;id&gt; · /photos &lt;id&gt; · /fiche &lt;id&gt;
+/preparer &lt;id&gt; · /photos &lt;id&gt; [gemini|openai] · /fiche &lt;id&gt;
+/studio [id] — réglages photo, ou retouches d'un produit (⭐ couverture, 🔄 refaire, 🗑 supprimer)
+/couts — dépenses IA
 /publier &lt;id&gt; — publie sur Vinted maintenant
 /prix &lt;achat&gt; · /offre &lt;id&gt; &lt;montant&gt;
 
@@ -199,7 +201,8 @@ async def on_photo(update: Update, ctx):
             raise ValueError(f"Produit #{pid} introuvable")
     else:
         if not parts:
-            raise ValueError("Ajoute une légende : <prix_achat> [lien] [boutique] [taille]")
+            raise ValueError("Ajoute une légende à la photo : prix_achat [lien] [boutique] [taille]\n"
+                             "Exemple : 14.90 https://fr.shein.com/... Sophie M")
         cost = _float(parts[0])
         url = next((x for x in parts[1:] if x.startswith("http")), None)
         rest = [x for x in parts[1:] if not x.startswith("http")]
@@ -236,12 +239,41 @@ async def cmd_voir(update: Update, ctx):
     await send_product(update, p, with_photos=True)
 
 
-async def do_photos(update, pid):
-    await reply(update, f"🎨 Génération des photos du produit #{pid}… (1 à 3 min)")
-    await run(photos.generate_product_photos, pid)
+async def do_photos(update, pid, provider=None):
+    label = {"gemini": "Gemini", "openai": "OpenAI"}.get(provider, "auto")
+    await reply(update, f"🎨 Studio photo · produit #{pid} · {label}\nNettoyage, prises de vue en parallèle et "
+                        "contrôle qualité… (1 à 3 min)")
+    await run(photos.generate_product_photos, pid, None, provider)
+    await send_studio(update, pid)
+
+
+def studio_text(p):
+    lines = [f"📸 <b>Photos du produit #{p['id']}</b> · coût IA {db.product_cost(p['id']):.2f} €"]
+    for g in photos.summary(p):
+        score = f" · fidélité <b>{g['fidelity']}/10</b>" if g.get("fidelity") is not None else ""
+        lines.append(f"{g['index'] + 1}. {g['emoji']} {g['label']}{' ⭐' if g['cover'] else ''} · {g.get('provider', '?')}{score}"
+                     + (f"\n   ⚠️ {', '.join(g['issues'][:3])}" if g.get("issues") else ""))
+    return "\n".join(lines)
+
+
+def studio_buttons(p):
+    rows = []
+    for g in photos.summary(p):
+        n, i = g["index"] + 1, g["index"]
+        row = [] if g["cover"] else [(f"⭐ {n}", f"pc:{p['id']}:{i}")]
+        row += [(f"🔄 {n}", f"pr:{p['id']}:{i}"), (f"🗑 {n}", f"pd:{p['id']}:{i}")]
+        rows.append(row)
+    rows.append([("➕ Gemini", f"ph:{p['id']}:gemini"), ("➕ OpenAI", f"ph:{p['id']}:openai")])
+    if p["status"] in ("draft", "ready"):
+        rows.append([("📝 Fiche", f"fiche:{p['id']}"), ("✅ Publier", f"pub:{p['id']}")])
+    return rows
+
+
+async def send_studio(update, pid, with_album=True):
     p = db.get_product(pid)
-    await _send_photos(update.effective_message, p)
-    await reply(update, "✅ Photos prêtes", product_buttons(p))
+    if with_album:
+        await _send_photos(update.effective_message, p)
+    await reply(update, studio_text(p), studio_buttons(p))
 
 
 async def do_fiche(update, pid, extra=""):
@@ -265,7 +297,42 @@ async def do_publish(update, pid):
 
 @authorized
 async def cmd_photos(update, ctx):
-    await do_photos(update, _int(ctx.args, 0))
+    pid = _int(ctx.args, 0)
+    provider = ctx.args[1].lower() if len(ctx.args) > 1 and ctx.args[1].lower() in ("gemini", "openai") else None
+    if not db.get_product(pid):
+        raise ValueError("Produit introuvable")
+    if provider or len(ctx.args) > 1:
+        return await do_photos(update, pid, provider)
+    await reply(update, f"Avec quelle IA faire les photos du produit #{pid} ?",
+                [[("🤖 Auto", f"ph:{pid}:auto"), ("✨ Gemini", f"ph:{pid}:gemini"), ("🎨 OpenAI", f"ph:{pid}:openai")]])
+
+
+@authorized
+async def cmd_studio(update, ctx):
+    if ctx.args:
+        return await send_studio(update, _int(ctx.args, 0))
+    from .image_providers import available
+    s, c = db.all_settings(), db.cost_stats(30)
+    keys = available()
+    await reply(update,
+                "📸 <b>Studio photo</b>\n"
+                f"Clés : {'✅ Gemini' if 'gemini' in keys else '❌ Gemini'} · {'✅ OpenAI' if 'openai' in keys else '❌ OpenAI'}\n"
+                f"Fournisseur : <b>{s['photo_provider']}</b> · jeu : <b>{s['photo_set']}</b> · nettoyage : {s['photo_clean']} · "
+                f"contrôle qualité : {s['photo_qa']}\n30 jours : {c['images']} images · {c['eur']:.2f} €\n\n"
+                "/studio &lt;id&gt; pour retoucher les photos d'un produit",
+                [[(f"Fournisseur : {s['photo_provider']}", "st:photo_provider"), (f"Jeu : {s['photo_set']}", "st:photo_set")],
+                 [(f"Nettoyage : {s['photo_clean']}", "st:photo_clean"), (f"Contrôle : {s['photo_qa']}", "st:photo_qa")]])
+
+
+@authorized
+async def cmd_couts(update, ctx):
+    c7, c30 = db.cost_stats(7), db.cost_stats(30)
+    prof = db.stats(30)["profit"]
+    await reply(update, f"💰 <b>Coûts IA</b>\n7 jours : {c7['images']} images · {c7['eur']:.2f} €\n"
+                        f"30 jours : {c30['images']} images · {c30['eur']:.2f} €\n"
+                        + "\n".join(f"   {b['provider']} : {b['n']} images · {b['eur']:.2f} €" for b in c30["by_provider"])
+                        + f"\n\nBénéfice 30 jours : {prof:.2f} € → l'IA coûte "
+                        f"{(100 * c30['eur'] / prof) if prof else 0:.1f} % du bénéfice")
 
 
 @authorized
@@ -548,6 +615,33 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await reply(update, "✏️ Écris la réponse à envoyer (elle partira telle quelle) :")
     if action == "noop":
         return
+    if action == "st":
+        cycles = {"photo_provider": ["auto", "gemini", "openai"], "photo_set": ["standard", "complet"],
+                  "photo_clean": ["on", "off"], "photo_qa": ["on", "off"]}
+        vals = cycles[arg]
+        cur = db.get_setting(arg)
+        db.set_setting(arg, vals[(vals.index(cur) + 1) % len(vals)] if cur in vals else vals[0])
+        return await cmd_studio(update, ctx)
+    if action == "ph":
+        pid_s, _, prov = arg.partition(":")
+        return await do_photos(update, int(pid_s), None if prov == "auto" else prov)
+    if action in ("pc", "pr", "pd"):
+        pid_s, _, idx = arg.partition(":")
+        pid, idx = int(pid_s), int(idx)
+        p = db.get_product(pid)
+        if not p or idx >= len(p["photos"]):
+            return await reply(update, "Photo introuvable (la liste a changé), tape /studio " + pid_s)
+        path = p["photos"][idx]
+        if action == "pc":
+            photos.set_cover(pid, path)
+        elif action == "pd":
+            photos.delete_photo(pid, path)
+        else:
+            await reply(update, f"🔄 Je refais la photo {idx + 1}…")
+            await run(photos.regenerate_photo, pid, path)
+            return await send_studio(update, pid)
+        p = db.get_product(pid)
+        return await q.edit_message_text(studio_text(p), parse_mode=ParseMode.HTML, reply_markup=kb(studio_buttons(p)))
 
     pid = int(arg)
     p = db.get_product(pid)
@@ -558,10 +652,11 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if action == "prep":
         return await do_prepare(update, pid)
     if action == "photos":
-        return await do_photos(update, pid)
+        return await reply(update, f"Avec quelle IA faire les photos du produit #{pid} ?",
+                           [[("🤖 Auto", f"ph:{pid}:auto"), ("✨ Gemini", f"ph:{pid}:gemini"), ("🎨 OpenAI", f"ph:{pid}:openai")]])
     if action == "redo":
-        db.update_product(pid, photos=[], approval_sent_at=None)
-        return await do_photos(update, pid)
+        db.update_product(pid, approval_sent_at=None)
+        return await send_studio(update, pid)
     if action == "fiche":
         return await do_fiche(update, pid)
     if action == "pub":
@@ -637,6 +732,7 @@ def build_app() -> Application:
         "offre": cmd_offre, "vendu": cmd_vendu, "acommander": cmd_acommander, "stats": cmd_stats,
         "boutiques": cmd_boutiques, "niches": cmd_niches, "gagnants": cmd_gagnants, "auto": cmd_auto,
         "sync": cmd_sync, "messages": cmd_messages, "vinted": cmd_vinted, "activite": cmd_activite,
+        "studio": cmd_studio, "couts": cmd_couts,
     }
     for name, fn in commands.items():
         app.add_handler(CommandHandler(name, fn))

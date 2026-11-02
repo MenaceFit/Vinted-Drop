@@ -10,11 +10,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/app.css?v=3">
+<link rel="stylesheet" href="/static/app.css?v=4">
 <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-running="{{ '1' if running is defined and running is sameas true else '0' }}">
-{% set nav = [('home','/','Dashboard','home'),('products','/produits','Produits','box'),('sales','/ventes','Ventes','receipt'),
+{% set nav = [('home','/','Dashboard','home'),('products','/produits','Produits','box'),('studio','/studio','Studio photo','camera'),('sales','/ventes','Ventes','receipt'),
   ('shops','/boutiques','Boutiques','store'),('messages','/messages','Messages','chat'),('niches','/niches','Produits gagnants','target'),
   ('autopilot','/pilote','Pilote auto','bot')] %}
 <div class="app">
@@ -46,12 +46,12 @@
 </div>
 
 <nav class="mobile-bar">
-  {% for key, href, label, ic in nav if key in ('home','products','sales','messages','niches','autopilot') %}
-  <a href="{{ href }}" class="{{ 'on' if page == key or (key=='products' and page=='product') }}">{{ icon(ic, 20) }}{{ {'Produits gagnants':'Gagnants','Pilote auto':'Pilote'}.get(label, label) }}</a>
+  {% for key, href, label, ic in nav if key in ('home','products','studio','messages','niches','autopilot') %}
+  <a href="{{ href }}" class="{{ 'on' if page == key or (key=='products' and page=='product') }}">{{ icon(ic, 20) }}{{ {'Produits gagnants':'Gagnants','Pilote auto':'Pilote','Studio photo':'Studio'}.get(label, label) }}</a>
   {% endfor %}
 </nav>
 <div class="toasts">{% if error %}<span data-toast="{{ error }}" data-kind="err"></span>{% endif %}</div>
-<script src="/static/app.js?v=3" defer></script>
+<script src="/static/app.js?v=4" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

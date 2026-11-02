@@ -281,3 +281,29 @@ details[open]>summary::before{transform:rotate(90deg)}
   *,*::before,*::after{animation:none!important;transition:none!important}
   .reveal{opacity:1;transform:none}
 }
+
+/* ===== studio photo ===== */
+.studio-grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}
+.shot{margin:0;border-radius:14px;overflow:hidden;border:1px solid var(--border);background:var(--surface-2);position:relative;
+  display:flex;flex-direction:column;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.shot:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.shot.cover{outline:2px solid var(--accent);outline-offset:-2px}
+.shot img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;transition:transform .6s var(--ease)}
+.shot:hover img{transform:scale(1.04)}
+.shot-top{position:absolute;top:8px;left:8px;right:8px;display:flex;justify-content:space-between;gap:6px;pointer-events:none}
+.shot-top .badge{backdrop-filter:blur(8px);background:color-mix(in srgb,var(--surface) 90%,transparent)!important;
+  border:1px solid var(--border)!important;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+.shot-top .badge.fire{background:linear-gradient(135deg,#ff7a45,#ff3d77)!important;border:0!important}
+.shot figcaption{padding:10px 12px 12px;font-size:13px}
+.shot-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.shot-actions .btn.sm{padding:6px 8px}
+.sm-select{padding:5px 6px;font-size:12px;border-radius:8px;max-width:84px}
+.chip.check{display:inline-flex;align-items:center;gap:6px;cursor:pointer;margin:0;user-select:none}
+.chip.check input{accent-color:var(--accent);margin:0}
+.chip.check:has(input:checked){border-color:var(--accent);color:var(--text);background:var(--accent-soft)}
+.compare{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.compare img{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;border:1px solid var(--border)}
+.compare .src{outline:2px dashed var(--faint);outline-offset:-2px}
+.provider-card{display:flex;gap:12px;align-items:center;padding:14px;border-radius:12px;border:1px solid var(--border);background:var(--surface-2)}
+.provider-card .dot{width:10px;height:10px;border-radius:50%;background:var(--faint)}
+.provider-card .dot.ok{background:var(--good);box-shadow:0 0 0 4px var(--good-soft)}

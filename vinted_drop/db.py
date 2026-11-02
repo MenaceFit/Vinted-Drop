@@ -59,6 +59,11 @@ CREATE TABLE IF NOT EXISTS sales (
     sold_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
+CREATE TABLE IF NOT EXISTS ai_costs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    provider TEXT, model TEXT, kind TEXT, cost REAL, product_id INTEGER,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
 CREATE TABLE IF NOT EXISTS events (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     kind TEXT, shop_id INTEGER, product_id INTEGER, message TEXT,
@@ -93,7 +98,9 @@ MIGRATIONS = {
     "products": {
         "vinted_item_id": "INTEGER", "template_id": "INTEGER", "favourites": "INTEGER DEFAULT 0",
         "views": "INTEGER DEFAULT 0", "last_price_drop_at": "TEXT", "approval_sent_at": "TEXT",
+        "photo_meta": "TEXT DEFAULT '{}'",
     },
+    "personas": {"decor": "TEXT", "refs": "TEXT DEFAULT '[]'"},
     "sales": {"vinted_transaction_id": "INTEGER", "source": "TEXT DEFAULT 'manuel'"},
 }
 
@@ -130,6 +137,10 @@ def _row(r):
     d = dict(r)
     if "photos" in d:
         d["photos"] = json.loads(d["photos"] or "[]")
+    if "photo_meta" in d:
+        d["photo_meta"] = json.loads(d["photo_meta"] or "{}")
+    if "refs" in d:
+        d["refs"] = json.loads(d["refs"] or "[]")
     return d
 
 
@@ -152,6 +163,8 @@ def list_personas():
 
 
 def update_persona(pid, **fields):
+    if "refs" in fields and not isinstance(fields["refs"], str):
+        fields["refs"] = json.dumps(fields["refs"])
     _update("personas", pid, fields)
 
 
@@ -215,8 +228,9 @@ def list_products(status=None, shop_id=None, limit=200):
 
 
 def update_product(pid, **fields):
-    if "photos" in fields and not isinstance(fields["photos"], str):
-        fields["photos"] = json.dumps(fields["photos"])
+    for k in ("photos", "photo_meta"):
+        if k in fields and not isinstance(fields[k], str):
+            fields[k] = json.dumps(fields[k])
     if fields.get("status") == "published":
         fields.setdefault("published_at", datetime.now().isoformat(timespec="seconds"))
     _update("products", pid, fields)
@@ -372,6 +386,10 @@ DEFAULT_SETTINGS = {
     "sync_minutes": "15",
     "inbox_minutes": "10",
     "daily_goal": "100",          # objectif de bénéfice par jour (€), affiché sur le dashboard
+    "photo_provider": "auto",     # auto | gemini | openai
+    "photo_set": "standard",      # standard (3 photos) | complet (5 photos)
+    "photo_clean": "on",          # nettoie d'abord l'image fournisseur (texte, collage, mannequin)
+    "photo_qa": "on",             # contrôle qualité IA + nouvel essai si la photo n'est pas fidèle
 }
 
 
@@ -458,3 +476,26 @@ def list_conversations(status=None, limit=50):
     args.append(limit)
     with connect() as c:
         return [dict(r) for r in c.execute(q, args)]
+
+
+# ---------- coûts IA ----------
+def log_cost(provider, model, kind, cost, product_id=None):
+    with connect() as c:
+        c.execute("INSERT INTO ai_costs (provider, model, kind, cost, product_id) VALUES (?,?,?,?,?)",
+                  (provider, model, kind, cost, product_id))
+
+
+def cost_stats(days=30):
+    since = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+    with connect() as c:
+        total = c.execute("SELECT COUNT(*) n, COALESCE(SUM(cost),0) eur FROM ai_costs WHERE created_at >= ?",
+                          (since,)).fetchone()
+        by = [dict(r) for r in c.execute(
+            "SELECT provider, COUNT(*) n, ROUND(SUM(cost),2) eur FROM ai_costs WHERE created_at >= ? "
+            "GROUP BY provider ORDER BY eur DESC", (since,))]
+    return {"images": total["n"], "eur": round(total["eur"], 2), "by_provider": by}
+
+
+def product_cost(pid):
+    with connect() as c:
+        return round(c.execute("SELECT COALESCE(SUM(cost),0) FROM ai_costs WHERE product_id=?", (pid,)).fetchone()[0], 2)

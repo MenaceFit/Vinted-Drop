@@ -18,6 +18,9 @@
 {%- elif name == 'spark' -%}<path d="m12 3 2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>
 {%- elif name == 'key' -%}<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/>
 {%- elif name == 'check' -%}<path d="m5 12 5 5L20 7"/>
+{%- elif name == 'camera' -%}<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>
+{%- elif name == 'star' -%}<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>
+{%- elif name == 'trash' -%}<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>
 {%- elif name == 'upload' -%}<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
 {%- endif -%}
 </svg>
@@ -31,3 +34,5 @@
 {%- endmacro %}
 
 {% macro stars(r) -%}{% if r %}<span class="stars">{{ '★' * (r|round|int) }}{{ '☆' * (5 - (r|round|int)) }}</span> <b>{{ r }}</b>{% endif %}{%- endmacro %}
+
+{% macro qa(score, min=7) -%}{% if score is not none %}<span class="badge {{ 'published' if score >= min else 'error' }}" title="Fidélité au produit (contrôle IA)">{{ score }}/10</span>{% endif %}{%- endmacro %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, qa %}
+{% block title %}Studio photo{% endblock %}
+{% block heading %}Studio photo{% endblock %}
+{% block subtitle %}<p class="muted">Gemini et OpenAI génèrent les photos, une IA vérifie que chaque photo est fidèle au produit.</p>{% endblock %}
+{% block content %}
+<div class="grid g4">
+  <div class="card kpi hero reveal"><div class="label"><span class="ic">{{ icon('camera',16) }}</span> Images générées (30 j)</div>
+    <div class="value num" data-count="{{ costs.images }}">0</div><div class="sub">coût estimé {{ costs.eur|eur }}</div></div>
+  {% for name, label in [('gemini','Gemini · Nano Banana'),('openai','OpenAI · GPT Image')] %}
+  {% set st = costs.by_provider|selectattr('provider','equalto',name)|first %}
+  <div class="card kpi hover reveal"><div class="label"><span class="ic">{{ icon('spark',16) }}</span> {{ label }}</div>
+    <div class="value num" style="font-size:22px">{{ 'Connecté' if name in providers else 'Pas de clé' }}</div>
+    <div class="sub">{{ models[name] }} · {{ st.n if st else 0 }} images · {{ (st.eur if st else 0)|eur }}</div></div>
+  {% endfor %}
+  <div class="card kpi hover reveal"><div class="label"><span class="ic">{{ icon('box',16) }}</span> À photographier</div>
+    <div class="value num" data-count="{{ todo|selectattr('photos','equalto',[])|list|length }}">0</div><div class="sub">{{ todo|length }} brouillons / prêts avec image</div></div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card reveal"><div class="card-head"><h2>Réglages photo</h2></div>
+  <form method="post" action="/studio/reglages">
+    <label>Fournisseur</label><select name="photo_provider" class="w-full">
+      {% for v, l in [('auto','🤖 Auto : ' ~ (providers[0] if providers else '—') ~ ' puis l\'autre en secours'),('gemini','Gemini (Nano Banana) : meilleur pour garder le même modèle'),('openai','OpenAI (GPT Image) : très fidèle sur les détails')] %}
+      <option value="{{ v }}" {{ 'selected' if settings.photo_provider==v }}>{{ l }}</option>{% endfor %}</select>
+    <label>Jeu de photos par défaut</label><select name="photo_set" class="w-full">
+      <option value="standard" {{ 'selected' if settings.photo_set=='standard' }}>Standard : portée, à plat, détail (3 photos)</option>
+      <option value="complet" {{ 'selected' if settings.photo_set=='complet' }}>Complet : 2 portées, à plat, cintre, détail (5 photos)</option></select>
+    <label>Nettoyage de l'image fournisseur</label><select name="photo_clean" class="w-full">
+      <option value="on" {{ 'selected' if settings.photo_clean=='on' }}>✅ Isoler le vêtement d'abord (retire texte, collage, mannequin) : +1 image</option>
+      <option value="off" {{ 'selected' if settings.photo_clean=='off' }}>⛔ Utiliser l'image telle quelle</option></select>
+    <label>Contrôle qualité IA</label><select name="photo_qa" class="w-full">
+      <option value="on" {{ 'selected' if settings.photo_qa=='on' }}>✅ Noter chaque photo, refaire si fidélité &lt; {{ qa_min }}/10 (avec l'autre fournisseur)</option>
+      <option value="off" {{ 'selected' if settings.photo_qa=='off' }}>⛔ Pas de contrôle</option></select>
+    <div class="mt"><button class="btn">{{ icon('check',16) }} Enregistrer</button></div>
+  </form></div>
+
+  <div class="card reveal"><div class="card-head"><h2>Prises de vue</h2></div>
+    <ul class="timeline">{% for k, sh in shots.items() %}<li><span class="dot">{{ sh.emoji }}</span><span><b>{{ sh.label }}</b><br><span class="muted" style="font-size:12.5px">{{ 'Avec le modèle de la boutique' if sh.persona else 'Sans personne' }}</span></span>
+      <span class="faint" style="font-size:12px">{{ 'standard' if k in sets.standard else 'complet' }}</span></li>{% endfor %}</ul>
+    <p class="faint" style="font-size:12.5px">Niches enfants et animaux : jamais de personne générée, seulement à plat, cintre et détail.</p>
+  </div>
+</div>
+
+<div class="card mt reveal"><div class="card-head"><h2>Produits à photographier</h2><span class="muted">sélectionne puis lance en lot</span></div>
+{% if todo %}<form method="post" action="/studio/lot">
+<div class="studio-grid">{% for p in todo[:40] %}
+  <label class="shot" style="cursor:pointer">
+    <img src="/media/{{ (p.photos[0] if p.photos else p.supplier_image) }}" loading="lazy" alt="">
+    <div class="shot-top"><input type="checkbox" name="ids" value="{{ p.id }}" {{ 'checked' if not p.photos }} style="pointer-events:auto;width:18px;height:18px;accent-color:var(--accent)">
+      {% if p.id in running %}<span class="badge ready">⏳ en cours</span>{% else %}{{ badge(p.status) }}{% endif %}</div>
+    <figcaption><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#{{ p.id }} {{ p.title or p.supplier_title or 'Sans titre' }}</b>
+      <span class="faint" style="font-size:12px">{{ p.photos|length }} photo{{ 's' if p.photos|length != 1 }} · {{ p.shop_name or 'sans boutique' }}</span> · <a href="/produit/{{ p.id }}#photos">ouvrir</a></figcaption>
+  </label>{% endfor %}</div>
+<div class="row mt"><button class="btn">{{ icon('spark',16) }} Générer les photos sélectionnées</button><span class="faint" style="font-size:12.5px">30 produits max par lot</span></div>
+</form>
+{% else %}<div class="empty"><span class="big">🖼️</span>Aucun produit avec image en attente. Ajoute des produits ou envoie leurs captures au bot.</div>{% endif %}
+</div>
+
+<div class="card mt reveal"><div class="card-head"><h2>Modèles photo</h2><span class="muted">la même personne sur toutes les photos d'une boutique</span></div>
+<div class="studio-grid">{% for m in personas %}
+  <figure class="shot"><div class="compare" style="padding:8px">{% for r in (m.refs or ([m.reference_image] if m.reference_image else [])) %}<img src="/media/{{ r }}" alt="">{% else %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:10px"></div>{% endfor %}</div>
+  <figcaption><b>{{ m.name }}</b><br><span class="faint" style="font-size:12px">{{ m.description[:90] }}</span></figcaption></figure>
+{% endfor %}</div>
+<details class="mt" {{ 'open' if not personas }}><summary>{{ icon('plus',16) }} Nouveau modèle</summary>
+<form method="post" action="/modeles" class="mt">
+  <input type="hidden" name="back" value="/studio">
+  <div class="grid g2" style="gap:12px">
+    <div><label>Nom</label><input name="name" required class="w-full">
+      <label>Fournisseur</label><select name="provider" class="w-full"><option value="">auto</option>{% for pr in providers %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}</select></div>
+    <div><label>Description physique (en anglais = meilleur résultat)</label>
+      <textarea name="description" required style="min-height:84px" placeholder="a 25 year old woman, pale skin, long straight black hair with bangs, slim, gothic style, silver rings"></textarea></div>
+  </div>
+  <label>Décor de la boutique (le même sur toutes les photos)</label>
+  <input name="decor" class="w-full" placeholder="a cosy dark bedroom with black bedding, fairy lights and a tall vintage mirror">
+  <div class="row mt"><button class="btn">Générer le modèle (2 photos de référence)</button></div>
+</form></details>
+</div>
+{% endblock %}

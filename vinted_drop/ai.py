@@ -1,7 +1,8 @@
-"""Appels à l'API OpenAI en REST (pas de dépendance au SDK, qui change souvent)."""
+"""Appels IA texte / vision (OpenAI en priorité, Gemini en secours), en REST."""
 import base64
 import json
 import mimetypes
+import re
 from pathlib import Path
 
 import requests
@@ -9,58 +10,22 @@ import requests
 from . import config
 
 API = "https://api.openai.com/v1"
+GEMINI_API = "https://generativelanguage.googleapis.com/v1beta"
+_working_model = None  # premier modèle OpenAI qui a répondu
 
 
 class AIError(RuntimeError):
     pass
 
 
-def _headers():
-    if not config.OPENAI_API_KEY:
-        raise AIError("OPENAI_API_KEY manquant dans le fichier .env")
-    return {"Authorization": f"Bearer {config.OPENAI_API_KEY}"}
-
-
-def _check(resp):
+def _check(resp, who="OpenAI"):
     if resp.status_code >= 400:
         try:
             msg = resp.json().get("error", {}).get("message", resp.text)
         except ValueError:
             msg = resp.text
-        raise AIError(f"OpenAI {resp.status_code}: {msg}")
+        raise AIError(f"{who} {resp.status_code}: {msg}")
     return resp.json()
-
-
-def generate_image(prompt: str, out_path: Path, size="1024x1536") -> Path:
-    resp = requests.post(f"{API}/images/generations", headers=_headers(), timeout=300, json={
-        "model": config.OPENAI_IMAGE_MODEL, "prompt": prompt, "size": size,
-        "quality": config.OPENAI_IMAGE_QUALITY, "n": 1,
-    })
-    return _save(_check(resp), out_path)
-
-
-def edit_image(prompt: str, images: list[Path], out_path: Path, size="1024x1536") -> Path:
-    """Génère une image à partir d'images de référence (produit, modèle...)."""
-    files = []
-    for p in images:
-        p = Path(p)
-        mime = mimetypes.guess_type(p.name)[0] or "image/png"
-        files.append(("image[]", (p.name, p.read_bytes(), mime)))
-    data = {"model": config.OPENAI_IMAGE_MODEL, "prompt": prompt, "size": size,
-            "quality": config.OPENAI_IMAGE_QUALITY, "n": "1"}
-    resp = requests.post(f"{API}/images/edits", headers=_headers(), data=data, files=files, timeout=300)
-    return _save(_check(resp), out_path)
-
-
-def _save(payload, out_path: Path) -> Path:
-    item = payload["data"][0]
-    out_path = Path(out_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    if item.get("b64_json"):
-        out_path.write_bytes(base64.b64decode(item["b64_json"]))
-    else:
-        out_path.write_bytes(requests.get(item["url"], timeout=120).content)
-    return out_path
 
 
 def image_to_data_url(path: Path) -> str:
@@ -69,22 +34,89 @@ def image_to_data_url(path: Path) -> str:
     return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
 
 
-def chat_json(system: str, user_text: str, image: Path | None = None) -> dict:
-    content = [{"type": "text", "text": user_text}]
-    if image:
-        content.append({"type": "image_url", "image_url": {"url": image_to_data_url(image)}})
-    resp = requests.post(f"{API}/chat/completions", headers=_headers(), timeout=120, json={
-        "model": config.OPENAI_TEXT_MODEL,
-        "response_format": {"type": "json_object"},
-        "messages": [{"role": "system", "content": system}, {"role": "user", "content": content}],
-    })
-    text = _check(resp)["choices"][0]["message"]["content"]
-    return json.loads(text)
+def _openai_chat(payload: dict) -> dict:
+    """Essaie OPENAI_TEXT_MODEL puis les modèles de secours si un modèle a été retiré."""
+    global _working_model
+    if not config.OPENAI_API_KEY:
+        raise AIError("OPENAI_API_KEY manquant")
+    models = [_working_model] if _working_model else []
+    models += [m for m in [config.OPENAI_TEXT_MODEL, *config.OPENAI_TEXT_FALLBACKS] if m and m not in models]
+    last = None
+    for m in models:
+        r = requests.post(f"{API}/chat/completions", headers={"Authorization": f"Bearer {config.OPENAI_API_KEY}"},
+                          timeout=120, json={**payload, "model": m})
+        if r.status_code in (400, 404) and "model" in r.text.lower() and ("not" in r.text.lower() or "exist" in r.text.lower()):
+            last = r
+            continue
+        data = _check(r)
+        _working_model = m
+        return data
+    raise AIError(f"Aucun modèle OpenAI disponible : {last.text[:200] if last is not None else ''}")
+
+
+def _gemini_text(system: str, text: str, images=()) -> str:
+    if not config.GEMINI_API_KEY:
+        raise AIError("GEMINI_API_KEY manquant")
+    parts = [{"type": "text", "text": f"{system}\n\n{text}"}]
+    for img in images:
+        p = Path(img)
+        parts.append({"type": "image", "mime_type": mimetypes.guess_type(p.name)[0] or "image/jpeg",
+                      "data": base64.b64encode(p.read_bytes()).decode()})
+    r = requests.post(f"{GEMINI_API}/interactions", timeout=120,
+                      headers={"x-goog-api-key": config.GEMINI_API_KEY, "Content-Type": "application/json"},
+                      json={"model": config.GEMINI_TEXT_MODEL, "input": parts})
+    data = _check(r, "Gemini")
+    return find_text(data)
+
+
+def find_text(obj) -> str:
+    if isinstance(obj, dict):
+        if isinstance(obj.get("output_text"), str):
+            return obj["output_text"]
+        if obj.get("type") == "text" and isinstance(obj.get("text"), str):
+            return obj["text"]
+        if isinstance(obj.get("text"), str) and "candidates" not in obj:
+            return obj["text"]
+        for v in obj.values():
+            t = find_text(v)
+            if t:
+                return t
+    elif isinstance(obj, list):
+        for v in obj:
+            t = find_text(v)
+            if t:
+                return t
+    return ""
+
+
+def _parse_json(text: str) -> dict:
+    m = re.search(r"\{.*\}", text or "", re.S)
+    if not m:
+        raise AIError("Réponse IA sans JSON")
+    return json.loads(m.group(0))
+
+
+def chat_json(system: str, user_text: str, image: Path | None = None, images=None) -> dict:
+    """Réponse JSON, avec une ou plusieurs images en entrée. OpenAI, puis Gemini en secours."""
+    imgs = [Path(i) for i in (images or ([image] if image else []))]
+    errors = []
+    if config.OPENAI_API_KEY:
+        content = [{"type": "text", "text": user_text}] + [
+            {"type": "image_url", "image_url": {"url": image_to_data_url(i)}} for i in imgs]
+        try:
+            data = _openai_chat({"response_format": {"type": "json_object"},
+                                 "messages": [{"role": "system", "content": system}, {"role": "user", "content": content}]})
+            return json.loads(data["choices"][0]["message"]["content"])
+        except (AIError, requests.RequestException, ValueError) as e:
+            errors.append(str(e))
+    if config.GEMINI_API_KEY:
+        try:
+            return _parse_json(_gemini_text(system + "\nRéponds uniquement en JSON.", user_text, imgs))
+        except (AIError, requests.RequestException, ValueError) as e:
+            errors.append(str(e))
+    raise AIError(" | ".join(errors) or "Aucune clé IA (OPENAI_API_KEY ou GEMINI_API_KEY)")
 
 
 def chat_tools(messages: list, tools: list) -> dict:
-    """Un tour de conversation avec appel d'outils (function calling)."""
-    resp = requests.post(f"{API}/chat/completions", headers=_headers(), timeout=120, json={
-        "model": config.OPENAI_TEXT_MODEL, "messages": messages, "tools": tools,
-    })
-    return _check(resp)["choices"][0]["message"]
+    """Un tour de conversation avec appel d'outils (assistant Telegram, OpenAI)."""
+    return _openai_chat({"messages": messages, "tools": tools})["choices"][0]["message"]

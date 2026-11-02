@@ -19,9 +19,25 @@ def _float(name, default):
 
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-1")
-OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-4o-mini")
+# gpt-image-1 a été arrêté par OpenAI le 23/10/2026
+OPENAI_IMAGE_MODEL = os.getenv("OPENAI_IMAGE_MODEL", "gpt-image-2.5-sunburst")
 OPENAI_IMAGE_QUALITY = os.getenv("OPENAI_IMAGE_QUALITY", "medium")
+OPENAI_TEXT_MODEL = os.getenv("OPENAI_TEXT_MODEL", "gpt-5.6-terra")
+# modèles essayés si le premier n'existe plus
+OPENAI_TEXT_FALLBACKS = [m for m in os.getenv("OPENAI_TEXT_FALLBACKS", "gpt-5.6-terra,gpt-4o-mini").split(",") if m]
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-nano-banana-2.1")
+GEMINI_IMAGE_SIZE = os.getenv("GEMINI_IMAGE_SIZE", "2K")
+GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-flash-preview")
+
+# Fournisseur de photos par défaut quand on choisit "auto" : gemini ou openai
+PHOTO_PROVIDER = os.getenv("PHOTO_PROVIDER", "gemini")
+# Note minimale de fidélité (0-10) d'une photo ; en dessous elle est refaite une fois
+PHOTO_QA_MIN = int(os.getenv("PHOTO_QA_MIN", "7"))
+# Estimation du coût par image (€) pour le suivi des dépenses
+COST_PER_IMAGE = {"openai": float(os.getenv("COST_IMAGE_OPENAI", "0.05")),
+                  "gemini": float(os.getenv("COST_IMAGE_GEMINI", "0.04"))}
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_ALLOWED_CHAT_IDS = {

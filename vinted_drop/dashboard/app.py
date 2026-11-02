@@ -66,7 +66,7 @@ def home(request: Request):
         goal=float(db.get_setting("daily_goal") or 100), top_products=niches.winning_products()[:5],
         sales=db.list_sales(limit=10), to_order=db.list_sales(status="to_order"),
         top_niches=niches.ranked()[:4], events=db.list_events(12), settings=db.all_settings(),
-        pending_msgs=len(db.list_conversations(status="pending")),
+        pending_msgs=len(db.list_conversations(status="pending")), costs=db.cost_stats(30),
         disconnected=[x for x in db.list_shops() if x.get("vinted_status") != "connected"],
     )
 
@@ -120,8 +120,12 @@ def product(request: Request, pid: int):
     p = db.get_product(pid)
     if not p:
         raise HTTPException(404)
+    from ..image_providers import available
     return render(request, "product.html", p=p, shops=db.list_shops(), prices=pricing.compute_prices(p["cost"]),
-                  error=JOB_ERRORS.pop(pid, None), running=pid in JOBS_RUNNING, statuses=db.PRODUCT_STATUSES)
+                  error=JOB_ERRORS.pop(pid, None), running=pid in JOBS_RUNNING, statuses=db.PRODUCT_STATUSES,
+                  shots=photos.SHOTS, default_kinds=photos.default_kinds(p), gallery=photos.summary(p),
+                  providers=available(), photo_cost=db.product_cost(pid), settings=db.all_settings(),
+                  qa_min=config.PHOTO_QA_MIN)
 
 
 @app.post("/produit/{pid}/image")
@@ -228,14 +232,15 @@ def add_shop(name: str = Form(...), niche: str = Form(""), persona_id: str = For
 
 
 @app.post("/modeles")
-def add_persona(bg: BackgroundTasks, name: str = Form(...), description: str = Form(...)):
+def add_persona(bg: BackgroundTasks, name: str = Form(...), description: str = Form(...), decor: str = Form(""),
+                provider: str = Form(""), back: str = Form("/boutiques")):
     def job():
         try:
-            photos.create_persona(name, description)
+            photos.create_persona(name, description, decor or None, provider or None)
         except Exception as e:
             JOB_ERRORS[0] = f"Modèle « {name} » : {e}"
     bg.add_task(job)
-    return RedirectResponse("/boutiques", status_code=303)
+    return RedirectResponse(back if back.startswith("/") else "/boutiques", status_code=303)
 
 
 @app.post("/boutique/{sid}/modele")
@@ -360,3 +365,56 @@ def message_action(cid: int, action: str = Form(...), text: str = Form("")):
     except Exception as e:
         JOB_ERRORS[-1] = str(e)
     return RedirectResponse("/messages", status_code=303)
+
+
+# ---------------- studio photo ----------------
+@app.post("/produit/{pid}/studio")
+async def studio_generate(pid: int, request: Request, bg: BackgroundTasks):
+    form = await request.form()
+    kinds = [k for k in form.getlist("kinds") if k in photos.SHOTS] or None
+    provider = form.get("provider") or None
+    JOBS_RUNNING.add(pid)
+    bg.add_task(_run, pid, photos.generate_product_photos, pid, kinds, provider)
+    return RedirectResponse(f"/produit/{pid}", status_code=303)
+
+
+@app.post("/produit/{pid}/photo")
+def photo_action(pid: int, bg: BackgroundTasks, path: str = Form(...), action: str = Form(...),
+                 provider: str = Form("")):
+    if action == "cover":
+        photos.set_cover(pid, path)
+    elif action == "delete":
+        photos.delete_photo(pid, path)
+    elif action == "redo":
+        JOBS_RUNNING.add(pid)
+        bg.add_task(_run, pid, photos.regenerate_photo, pid, path, provider or None)
+    return RedirectResponse(f"/produit/{pid}#photos", status_code=303)
+
+
+@app.get("/studio")
+def studio_page(request: Request):
+    from ..image_providers import available
+    todo = [p for p in db.list_products(limit=300) if p["status"] in ("draft", "ready") and p.get("supplier_image")]
+    return render(request, "studio.html", todo=todo, settings=db.all_settings(), costs=db.cost_stats(30),
+                  personas=db.list_personas(), providers=available(), sets=photos.SETS, shots=photos.SHOTS,
+                  running=JOBS_RUNNING, qa_min=config.PHOTO_QA_MIN, error=JOB_ERRORS.pop(0, None),
+                  models={"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL})
+
+
+@app.post("/studio/reglages")
+async def studio_settings(request: Request):
+    form = await request.form()
+    for k in ("photo_provider", "photo_set", "photo_clean", "photo_qa"):
+        if k in form:
+            db.set_setting(k, form[k])
+    return RedirectResponse("/studio?ok=Réglages photo enregistrés", status_code=303)
+
+
+@app.post("/studio/lot")
+async def studio_batch(request: Request, bg: BackgroundTasks):
+    form = await request.form()
+    ids = [int(x) for x in form.getlist("ids")][:30]
+    for pid in ids:
+        JOBS_RUNNING.add(pid)
+        bg.add_task(_run, pid, photos.generate_product_photos, pid)
+    return RedirectResponse(f"/studio?ok={len(ids)} produit(s) en cours de génération", status_code=303)

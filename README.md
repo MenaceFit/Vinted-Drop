@@ -10,7 +10,11 @@ Système complet pour faire tourner des boutiques Vinted en dropshipping (Shein,
 - **💬 Réponses aux acheteurs + négociation** : l'IA rédige la réponse. Les offres sont acceptées si elles
   atteignent le prix mini ; sinon le bot fait une contre-offre.
 - **📉 Baisse des prix** des articles qui ne bougent pas (jamais sous le prix mini).
-- **📸 Photos IA** : un modèle récurrent par boutique, photo portée + à plat + détail.
+- **📸 Studio photo IA (Gemini + OpenAI)** : un modèle récurrent par boutique (2 photos de référence +
+  un décor fixe), 5 prises de vue (portée miroir, portée pose, à plat, cintre, détail), nettoyage de
+  l'image fournisseur, **contrôle qualité IA** de chaque photo (fidélité notée sur 10, nouvel essai avec
+  l'autre IA si la photo n'est pas fidèle), recadrage 3:4 en JPEG, suivi des coûts. Retouches photo par
+  photo : ⭐ couverture, 🔄 refaire, 🗑 supprimer, depuis le dashboard ou Telegram.
 - **🌙 Préparation de nuit** : les brouillons reçoivent leurs photos et leur fiche pendant la nuit.
 - **🔎 Analyse des niches** : 19 niches classées par saison et par données Vinted en direct, et 49 liens
   fournisseurs ([docs/NICHES.md](docs/NICHES.md)).
@@ -34,8 +38,12 @@ python -m vinted_drop.cli init
 ```
 
 Dans `.env` :
-- `OPENAI_API_KEY` : sur https://platform.openai.com/api-keys (photos, fiches, réponses, assistant).
-  Environ 0,15 € de photos par produit.
+- `GEMINI_API_KEY` : sur https://aistudio.google.com/apikey (photos avec Nano Banana, `gemini-nano-banana-2.1`).
+- `OPENAI_API_KEY` : sur https://platform.openai.com/api-keys (photos avec `gpt-image-2.5-sunburst`, fiches,
+  réponses, assistant). Mets les deux clés : si l'une échoue ou fait une photo pas fidèle, l'autre prend le relais.
+  Compte environ 0,15 à 0,40 € par produit selon le nombre de photos et de nouveaux essais (le studio affiche le coût réel estimé).
+- ⚠️ Si ton `.env` contient encore `OPENAI_IMAGE_MODEL=gpt-image-1`, remplace-le : ce modèle a été arrêté
+  par OpenAI le 23 octobre 2026.
 - `TELEGRAM_BOT_TOKEN` : avec [@BotFather](https://t.me/BotFather) → `/newbot`.
 - `TELEGRAM_ALLOWED_CHAT_IDS` : envoie `/start` au bot, il t'affiche ton chat id, colle-le ici.
 - `DASHBOARD_PASSWORD` : **obligatoire sur un VPS** (le dashboard contient tes tokens Vinted).
@@ -80,7 +88,7 @@ Tout se règle dans le dashboard (*Pilote auto*) ou dans Telegram (`/auto`).
 
 ## Commandes Telegram principales
 
-`/menu` (boutons) · `/stats` · `/acommander` · `/messages` · `/auto` · `/sync` · `/vinted` ·
+`/menu` (boutons) · `/studio` · `/photos <id> [gemini|openai]` · `/couts` · `/stats` · `/acommander` · `/messages` · `/auto` · `/sync` · `/vinted` ·
 `/niches` · `/gagnants` · `/preparer <id>` · `/publier <id>` · `/aide` pour tout le reste.
 Ou écris simplement ta question.
 
@@ -139,7 +147,8 @@ vinted_drop/
   autopilot.py     planning automatique
   assistant.py     assistant en langage naturel (Telegram)
   telegram_bot.py  bot Telegram
-  photos.py        modèles + photos IA
+  photos.py        studio photo : modèles, prises de vue, contrôle qualité, retouches
+  image_providers.py  Gemini (Nano Banana) et OpenAI (GPT Image), avec secours automatique
   listing.py       titres, descriptions, prix
   pricing.py       calcul des prix et des offres
   niches.py        classement des niches
