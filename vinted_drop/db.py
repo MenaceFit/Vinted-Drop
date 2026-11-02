@@ -829,6 +829,8 @@ DEFAULT_SETTINGS = {
     "daily_budget": "2",
     "budget_alert_pct": "80",
     "ship_delay": "envoi sous 5 à 8 jours",
+    "prepare_photos": "on",
+    "prepare_listing": "on",
 }
 
 

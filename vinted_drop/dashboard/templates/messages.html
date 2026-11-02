@@ -1,25 +1,19 @@
-{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, empty %}
 {% block title %}Messages{% endblock %}
 {% block heading %}Messages acheteurs{% endblock %}
-{% block subtitle %}<p class="muted">L'IA prépare les réponses, tu valides (ou passe en automatique dans Pilote auto).</p>{% endblock %}
+{% block subtitle %}<p class="muted">L'IA prépare la réponse, tu valides. Elle n'invente jamais une mesure ou une matière et ne propose jamais de paiement hors Vinted.</p>{% endblock %}
 {% block content %}
 <div class="stack">
 {% for c in convs %}
 <div class="card reveal">
-  <div class="row" style="justify-content:space-between">
-    <div class="row"><span class="logo" style="width:34px;height:34px;border-radius:50%;font-weight:700">{{ (c.buyer or '?')[0]|upper }}</span>
-      <div><b>{{ c.buyer or 'Acheteur' }}</b><br><span class="faint" style="font-size:12px">{{ c.updated_at[5:16] }}{% if c.intent %} · {{ c.intent }}{% endif %}{% if c.product_id %} · <a href="/produit/{{ c.product_id }}">produit #{{ c.product_id }}</a>{% endif %}</span></div></div>
-    <div class="row">{% if c.offer_price %}<span class="badge sold">Offre {{ c.offer_price|eur }}</span>{% endif %}{{ badge(c.status) }}</div>
-  </div>
-  <div style="margin:14px 0 0;padding:12px 14px;border-radius:14px 14px 14px 4px;background:var(--surface-2);max-width:560px">{{ c.last_buyer_message }}</div>
-  {% if c.status == 'pending' %}
-  <form method="post" action="/message/{{ c.id }}" class="mt">
-    <label>Réponse proposée</label>
-    <textarea name="text" style="min-height:80px">{{ c.draft or '' }}</textarea>
-    <div class="row" style="margin-top:8px"><button class="btn" name="action" value="send">{{ icon('check',16) }} Envoyer</button><button class="btn ghost" name="action" value="ignore">Ignorer</button></div>
-  </form>
-  {% elif c.draft %}<div style="margin:10px 0 0 auto;padding:12px 14px;border-radius:14px 14px 4px 14px;background:var(--accent-soft);max-width:560px;width:fit-content">{{ c.draft }}</div>{% endif %}
+  <div class="row between"><div class="row"><span class="logo" style="width:32px;height:32px;border-radius:50%">{{ (c.buyer or '?')[0]|upper }}</span>
+    <div><b>{{ c.buyer or 'Acheteur' }}</b><br><span class="faint tiny">{{ c.updated_at|dt }}{% if c.intent %} · {{ c.intent }}{% endif %}{% if c.product_id %} · <a href="/produit/{{ c.product_id }}">produit #{{ c.product_id }}</a>{% endif %}</span></div></div>
+    <div class="row">{% if c.offer_price %}<span class="badge sold">Offre {{ c.offer_price|eur }}</span>{% endif %}{{ badge(c.status) }}</div></div>
+  <div style="margin:12px 0 0;padding:11px 13px;border-radius:12px 12px 12px 4px;background:var(--surface-2);max-width:560px" class="small">{{ c.last_buyer_message }}</div>
+  {% if c.status == 'pending' %}<form method="post" action="/message/{{ c.id }}" class="mt"><label>Réponse proposée</label><textarea name="text" style="min-height:80px">{{ c.draft or '' }}</textarea>
+    <div class="row" style="margin-top:8px"><button class="btn" name="action" value="send">{{ icon('check') }} Envoyer</button><button class="btn ghost" name="action" value="ignore">Ignorer</button></div></form>
+  {% elif c.draft %}<div style="margin:10px 0 0 auto;padding:11px 13px;border-radius:12px 12px 4px 12px;background:var(--accent);color:var(--accent-ink);max-width:560px;width:fit-content" class="small">{{ c.draft }}</div>{% endif %}
 </div>
-{% else %}<div class="card empty reveal"><span class="big">💬</span><b>Aucun message pour l'instant.</b><br>Ils arrivent ici dès que Vinted est connecté et que le bot tourne.</div>{% endfor %}
+{% else %}<div class="card">{{ empty('Aucun message pour le moment', 'Ils arrivent ici dès que Vinted est connecté et que le bot tourne.') }}</div>{% endfor %}
 </div>
 {% endblock %}

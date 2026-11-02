@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, stars, empty %}
+{% block title %}Produits gagnants{% endblock %}
+{% block heading %}Produits gagnants{% endblock %}
+{% block subtitle %}<p class="muted">{{ products|length }} produits · score /100 : preuve de vente 45 % · saison 35 % · marge 20 %. Vérifie prix et stock avant de publier.</p>{% endblock %}
+{% block content %}
+<div class="chips reveal"><a class="chip {{ 'on' if not sel }}" href="/gagnants">Tous</a>
+{% for n in niches if counts.get(n.id) %}<a class="chip {{ 'on' if sel==n.id }}" href="/gagnants?niche={{ n.id }}">{{ n.name.split('(')[0]|trim }} <span class="faint">{{ counts.get(n.id) }}</span></a>{% endfor %}</div>
+<div class="grid g3 mt">
+{% for w in products %}
+  <div class="card hover reveal" style="display:flex;flex-direction:column;gap:10px">
+    <div class="row nowrap" style="align-items:flex-start"><span class="ring" data-p="{{ w.score }}"><span>{{ w.score }}</span></span>
+      <div class="grow"><a href="{{ w.url }}" target="_blank" rel="noopener" style="font-weight:600;line-height:1.35;display:block;text-decoration:none">{{ w.title }} {{ icon('ext', 12) }}</a>
+        <span class="faint tiny">{{ w.supplier }} · {{ w.niche_name }}{% if w.checked %} · vérifié le {{ w.checked }}{% endif %}</span></div></div>
+    <div class="row" style="gap:5px">
+      {% if loop.index <= 3 and not sel %}<span class="badge solid">Top {{ loop.index }}</span>{% endif %}
+      {% if w.in_season %}<span class="badge sold">En saison</span>{% endif %}
+      {% if w.reviews %}<span class="badge plain">{{ stars(w.rating) }} · {{ w.reviews|num }} avis</span>{% endif %}
+      {% if w.sold %}<span class="badge published">{{ w.sold }}</span>{% endif %}
+      {% if w.multiplier %}<span class="badge {{ 'ready' if w.multiplier >= 1.6 else 'error' }}">x{{ w.multiplier }}{{ ' · marge trop faible' if w.multiplier < 1.6 }}</span>{% endif %}
+    </div>
+    <div class="row between" style="margin-top:auto">
+      <span class="small"><span class="faint">Achat</span> <b class="num">{{ w.cost|eur if w.cost else 'à vérifier' }}</b>{% if w.est_sell %} <span class="faint">→</span> <b class="num good">~{{ w.est_sell|round|int }} €</b>{% endif %}</span>
+      <form method="post" action="/produits/importer-gagnant" class="row nowrap" style="gap:5px">
+        <input type="hidden" name="url" value="{{ w.url }}"><input type="hidden" name="title" value="{{ w.title }}"><input type="hidden" name="niche" value="{{ w.niche }}">
+        <input name="cost" inputmode="decimal" value="{{ w.cost or '' }}" placeholder="Prix €" required style="width:72px;padding:6px 8px">
+        <select name="shop_id" style="padding:6px 8px;max-width:110px"><option value="">Boutique</option>{% for s in shops %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+        <button class="btn sm icon" title="Importer">{{ icon('plus', 13) }}</button></form>
+    </div>
+  </div>
+{% else %}<div class="card">{{ empty('Aucun produit pour cette niche') }}</div>{% endfor %}
+</div>
+{% endblock %}

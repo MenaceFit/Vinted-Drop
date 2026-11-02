@@ -1,58 +1,66 @@
-{% extends "base.html" %}{% from "_ui.html" import icon %}
-{% block title %}Pilote auto{% endblock %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, empty %}
+{% block title %}Pilote automatique{% endblock %}
 {% block heading %}Pilote automatique{% endblock %}
-{% block subtitle %}<p class="muted"><span class="pulse {{ 'on' if settings.autopilot=='on' }}" style="display:inline-block;margin-right:8px"></span>{{ 'Actif : le bot travaille pour toi 24h/24.' if settings.autopilot=='on' else 'En pause.' }}</p>{% endblock %}
+{% block subtitle %}<p class="muted">Chaque tâche se règle séparément. Les opérations sensibles restent soumises à ta validation par défaut.</p>{% endblock %}
+{% block actions %}
+{% if nav_emergency %}<form method="post" action="/pilote/urgence"><input type="hidden" name="action" value="resume"><button class="btn">{{ icon('play') }} Lever l'arrêt d'urgence</button></form>
+{% else %}<form method="post" action="/pilote/urgence"><input type="hidden" name="action" value="stop"><button class="btn danger" data-confirm="Arrêter immédiatement toutes les actions automatiques ?">{{ icon('stop') }} Arrêt d'urgence</button></form>{% endif %}
+{% endblock %}
 {% block content %}
 <div class="grid g2">
-<div class="card reveal"><div class="card-head"><h2>Réglages</h2></div>
+<div class="card reveal"><div class="card-head"><h2>Réglages généraux</h2></div>
 <form method="post" action="/pilote">
-  {% macro sel(name, label, opts) %}<label>{{ label }}</label><select name="{{ name }}" class="w-full">
-    {% for v, t in opts %}<option value="{{ v }}" {{ 'selected' if settings[name]==v }}>{{ t }}</option>{% endfor %}</select>{% endmacro %}
-  {{ sel('autopilot', 'Interrupteur général', [('on','✅ Activé'),('off','⛔ En pause')]) }}
-  {{ sel('publish_mode', 'Publication des produits prêts', [('validate','👆 Je valide sur Telegram'),('auto','🤖 Automatique'),('off','⛔ Désactivé')]) }}
-  {{ sel('reply_mode', 'Réponses aux messages', [('validate','👆 Je valide sur Telegram'),('auto','🤖 Automatique (sinon validation)'),('off','⛔ Désactivé')]) }}
-  {{ sel('offer_mode', 'Offres des acheteurs', [('auto','🤖 Accepte ≥ prix mini, contre-propose sinon'),('validate','👆 Je décide'),('off','⛔ Désactivé')]) }}
-  {{ sel('auto_prepare', 'Préparer les brouillons la nuit', [('on','✅ Oui'),('off','⛔ Non')]) }}
-  {{ sel('price_drop', 'Baisser le prix des articles sans favoris', [('on','✅ Oui'),('off','⛔ Non')]) }}
-  <div class="row">
-    <div><label>Publier de</label><input name="publish_start" type="number" min="0" max="23" value="{{ settings.publish_start }}" style="width:80px"></div>
-    <div><label>à (heure)</label><input name="publish_end" type="number" min="1" max="24" value="{{ settings.publish_end }}" style="width:80px"></div>
-    <div><label>Préparés / nuit</label><input name="prepare_per_night" type="number" value="{{ settings.prepare_per_night }}" style="width:90px"></div>
+  {% macro sel(name, label, opts, help='') %}<label>{{ label }}</label><select name="{{ name }}" class="w-full">{% for v, t in opts %}<option value="{{ v }}" {{ 'selected' if settings.get(name)==v }}>{{ t }}</option>{% endfor %}</select>{% if help %}<p class="help">{{ help }}</p>{% endif %}{% endmacro %}
+  {{ sel('autopilot', 'Pause globale', [('on','Pilote actif'),('off','En pause')]) }}
+  {{ sel('simulation', 'Mode simulation', [('off','Désactivé : actions réelles'),('on','Activé : rien n\'est envoyé à Vinted')], "Pour tester les publications, réponses et prix sans toucher au compte.") }}
+  {{ sel('publish_mode', 'Publication', [('validate','Je valide chaque publication sur Telegram'),('auto','Automatique'),('off','Désactivée')]) }}
+  {{ sel('reply_mode', 'Réponses aux acheteurs', [('validate','Je valide sur Telegram'),('auto','Automatique si l\'IA est sûre, sinon validation'),('off','Désactivées')]) }}
+  {{ sel('offer_mode', 'Offres des acheteurs', [('validate','Je décide (conseil envoyé)'),('auto','Accepte ≥ prix mini, contre-propose sinon'),('off','Désactivées')]) }}
+  {{ sel('prepare_photos', 'Préparation : génération photo', [('on','Oui'),('off','Non')]) }}
+  {{ sel('prepare_listing', 'Préparation : création des descriptions', [('on','Oui'),('off','Non')]) }}
+  {{ sel('price_drop', 'Révision des prix', [('on','Baisser les articles sans favoris'),('off','Désactivée')]) }}
+  <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px">
+    <div><label>Publier de (h)</label><input name="publish_start" inputmode="numeric" value="{{ settings.publish_start }}" class="w-full"></div>
+    <div><label>à (h)</label><input name="publish_end" inputmode="numeric" value="{{ settings.publish_end }}" class="w-full"></div>
+    <div><label>Préparés / passage</label><input name="prepare_per_night" inputmode="numeric" value="{{ settings.prepare_per_night }}" class="w-full"></div>
+    <div><label>Baisse après (j)</label><input name="price_drop_days" inputmode="numeric" value="{{ settings.price_drop_days }}" class="w-full"></div>
+    <div><label>Baisse de (%)</label><input name="price_drop_pct" inputmode="numeric" value="{{ settings.price_drop_pct }}" class="w-full"></div>
   </div>
-  <div class="row">
-    <div><label>Baisse après (jours)</label><input name="price_drop_days" type="number" value="{{ settings.price_drop_days }}" style="width:90px"></div>
-    <div><label>Baisse de (%)</label><input name="price_drop_pct" type="number" value="{{ settings.price_drop_pct }}" style="width:90px"></div>
-    <div><label>Objectif / jour (€)</label><input name="daily_goal" type="number" value="{{ settings.daily_goal }}" style="width:100px"></div>
-  </div>
-  <label>Délai d'envoi annoncé aux acheteurs</label><input name="ship_delay" value="{{ ship_delay }}" class="w-full">
-  <div class="mt"><button class="btn">{{ icon('check',16) }} Enregistrer</button></div>
+  <label>Délai d'envoi annoncé aux acheteurs</label><input name="ship_delay" value="{{ settings.ship_delay }}" class="w-full">
+  <div class="mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div>
 </form></div>
 
-<div class="stack">
-<div class="card reveal"><div class="card-head"><h2>Planning</h2></div>
-<ul class="timeline">
-  <li><span class="dot">🔄</span><span><b>Toutes les 15 min</b><br><span class="muted">Synchro annonces et favoris, détection des ventes</span></span><span></span></li>
-  <li><span class="dot">💬</span><span><b>Toutes les 10 min</b><br><span class="muted">Messages acheteurs, réponses IA, offres</span></span><span></span></li>
-  <li><span class="dot">📤</span><span><b>{{ settings.publish_start }}h → {{ settings.publish_end }}h</b><br><span class="muted">Publication, 1 article par boutique toutes les 15 min</span></span><span></span></li>
-  <li><span class="dot">🌙</span><span><b>2h</b><br><span class="muted">Photos et fiches des brouillons</span></span><span></span></li>
-  <li><span class="dot">📉</span><span><b>3h</b><br><span class="muted">Baisse des prix, jamais sous le prix mini</span></span><span></span></li>
-  <li><span class="dot">🔎</span><span><b>4h</b><br><span class="muted">Analyse du marché Vinted → classement des niches</span></span><span></span></li>
-  <li><span class="dot">📊</span><span><b>21h</b><br><span class="muted">Récap compta sur Telegram</span></span><span></span></li>
-</ul></div>
-<div class="card reveal"><div class="card-head"><h2>Lancer maintenant</h2></div>
-<div class="row">{% for j, t in [('sync','🔄 Synchro'),('messages','💬 Messages'),('publier','📤 Publier'),('preparer','⚙️ Préparer'),('prix','📉 Prix'),('marche','🔎 Marché')] %}
-<form class="inline" method="post" action="/pilote/lancer/{{ j }}"><button class="btn ghost sm">{{ t }}</button></form>{% endfor %}</div></div>
-</div>
+<div class="card reveal"><div class="card-head"><h2>Notifications Telegram</h2><span class="muted">anti-doublon intégré</span></div>
+<form method="post" action="/pilote">
+  {% for k, l in notify_categories.items() %}<div class="row between" style="padding:6px 0;border-bottom:1px solid var(--border)"><span class="small">{{ l }}</span>
+    <select name="notify_{{ k }}" style="padding:4px 8px;font-size:12px"><option value="on" {{ 'selected' if settings.get('notify_' ~ k) != 'off' }}>Activé</option><option value="off" {{ 'selected' if settings.get('notify_' ~ k) == 'off' }}>Désactivé</option></select></div>{% endfor %}
+  <div class="mt"><button class="btn ghost">Enregistrer les notifications</button></div>
+</form></div>
 </div>
 
-{% if scan %}<div class="card mt reveal"><div class="card-head"><h2>Analyse du marché Vinted</h2><span class="muted">{{ scan.date }}</span></div><div class="table-wrap"><table>
-<thead><tr><th>Niche</th><th>Opportunité</th><th>Prix médian</th><th>Mots-clés (annonces · favoris moyens)</th></tr></thead><tbody>
-{% for nid, n in scan.niches.items()|sort(attribute='1.score', reverse=True) %}<tr><td>{{ nid }}</td><td><div class="row" style="flex-wrap:nowrap"><div class="bar" style="width:90px"><i data-w="{{ n.score * 10 }}"></i></div><b>{{ n.score }}</b></div></td><td class="num">{{ n.median_price|eur if n.median_price else '—' }}</td>
-<td class="faint" style="font-size:12.5px">{% for k in n.keywords %}{{ k.keyword }} ({{ k.total }} · {{ k.avg_fav }}){% if not loop.last %}, {% endif %}{% endfor %}</td></tr>{% endfor %}
-</tbody></table></div></div>{% endif %}
+<div class="card mt reveal"><div class="card-head"><h2>Planning des tâches</h2><span class="muted">vérifié chaque minute par le bot</span></div>
+<div class="table-wrap"><table><thead><tr><th>Tâche</th><th>Active</th><th>Fréquence</th><th>Réessais</th><th>Alerte</th><th>Dernier passage</th><th>Prochain</th><th></th></tr></thead><tbody>
+{% for j in jobs %}<tr>
+  <td><b class="small">{{ j.label }}</b>{% if j.state.last_error %}<div class="tiny bad">{{ j.state.last_error[:120] }}</div>{% endif %}</td>
+  <td colspan="4"><form method="post" action="/pilote/tache/{{ j.key }}" class="row nowrap" style="gap:6px" id="job-{{ j.key }}">
+    <select name="enabled" style="padding:4px 6px;font-size:12px"><option value="1" {{ 'selected' if j.enabled }}>Oui</option><option value="0" {{ 'selected' if not j.enabled }}>Non</option></select>
+    {% if j.every %}<span class="small">toutes les</span><input name="every" type="number" min="5" value="{{ j.every }}" style="width:66px;padding:4px 6px"><span class="small">min</span>
+    {% else %}<span class="small">à</span><input name="at" type="time" value="{{ j.at }}" style="padding:4px 6px">{% endif %}
+    <select name="retries" style="padding:4px 6px;font-size:12px">{% for n in range(1, 6) %}<option value="{{ n }}" {{ 'selected' if j.retries == n }}>{{ n }} essai{{ 's' if n > 1 }}</option>{% endfor %}</select>
+    <select name="alert" style="padding:4px 6px;font-size:12px"><option value="1" {{ 'selected' if j.alert }}>Alerte</option><option value="0" {{ 'selected' if not j.alert }}>Silence</option></select>
+    <button class="btn ghost sm" data-noload>OK</button></form></td>
+  <td class="small">{% if j.state.last_run %}{{ j.state.last_run|dt }} {{ badge(j.state.last_status or 'queued') }}{% else %}<span class="faint">jamais</span>{% endif %}</td>
+  <td class="small">{{ j.next_run|dt if j.next_run else '—' }}</td>
+  <td class="r"><form method="post" action="/pilote/lancer/{{ j.key }}"><button class="btn sm">Lancer</button></form></td></tr>{% endfor %}
+</tbody></table></div></div>
 
-<div class="card mt reveal"><div class="card-head"><h2>Journal</h2></div>
-{% set ico = {'sale':'💸','publish':'📤','reply':'💬','offer':'🤝','price':'📉','import':'📥','market':'🔎','vinted':'🔑','error':'⚠️'} %}
-{% if events %}<ul class="timeline">{% for e in events %}<li><span class="dot">{{ ico.get(e.kind,'•') }}</span><span>{{ e.message }}</span><span class="faint num" style="font-size:12px;white-space:nowrap">{{ e.created_at[5:16] }}</span></li>{% endfor %}</ul>
-{% else %}<div class="empty"><span class="big">🤖</span>Rien pour l'instant.</div>{% endif %}</div>
+<div class="grid g2 mt">
+  <div class="card reveal"><div class="card-head"><h2>Journal d'exécution</h2><a class="small" href="/activite">Activité</a></div>
+  {% if task_list %}<ul class="timeline">{% for t in task_list %}<li><span class="dot {{ 'error' if t.status == 'error' }}">{{ {'success':'✓','error':'!','running':'…','queued':'·','cancelled':'×'}.get(t.status, '·') }}</span>
+    <span class="small">{{ t.label or t.kind }} {{ badge(t.status) }}<span class="faint tiny"> · {{ t.source }}</span></span><span class="faint tiny">{{ t.created_at|dt }}</span></li>{% endfor %}</ul>
+  {% else %}{{ empty("Aucune exécution pour l'instant", "Le planning démarre avec <code>python -m vinted_drop.cli all</code>.") }}{% endif %}</div>
+  <div class="card reveal"><div class="card-head"><h2>Historique des erreurs</h2></div>
+  {% if errors %}<ul class="timeline">{% for t in errors %}<li><span class="dot error">!</span><span class="small"><b>{{ t.label or t.kind }}</b><div class="tiny bad">{{ (t.error or '')[:220] }}</div></span><span class="faint tiny">{{ t.created_at|dt }}</span></li>{% endfor %}</ul>
+  {% else %}{{ empty('Aucune erreur', '', '✓') }}{% endif %}</div>
+</div>
 {% endblock %}

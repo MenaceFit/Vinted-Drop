@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, period_bar, empty %}
+{% block title %}Comparer les boutiques{% endblock %}
+{% block heading %}Comparer les boutiques{% endblock %}
+{% block subtitle %}<p class="muted">{{ per.label }} · 🏆 = meilleure boutique sur l'indicateur</p>{% endblock %}
+{% block actions %}{{ period_bar(per, '/boutiques/comparer') }}{% endblock %}
+{% block content %}
+{% if rows %}
+<div class="grid g4">{% for key, label, field in [('profit','Plus rentable','net'),('sales','Plus de ventes','sales'),('margin','Meilleure marge','margin'),('performing','Plus d\'annonces performantes','perf')] %}
+  {% set r = rows|selectattr('id','equalto',best[key])|first %}
+  <div class="card kpi reveal"><div class="label">{{ icon('trophy', 14) }} {{ label }}</div><div class="value" style="font-size:19px">{{ r.name }}</div>
+    <div class="sub">{% if field == 'net' %}{{ r.finance.net_profit|eur }} net{% elif field == 'sales' %}{{ r.sales }} ventes{% elif field == 'margin' %}{{ r.margin_pct }} % de marge{% else %}{{ r.performing }} annonces à 3 ♥ ou plus{% endif %}</div></div>{% endfor %}</div>
+<div class="card mt reveal"><div class="table-wrap"><table data-sortable><thead><tr>
+  <th data-sort="text">Boutique</th><th data-sort class="r">CA</th><th data-sort class="r">Bénéfice net</th><th data-sort class="r">Ventes</th><th data-sort class="r">Marge</th><th data-sort class="r">Bénéf. / vente</th>
+  <th data-sort class="r">En ligne</th><th data-sort class="r">Performantes</th><th data-sort class="r">Coûts IA</th><th>Vinted</th></tr></thead><tbody>
+  {% for r in rows %}<tr><td><a href="/boutique/{{ r.id }}"><b>{{ r.name }}</b></a><br><span class="faint tiny">{{ r.niche or '' }}</span></td>
+    <td class="r num">{{ r.revenue|eur }}</td><td class="r num good" data-v="{{ r.finance.net_profit }}"><b>{{ r.finance.net_profit|eur }}</b>{{ ' 🏆' if r.id == best.profit }}</td>
+    <td class="r num" data-v="{{ r.sales }}">{{ r.sales }}{{ ' 🏆' if r.id == best.sales }}</td><td class="r num" data-v="{{ r.margin_pct }}">{{ r.margin_pct }} %{{ ' 🏆' if r.id == best.margin }}</td>
+    <td class="r num">{{ r.avg_profit|eur }}</td><td class="r num">{{ r.online }}</td><td class="r num" data-v="{{ r.performing }}">{{ r.performing }}{{ ' 🏆' if r.id == best.performing }}</td>
+    <td class="r num">{{ r.finance.ai_costs|eur }}</td><td>{{ badge(r.vinted_status or 'disconnected') }}</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% else %}<div class="card">{{ empty('Aucune boutique à comparer', '<a href="/boutiques">Créer une boutique</a>') }}</div>{% endif %}
+{% endblock %}

@@ -1,105 +1,133 @@
-{% extends "base.html" %}{% from "_ui.html" import icon, badge, qa %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, qa, empty %}
 {% block title %}#{{ p.id }}{% endblock %}
-{% block heading %}<a href="/produits" class="faint" style="font-weight:500">Produits /</a> #{{ p.id }}{% endblock %}
-{% block subtitle %}<p class="muted" style="max-width:640px">{{ p.title or p.supplier_title or 'Sans titre' }} · {{ badge(p.status) }}</p>{% endblock %}
+{% block heading %}<a href="/produits" class="faint" style="font-weight:500;text-decoration:none">Produits /</a> #{{ p.id }}{% endblock %}
+{% block subtitle %}<p class="muted" style="max-width:680px">{{ p.title or p.supplier_title or 'Sans titre' }} · {{ badge(p.status) }}{% if p.shop_name %} · {{ p.shop_name }}{% endif %}</p>{% endblock %}
 {% block actions %}
-<form method="post" action="/produit/{{ p.id }}/action/preparer"><button class="btn">{{ icon('spark',16) }} Photos + fiche IA</button></form>
-<form method="post" action="/produit/{{ p.id }}/action/publier-vinted"><button class="btn ghost">{{ icon('upload',16) }} Publier sur Vinted</button></form>
+<form method="post" action="/produit/{{ p.id }}/action/preparer"><button class="btn">{{ icon('spark') }} Photos + fiche IA</button></form>
+<form method="post" action="/produit/{{ p.id }}/action/publier-vinted"><button class="btn ghost" data-confirm="Publier cette annonce sur Vinted maintenant ?">{{ icon('upload') }} Publier sur Vinted</button></form>
 {% endblock %}
 {% block content %}
-{% if running %}<div class="alert info reveal"><span class="pulse on"></span> L'IA travaille sur ce produit… la page se met à jour toute seule.</div>{% endif %}
+{% if running %}<div class="alert reveal" data-watch-tasks data-product="{{ p.id }}"><span class="pulse on"></span> Une tâche IA travaille sur ce produit… la page se mettra à jour toute seule.</div>{% endif %}
+{% if p.cost_unknown %}<div class="alert warn reveal">Ce produit a été importé depuis Vinted sans prix d'achat : renseigne-le dans la fiche financière pour des bénéfices justes.</div>{% endif %}
 
-<div class="grid g2">
+<div class="grid g21">
   <div class="stack">
     <div class="card reveal" id="photos">
-      <div class="card-head"><div><h2>{{ icon('camera',16) }} Studio photo</h2>
-        <span class="muted">{{ gallery|length }} photo{{ 's' if gallery|length != 1 }} · coût IA {{ photo_cost|eur }}</span></div>
-        <span class="faint" style="font-size:12px">La 1<sup>re</sup> = couverture</span></div>
-
+      <div class="card-head"><div><h2>{{ icon('camera') }} Studio photo</h2><span class="muted">{{ gallery|length }} photo{{ 's' if gallery|length != 1 }} · coût IA {{ photo_cost|eur }} · la 1<sup>re</sup> sert de couverture</span></div></div>
       {% if gallery %}<div class="studio-grid">
-      {% for g in gallery %}
-        <figure class="shot {{ 'cover' if g.cover }}">
-          <a href="/media/{{ g.path }}" target="_blank"><img src="/media/{{ g.path }}" loading="lazy" alt=""></a>
-          <div class="shot-top">{% if g.cover %}<span class="badge fire">⭐ Couverture</span>{% endif %}{{ qa(g.fidelity, qa_min) }}</div>
-          <figcaption>
-            <div class="row" style="justify-content:space-between;flex-wrap:nowrap"><b>{{ g.emoji }} {{ g.label }}</b>
-              <span class="faint" style="font-size:11.5px">{{ g.provider or '' }}{% if g.tries and g.tries > 1 %} · {{ g.tries }} essais{% endif %}</span></div>
-            {% if g.issues %}<div class="faint" style="font-size:11.5px;margin-top:4px">⚠️ {{ g.issues|join(' · ') }}</div>{% endif %}
-            <div class="shot-actions">
-              {% if not g.cover %}<form method="post" action="/produit/{{ p.id }}/photo"><input type="hidden" name="path" value="{{ g.path }}"><button class="btn ghost sm" name="action" value="cover" title="Mettre en couverture">{{ icon('star',14) }}</button></form>{% endif %}
-              <form method="post" action="/produit/{{ p.id }}/photo" class="row" style="gap:4px;flex-wrap:nowrap"><input type="hidden" name="path" value="{{ g.path }}">
-                <select name="provider" class="sm-select"><option value="">auto</option>{% for pr in providers %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}</select>
-                <button class="btn ghost sm" name="action" value="redo" title="Refaire cette photo">{{ icon('refresh',14) }}</button></form>
-              <form method="post" action="/produit/{{ p.id }}/photo"><input type="hidden" name="path" value="{{ g.path }}"><button class="btn ghost sm" name="action" value="delete" data-confirm="Supprimer cette photo ?" title="Supprimer">{{ icon('trash',14) }}</button></form>
-            </div>
-          </figcaption>
-        </figure>
-      {% endfor %}
-      {% if running %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:14px"></div>{% endif %}
-      </div>
-      {% elif running %}<div class="studio-grid">{% for i in range(3) %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:14px"></div>{% endfor %}</div>
-      {% else %}<div class="empty"><span class="big">📸</span>Pas encore de photos.</div>{% endif %}
+      {% for g in gallery %}<figure class="shot {{ 'cover' if g.cover }}">
+        <a href="/media/{{ g.path }}" target="_blank"><img src="/media/{{ g.path }}" loading="lazy" alt="{{ g.label }}"></a>
+        <div class="shot-top">{% if g.cover %}<span class="badge solid">Couverture</span>{% else %}<span></span>{% endif %}{{ qa(g.fidelity, qa_min) }}</div>
+        <figcaption>
+          <div class="row between nowrap"><b>{{ g.label }}</b><span class="faint tiny">{{ g.provider or '' }}</span></div>
+          <div class="faint tiny">{% if g.scene and g.scene != 'auto' %}{{ scenes.get(g.scene, g.scene) }} · {% endif %}{% if g.duration %}{{ g.duration }} s · {% endif %}{% if g.tries and g.tries > 1 %}{{ g.tries }} essais · {% endif %}{{ (g.cost or 0)|eur }}</div>
+          {% if g.issues %}<div class="tiny warn" style="margin-top:3px">{{ g.issues|join(' · ') }}</div>{% endif %}
+          <div class="shot-actions">
+            {% if not g.cover %}<form method="post" action="/produit/{{ p.id }}/photo"><input type="hidden" name="path" value="{{ g.path }}"><button class="btn ghost sm icon" name="action" value="cover" title="Mettre en couverture">{{ icon('star', 13) }}</button></form>{% endif %}
+            <form method="post" action="/produit/{{ p.id }}/photo" class="row nowrap" style="gap:4px"><input type="hidden" name="path" value="{{ g.path }}">
+              <select name="provider" style="padding:4px 6px;font-size:11.5px;max-width:80px"><option value="">auto</option>{% for pr in providers %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}</select>
+              <button class="btn ghost sm icon" name="action" value="redo" title="Refaire cette photo">{{ icon('refresh', 13) }}</button></form>
+            <form method="post" action="/produit/{{ p.id }}/photo"><input type="hidden" name="path" value="{{ g.path }}"><button class="btn ghost sm icon" name="action" value="delete" data-confirm="Supprimer cette photo ?" title="Supprimer">{{ icon('trash', 13) }}</button></form>
+          </div>
+        </figcaption></figure>{% endfor %}
+      {% if running %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:12px"></div>{% endif %}</div>
+      {% elif running %}<div class="studio-grid">{% for i in range(3) %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:12px"></div>{% endfor %}</div>
+      {% else %}{{ empty('Pas encore de photos', "Choisis les prises de vue ci-dessous puis « Générer ».", '▣') }}{% endif %}
 
       {% if p.supplier_image %}
-      <form method="post" action="/produit/{{ p.id }}/studio" class="studio-form mt">
-        <div class="chips">{% for k, sh in shots.items() %}
-          <label class="chip check"><input type="checkbox" name="kinds" value="{{ k }}" {{ 'checked' if k in default_kinds }}> {{ sh.emoji }} {{ sh.label }}</label>{% endfor %}</div>
+      <form method="post" action="/produit/{{ p.id }}/studio" class="mt">
+        <div class="chips">{% for k, sh in shots.items() %}<label class="chip check"><input type="checkbox" name="kinds" value="{{ k }}" {{ 'checked' if k in default_kinds }}> {{ sh.label }}</label>{% endfor %}</div>
         <div class="row mt">
-          <select name="provider">{% for v, l in [('', 'Fournisseur : ' ~ settings.photo_provider)] + [('local','Mon PC (gratuit)'),('gemini','Gemini (Nano Banana)'),('openai','OpenAI (GPT Image)')] %}
-            {% if not v or v in providers %}<option value="{{ v }}">{{ l }}</option>{% endif %}{% endfor %}</select>
-          <button class="btn">{{ icon('spark',16) }} Générer ces photos</button>
+          <select name="provider"><option value="">Fournisseur : {{ settings.photo_provider }}</option>{% for v, l in [('local','Mon PC (gratuit)'),('gemini','Gemini'),('openai','OpenAI')] %}{% if v in providers %}<option value="{{ v }}">{{ l }}</option>{% endif %}{% endfor %}</select>
+          <select name="scene">{% for k, l in scenes.items() %}<option value="{{ k }}" {{ 'selected' if settings.photo_scene == k }}>{{ l }}</option>{% endfor %}</select>
+          <select name="pose">{% for k, l in poses.items() %}<option value="{{ k }}">Pose : {{ l }}</option>{% endfor %}</select>
+          <button class="btn">{{ icon('spark') }} Générer</button>
         </div>
-        {% if not providers %}<p class="bad" style="font-size:13px">Configure COMFYUI_URL (gratuit), GEMINI_API_KEY ou OPENAI_API_KEY dans le fichier .env.</p>{% endif %}
+        {% if not providers %}<p class="help bad">Configure COMFYUI_URL (gratuit), GEMINI_API_KEY ou OPENAI_API_KEY dans .env.</p>{% endif %}
+        <p class="help">Chaque photo est comparée à l'image fournisseur ; sous {{ qa_min }}/10 elle est refaite puis refusée si elle reste infidèle.</p>
       </form>{% endif %}
     </div>
 
+    {% if p.supplier_image %}<div class="card reveal">
+      <div class="card-head"><h2>Avant / après</h2><span class="muted">image fournisseur et photo de couverture</span></div>
+      <div class="compare"><figure><img src="/media/{{ p.supplier_image }}" alt="Image fournisseur"><figcaption>Image fournisseur (référence)</figcaption></figure>
+        <figure>{% if gallery %}<img src="/media/{{ gallery[0].path }}" alt="Couverture"><figcaption>Couverture générée{% if gallery[0].fidelity is not none %} · fidélité {{ gallery[0].fidelity }}/10{% endif %}</figcaption>{% else %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:10px;opacity:.4"></div><figcaption>Pas encore générée</figcaption>{% endif %}</figure></div>
+      {% if p.garment %}<details class="mt"><summary class="small">Analyse du vêtement (utilisée pour la fidélité)</summary>
+        <div class="small muted" style="margin-top:8px">{% for k, v in p.garment.items() if v %}<div><b>{{ k }}</b> : {{ v|join(', ') if v is iterable and v is not string else v }}</div>{% endfor %}</div></details>{% endif %}
+      <form method="post" action="/produit/{{ p.id }}/image" enctype="multipart/form-data" class="row mt"><input type="file" name="image" accept="image/png,image/jpeg,image/webp"><button class="btn ghost sm">{{ icon('upload', 13) }} Remplacer l'image fournisseur</button></form>
+    </div>{% else %}
+    <div class="card reveal"><h2>Image fournisseur</h2><p class="muted small">Aucune image : envoie une capture de la page produit.</p>
+      <form method="post" action="/produit/{{ p.id }}/image" enctype="multipart/form-data" class="row"><input type="file" name="image" accept="image/png,image/jpeg,image/webp" required><button class="btn sm">Envoyer</button></form></div>{% endif %}
+
+    {% if generations %}<div class="card reveal"><div class="card-head"><h2>Historique des générations</h2><span class="muted">{{ generations|length }} essais</span></div>
+      <div class="table-wrap"><table data-sortable><thead><tr><th data-sort="text">Date</th><th data-sort="text">Prise</th><th data-sort="text">Modèle</th><th data-sort class="r">Durée</th><th data-sort class="r">Coût</th><th data-sort class="r">Fidélité</th><th>Résultat</th></tr></thead><tbody>
+      {% for g in generations %}<tr><td class="small" data-v="{{ g.created_at }}">{{ g.created_at|dt }}</td><td>{{ shots.get(g.kind, {}).get('label', g.kind) }}{% if g.attempt and g.attempt > 1 %} <span class="faint tiny">essai {{ g.attempt }}</span>{% endif %}</td>
+        <td class="small">{{ g.provider or '—' }} <span class="faint tiny">{{ g.model or '' }}</span></td><td class="r num">{{ g.duration_s or '—' }} s</td><td class="r num">{{ (g.cost or 0)|eur }}</td>
+        <td class="r num">{{ g.fidelity if g.fidelity is not none else '—' }}</td><td>{{ badge(g.status) }}{% if g.error %}<div class="tiny bad">{{ g.error[:80] }}</div>{% endif %}</td></tr>{% endfor %}</tbody></table></div></div>{% endif %}
+  </div>
+
+  <div class="stack">
     <div class="card reveal">
-      <div class="card-head"><h2>Prix & bénéfice</h2></div>
-      <div class="grid g3" style="gap:10px">
-        <div><div class="muted" style="font-size:12.5px">Prix conseillé</div><div class="num" style="font-size:22px;font-weight:750" data-count="{{ prices.price }}" data-format="eur">0</div></div>
-        <div><div class="muted" style="font-size:12.5px">Offre mini acceptée</div><div class="num" style="font-size:22px;font-weight:750">{{ prices.min_price|eur }}</div></div>
-        <div><div class="muted" style="font-size:12.5px">Bénéfice</div><div class="num good" style="font-size:22px;font-weight:750">{{ prices.profit_at_min|eur }} → {{ prices.profit_at_price|eur }}</div></div>
+      <div class="card-head"><h2>{{ icon('euro') }} Prix conseillé</h2><span class="badge plain">confiance {{ rec.confidence_label or 'faible' }}</span></div>
+      <div class="grid" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div><div class="muted small">Prix affiché</div><div class="num" style="font-size:22px;font-weight:700">{{ rec.price|eur }}</div></div>
+        <div><div class="muted small">Prix minimum rentable</div><div class="num" style="font-size:22px;font-weight:700">{{ rec.min_price|eur }}</div></div>
+        <div><div class="muted small">Bénéfice estimé</div><div class="num good" style="font-weight:700">{{ rec.profit_at_min|eur }} → {{ rec.profit_at_price|eur }}</div></div>
+        <div><div class="muted small">Marge</div><div class="num" style="font-weight:700">{{ rec.margin_pct }} %</div></div>
       </div>
-      {% if p.vinted_item_id %}<div class="row mt"><span class="badge plain">❤️ {{ p.favourites }} favoris</span><span class="badge plain">👁 {{ p.views }} vues</span>
-        {% if p.vinted_url %}<a class="btn ghost sm" href="{{ p.vinted_url }}" target="_blank">Voir l'annonce {{ icon('ext',14) }}</a>{% endif %}</div>{% endif %}
-      <form method="post" action="/produit/{{ p.id }}/action/vendu" class="row end mt">
-        <div><label>Prix de vente</label><input name="sale_price" type="number" step="0.01" value="{{ p.price or '' }}" style="width:130px"></div>
-        <div><label>Acheteur</label><input name="buyer" placeholder="optionnel" style="width:160px"></div>
-        <button class="btn">💸 Marquer vendu</button>
+      {% if rec.reasons %}<ul class="small muted" style="padding-left:18px;margin:12px 0 0">{% for r in rec.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+      {% for w in rec.warnings or [] %}<div class="alert warn" style="margin:10px 0 0">{{ w }}</div>{% endfor %}
+      <form method="post" action="/produit/{{ p.id }}/prix-conseille" class="mt"><button class="btn ghost sm">Appliquer ce prix</button></form>
+    </div>
+
+    <div class="card reveal">
+      <div class="card-head"><h2>{{ icon('wallet') }} Fiche financière</h2>{% if sheet.sold %}<span class="badge sold">vendu</span>{% endif %}</div>
+      <table><tbody>{% for label, v in sheet.lines %}<tr><td class="muted">{{ label }}</td><td class="r num">{{ v|eur }}</td></tr>{% endfor %}
+        <tr><td><b>Coût de revient</b></td><td class="r num"><b>{{ sheet.total_cost|eur }}</b></td></tr>
+        <tr><td class="muted">{{ 'Prix de vente' if sheet.sold else 'Prix affiché' }}</td><td class="r num">{{ sheet.sale_price|eur }}</td></tr>
+        {% if sheet.platform_fees %}<tr><td class="muted">Frais plateforme</td><td class="r num">−{{ sheet.platform_fees|eur }}</td></tr>{% endif %}
+        <tr><td class="muted">Coûts IA (photos)</td><td class="r num">−{{ sheet.ai_cost|eur }}</td></tr>
+        <tr><td><b>Bénéfice net</b></td><td class="r num {{ 'good' if sheet.net_profit > 0 else 'bad' }}"><b>{{ sheet.net_profit|eur }}</b> <span class="faint tiny">{{ sheet.margin_pct }} %</span></td></tr></tbody></table>
+      {% if not sale %}<form method="post" action="/produit/{{ p.id }}/action/vendu" class="row end mt">
+        <div><label>Prix de vente</label><input name="sale_price" inputmode="decimal" value="{{ p.price or '' }}" style="width:110px"></div>
+        <div><label>Acheteur</label><input name="buyer" placeholder="optionnel" style="width:130px"></div>
+        <button class="btn" data-confirm="Enregistrer cette vente ? Une commande fournisseur sera créée.">Marquer vendu</button></form>
+      {% else %}<p class="small muted mt">Vendu le {{ sale.sold_at|dt('%d/%m/%Y %H:%M') }}{% if sale.buyer %} à {{ sale.buyer }}{% endif %} · <a href="/commandes">voir la commande</a></p>{% endif %}
+    </div>
+
+    <div class="card reveal">
+      <div class="card-head"><h2>Annonce Vinted</h2>
+        <form method="post" action="/produit/{{ p.id }}/action/fiche" class="row nowrap" style="gap:4px">
+          <select name="style" style="padding:4px 6px;font-size:12px">{% for k in styles %}<option value="{{ k }}">{{ k }}</option>{% endfor %}</select>
+          <button class="btn ghost sm">{{ icon('refresh', 13) }} Rédiger</button></form></div>
+      <form method="post" action="/produit/{{ p.id }}/modifier">
+        <label>Titre</label><input name="title" value="{{ p.title or '' }}" class="w-full" maxlength="100">
+        <label>Description</label><textarea name="description" style="min-height:200px">{{ p.description or '' }}</textarea>
+        {% if p.keywords %}<div class="chips mt">{% for k in p.keywords %}<span class="badge plain">{{ k }}</span>{% endfor %}</div>{% endif %}
+        <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div><label>Prix affiché</label><input name="price" value="{{ p.price or '' }}" class="w-full"></div>
+          <div><label>Prix mini</label><input name="min_price" value="{{ p.min_price or '' }}" class="w-full"></div>
+          <div><label>Taille</label><input name="size" value="{{ p.size or '' }}" class="w-full"></div>
+          <div><label>Prix d'achat</label><input name="cost" value="{{ p.cost }}" class="w-full"></div>
+          <div><label>Frais fournisseur</label><input name="supplier_fees" value="{{ p.supplier_fees or 0 }}" class="w-full"></div>
+          <div><label>Port fournisseur</label><input name="shipping_cost" value="{{ p.shipping_cost or 0 }}" class="w-full"></div>
+          <div><label>Autres frais</label><input name="other_fees" value="{{ p.other_fees or 0 }}" class="w-full"></div>
+          <div><label>Marque</label><input name="brand" value="{{ p.brand or '' }}" class="w-full" placeholder="Sans marque"></div>
+          <div><label>Statut</label><select name="status" class="w-full">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if p.status==s }}>{{ s }}</option>{% endfor %}</select></div>
+        </div>
+        <label>Boutique</label><select name="shop_id" class="w-full"><option value="">—</option>{% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if p.shop_id==s.id }}>{{ s.name }}</option>{% endfor %}</select>
+        <label>Lien fournisseur</label><input name="supplier_url" value="{{ p.supplier_url or '' }}" class="w-full">
+        <label>Lien de l'annonce Vinted</label><input name="vinted_url" value="{{ p.vinted_url or '' }}" class="w-full">
+        <p class="help">Catégorie : {{ p.category or '—' }} · Couleur : {{ p.color or '—' }} · Matière : {{ p.material or '—' }} · État : {{ p.condition }}</p>
+        <div class="row mt"><button class="btn">{{ icon('check') }} Enregistrer</button>
+          {% if p.supplier_url %}<a class="btn ghost" href="{{ p.supplier_url }}" target="_blank" rel="noopener">{{ icon('cart') }} Fournisseur</a>{% endif %}
+          {% if p.vinted_url %}<a class="btn ghost" href="{{ p.vinted_url }}" target="_blank" rel="noopener">{{ icon('ext') }} Annonce</a>{% endif %}</div>
       </form>
     </div>
 
-    <div class="card reveal">
-      <div class="card-head"><h2>Fournisseur</h2>{% if p.supplier_url %}<a class="btn sm" href="{{ p.supplier_url }}" target="_blank">{{ icon('cart',14) }} Voir chez {{ p.supplier or 'le fournisseur' }}</a>{% endif %}</div>
-      <div class="row" style="align-items:flex-start;flex-wrap:nowrap">
-        {% if p.supplier_image %}<img src="/media/{{ p.supplier_image }}" style="width:110px;border-radius:12px;border:1px solid var(--border)" alt="">{% endif %}
-        <form method="post" action="/produit/{{ p.id }}/image" enctype="multipart/form-data" style="flex:1">
-          <label>{{ 'Remplacer' if p.supplier_image else 'Envoyer' }} l'image du produit</label>
-          <input type="file" name="image" accept="image/*" class="w-full"><div class="mt"><button class="btn ghost sm">{{ icon('upload',14) }} Envoyer</button></div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="card reveal" style="align-self:start">
-    <div class="card-head"><h2>Fiche Vinted</h2><span class="faint" style="font-size:12px">{{ p.category or '' }}</span></div>
-    <form method="post" action="/produit/{{ p.id }}/modifier">
-      <label>Titre</label><input name="title" value="{{ p.title or '' }}" class="w-full" maxlength="100">
-      <label>Description</label><textarea name="description" style="min-height:220px">{{ p.description or '' }}</textarea>
-      <div class="row">
-        <div><label>Prix affiché</label><input name="price" value="{{ p.price or '' }}" style="width:110px"></div>
-        <div><label>Prix mini</label><input name="min_price" value="{{ p.min_price or '' }}" style="width:110px"></div>
-        <div><label>Achat</label><input name="cost" value="{{ p.cost }}" style="width:100px"></div>
-        <div><label>Taille</label><input name="size" value="{{ p.size or '' }}" style="width:80px"></div>
-      </div>
-      <div class="row">
-        <div><label>Boutique</label><select name="shop_id"><option value="">—</option>{% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if p.shop_id==s.id }}>{{ s.name }}</option>{% endfor %}</select></div>
-        <div><label>Statut</label><select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if p.status==s }}>{{ s }}</option>{% endfor %}</select></div>
-      </div>
-      <label>Lien de l'annonce Vinted</label><input name="vinted_url" value="{{ p.vinted_url or '' }}" class="w-full">
-      <p class="faint" style="font-size:12.5px">Couleur : {{ p.color or '—' }} · Matière : {{ p.material or '—' }} · État : {{ p.condition }}</p>
-      <button class="btn">{{ icon('check',16) }} Enregistrer</button>
-    </form>
+    {% if task_list %}<div class="card reveal"><div class="card-head"><h2>Tâches</h2><a class="small" href="/activite">Tout voir</a></div>
+      <ul class="timeline">{% for t in task_list %}<li><span class="dot {{ 'error' if t.status == 'error' }}">{{ {'success':'✓','error':'!','running':'…','queued':'·','cancelled':'×'}.get(t.status, '·') }}</span>
+        <span>{{ t.label or t.kind }}{% if t.error %}<div class="tiny bad">{{ t.error[:140] }}</div>{% endif %}</span><span class="faint tiny">{{ t.created_at|dt }}</span></li>{% endfor %}</ul></div>{% endif %}
   </div>
 </div>
 {% endblock %}

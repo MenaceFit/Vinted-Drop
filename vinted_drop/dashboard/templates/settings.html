@@ -1,0 +1,46 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, empty %}
+{% block title %}Paramètres{% endblock %}
+{% block heading %}Paramètres{% endblock %}
+{% block subtitle %}<p class="muted">Réglages globaux (chaque boutique peut les remplacer), sécurité, intégrations et sauvegardes.</p>{% endblock %}
+{% block content %}
+<div class="grid g2">
+<div class="card reveal"><div class="card-head"><h2>Prix et annonces</h2></div>
+<form method="post" action="/parametres">
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px">
+    <div><label>Bénéfice minimum / vente (€)</label><input name="min_profit" inputmode="decimal" value="{{ settings.min_profit }}" class="w-full"></div>
+    <div><label>Multiplicateur cible</label><input name="target_multiplier" inputmode="decimal" value="{{ settings.target_multiplier }}" class="w-full"></div>
+    <div><label>Marge de négociation</label><input name="negotiation_buffer" inputmode="decimal" value="{{ settings.negotiation_buffer }}" class="w-full"><p class="help">0,15 = prix affiché 15 % au-dessus du mini</p></div>
+    <div><label>Objectif de bénéfice / jour (€)</label><input name="daily_goal" inputmode="decimal" value="{{ settings.daily_goal }}" class="w-full"></div>
+  </div>
+  <label>Style rédactionnel par défaut</label><select name="listing_style" class="w-full">{% for k, v in styles.items() %}<option value="{{ k }}" {{ 'selected' if settings.listing_style==k }}>{{ k }} — {{ v[:60] }}…</option>{% endfor %}</select>
+  <label>Délai d'envoi annoncé</label><input name="ship_delay" value="{{ settings.ship_delay }}" class="w-full">
+  <p class="help">Frais de plateforme vendeur : {{ config.PLATFORM_FEE_PCT }} % (variable PLATFORM_FEE_PCT) · emballage : {{ config.PACKAGING_COST|eur }} (PACKAGING_COST).</p>
+  <div class="mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div>
+</form></div>
+
+<div class="card reveal"><div class="card-head"><h2>Intégrations</h2><span class="muted">clés lues dans .env (jamais affichées)</span></div>
+  <table><tbody>{% for k, ok in keys.items() %}<tr><td>{{ k }}</td><td class="r">{{ badge('connected' if ok else 'disconnected') }}</td></tr>{% endfor %}
+  <tr><td>Générateurs d'images actifs</td><td class="r small">{{ providers|join(' → ') or 'aucun' }}</td></tr>
+  <tr><td>ComfyUI</td><td class="r small">{{ (local.gpu ~ ' · ' ~ local.vram_gb ~ ' Go') if local.ok else local.error }}</td></tr></tbody></table>
+  <h3 class="mt">Sécurité</h3>
+  <table><tbody>
+    <tr><td>Mot de passe du dashboard</td><td class="r">{{ badge('connected' if sec.password else 'warning') }}</td></tr>
+    <tr><td>Adresse d'écoute</td><td class="r"><code>{{ sec.host }}</code></td></tr>
+    <tr><td>Clé de chiffrement des tokens</td><td class="r small">{{ sec.secret_key }}</td></tr>
+    <tr><td>Canal Telegram</td><td class="r small">{{ sec.channel or '—' }}</td></tr>
+    <tr><td>Discussions Telegram autorisées</td><td class="r small">{{ sec.chats|join(', ') or 'aucune (bot fermé)' }}</td></tr></tbody></table>
+  {% if not sec.password and sec.host != '127.0.0.1' %}<div class="alert bad mt">Dashboard accessible sur le réseau sans mot de passe : ajoute DASHBOARD_PASSWORD dans .env.</div>{% endif %}
+  <p class="help">Sauvegarde aussi le fichier <code>data/secret.key</code> : sans lui, les tokens Vinted chiffrés ne peuvent pas être relus (il suffit alors de les recoller).</p>
+</div>
+</div>
+
+<div class="card mt reveal"><div class="card-head"><h2>Sauvegardes</h2>
+  <form method="post" action="/sauvegardes/creer"><button class="btn ghost sm">{{ icon('download', 13) }} Sauvegarder maintenant</button></form></div>
+  <p class="help" style="margin-top:0">Automatique chaque nuit (Pilote auto → Sauvegarde) et avant chaque migration ou restauration. Les {{ config.BACKUP_KEEP }} plus récentes sont gardées dans <code>data/backups/</code>.</p>
+  {% if backups %}<div class="table-wrap"><table><thead><tr><th>Fichier</th><th>Date</th><th class="r">Taille</th><th></th></tr></thead><tbody>
+  {% for b in backups %}<tr><td class="small"><code>{{ b.name }}</code></td><td class="small">{{ b.date.strftime('%d/%m/%Y %H:%M') }}</td><td class="r num small">{{ b.size_kb }} Ko</td>
+    <td class="r"><form method="post" action="/sauvegardes/restaurer" class="row nowrap" style="gap:5px;justify-content:flex-end"><input type="hidden" name="name" value="{{ b.name }}">
+      <input name="confirm" placeholder="tape RESTAURER" style="width:130px;padding:4px 8px;font-size:12px"><button class="btn ghost sm">Restaurer</button></form></td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ empty('Aucune sauvegarde pour le moment') }}{% endif %}
+</div>
+{% endblock %}

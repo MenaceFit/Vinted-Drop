@@ -1,88 +1,82 @@
-{% extends "base.html" %}{% from "_ui.html" import icon, badge, qa %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, qa, empty %}
 {% block title %}Studio photo{% endblock %}
 {% block heading %}Studio photo{% endblock %}
-{% block subtitle %}<p class="muted">Gemini et OpenAI génèrent les photos, une IA vérifie que chaque photo est fidèle au produit.</p>{% endblock %}
+{% block subtitle %}<p class="muted">Ton PC d'abord (gratuit), puis Gemini, puis OpenAI en secours. Chaque photo est contrôlée contre l'image fournisseur.</p>{% endblock %}
 {% block content %}
 <div class="grid g4">
-  <div class="card kpi hero reveal"><div class="label"><span class="ic">{{ icon('camera',16) }}</span> Images générées (30 j)</div>
-    <div class="value num" data-count="{{ costs.images }}">0</div><div class="sub">coût estimé {{ costs.eur|eur }} · aujourd'hui {{ today_cost|eur }}{% if budget %} / {{ budget|eur }}{% endif %}</div>
-    {% if budget %}<div class="bar" style="background:rgba(255,255,255,.2);margin-top:10px"><i data-w="{{ [100, (100 * today_cost / budget)|round]|min }}" style="background:#fff"></i></div>{% endif %}</div>
-  <div class="card kpi hover reveal"><div class="label"><span class="ic">{{ icon('home',16) }}</span> Ton PC · gratuit</div>
-    <div class="value num" style="font-size:22px">{% if local.ok %}<span class="good">En ligne</span>{% elif 'local' in providers %}<span class="bad">Éteint</span>{% else %}Non configuré{% endif %}</div>
+  <div class="card kpi hero reveal"><div class="label">{{ icon('camera', 14) }} Images (30 j)</div>
+    <div class="value num" data-count="{{ costs.images }}" data-format="int">{{ costs.images }}</div>
+    <div class="sub">{{ costs.eur|eur }} · aujourd'hui {{ today_cost|eur }}{% if budget %} / {{ budget|eur }}{% endif %}</div>
+    {% if budget %}<div class="bar mt" style="background:color-mix(in srgb,var(--accent-ink) 18%,transparent)"><i data-w="{{ (100 * today_cost / budget)|round }}" style="background:var(--accent-ink)"></i></div>{% endif %}</div>
+  <div class="card kpi reveal"><div class="label">{{ icon('home', 14) }} Ton PC · gratuit</div>
+    <div class="value" style="font-size:18px">{% if local.ok %}<span class="good">En ligne</span>{% elif 'local' in providers %}<span class="bad">Éteint</span>{% else %}Non configuré{% endif %}</div>
     <div class="sub">{% if local.ok %}{{ local.gpu }} · {{ local.vram_gb }} Go{% else %}{{ local.error }}{% endif %}</div>
-    <form method="post" action="/studio/test-local" style="margin-top:8px"><button class="btn ghost sm">{{ icon('refresh',14) }} Tester</button>
-      <a class="btn ghost sm" href="https://github.com/menacefit/vinted-drop/blob/claude/vigilant-goodall-xdxrej/docs/PHOTOS_GRATUITES.md" target="_blank">Guide</a></form></div>
-  {% for name, label in [('gemini','Gemini · Nano Banana'),('openai','OpenAI · GPT Image')] %}
-  {% set st = costs.by_provider|selectattr('provider','equalto',name)|first %}
-  <div class="card kpi hover reveal"><div class="label"><span class="ic">{{ icon('spark',16) }}</span> {{ label }}</div>
-    <div class="value num" style="font-size:22px">{{ 'Connecté' if name in providers else 'Pas de clé' }}</div>
-    <div class="sub">{{ models[name] }} · {{ st.n if st else 0 }} images · {{ (st.eur if st else 0)|eur }}</div></div>
-  {% endfor %}
-  <div class="card kpi hover reveal"><div class="label"><span class="ic">{{ icon('box',16) }}</span> À photographier</div>
-    <div class="value num" data-count="{{ todo|selectattr('photos','equalto',[])|list|length }}">0</div><div class="sub">{{ todo|length }} brouillons / prêts avec image</div></div>
+    <form method="post" action="/studio/test-local" class="row mt"><button class="btn ghost sm">{{ icon('refresh', 13) }} Tester</button><a class="btn ghost sm" href="https://github.com/MenaceFit/Vinted-Drop/blob/claude/vigilant-goodall-xdxrej/docs/PHOTOS_GRATUITES.md" target="_blank" rel="noopener">Guide</a></form></div>
+  {% for name, label in [('gemini','Gemini · Nano Banana'),('openai','OpenAI · GPT Image')] %}{% set st = costs.by_provider|selectattr('provider','equalto',name)|first %}
+  <div class="card kpi reveal"><div class="label">{{ icon('spark', 14) }} {{ label }}</div>
+    <div class="value" style="font-size:18px">{{ 'Connecté' if name in providers else 'Pas de clé' }}</div>
+    <div class="sub">{{ models[name] }} · {{ st.n if st else 0 }} images · {{ (st.eur if st else 0)|eur }}</div></div>{% endfor %}
 </div>
+
+{% if gen_stats %}<div class="card mt reveal"><div class="card-head"><h2>Qualité par fournisseur (30 jours)</h2></div><div class="table-wrap"><table data-sortable><thead><tr>
+  <th data-sort="text">Fournisseur</th><th data-sort class="r">Essais</th><th data-sort class="r">Acceptées</th><th data-sort class="r">Refusées</th><th data-sort class="r">Fidélité moy.</th><th data-sort class="r">Durée moy.</th><th data-sort class="r">Coût</th></tr></thead><tbody>
+  {% for g in gen_stats %}<tr><td>{{ g.provider or '—' }}</td><td class="r num">{{ g.n }}</td><td class="r num good">{{ g.ok or 0 }}</td><td class="r num bad">{{ g.rejected or 0 }}</td><td class="r num">{{ g.avg_fid or '—' }}</td><td class="r num">{{ g.avg_s or '—' }} s</td><td class="r num">{{ (g.eur or 0)|eur }}</td></tr>{% endfor %}
+</tbody></table></div></div>{% endif %}
 
 <div class="grid g2 mt">
   <div class="card reveal"><div class="card-head"><h2>Réglages photo</h2></div>
   <form method="post" action="/studio/reglages">
     <label>Fournisseur</label><select name="photo_provider" class="w-full">
-      {% for v, l in [('auto','🤖 Auto : ' ~ (providers[0] if providers else '—') ~ ' d\'abord, les autres en secours'),('local','🖥️ Mon PC uniquement (gratuit, Qwen-Image-Edit)'),('gemini','Gemini (Nano Banana) : meilleur pour garder le même modèle'),('openai','OpenAI (GPT Image) : très fidèle sur les détails')] %}
-      <option value="{{ v }}" {{ 'selected' if settings.photo_provider==v }}>{{ l }}</option>{% endfor %}</select>
+      {% for v, l in [('auto','Auto : ' ~ (providers|join(' → ') if providers else '—')),('local','Mon PC uniquement (gratuit)'),('gemini','Gemini uniquement'),('openai','OpenAI uniquement')] %}<option value="{{ v }}" {{ 'selected' if settings.photo_provider==v }}>{{ l }}</option>{% endfor %}</select>
     <label>Jeu de photos par défaut</label><select name="photo_set" class="w-full">
-      <option value="standard" {{ 'selected' if settings.photo_set=='standard' }}>Standard : portée, à plat, détail (3 photos)</option>
-      <option value="complet" {{ 'selected' if settings.photo_set=='complet' }}>Complet : 2 portées, à plat, cintre, détail (5 photos)</option></select>
+      <option value="standard" {{ 'selected' if settings.photo_set=='standard' }}>Standard : portée, à plat, détail (3)</option>
+      <option value="complet" {{ 'selected' if settings.photo_set=='complet' }}>Complet : 2 portées, à plat, cintre, détail (5)</option></select>
+    <label>Décor par défaut</label><select name="photo_scene" class="w-full">{% for k, l in scenes.items() %}<option value="{{ k }}" {{ 'selected' if settings.photo_scene==k }}>{{ l }}</option>{% endfor %}</select>
     <label>Nettoyage de l'image fournisseur</label><select name="photo_clean" class="w-full">
-      <option value="auto" {{ 'selected' if settings.photo_clean=='auto' }}>🤖 Seulement quand c'est gratuit (sur mon PC)</option>
-      <option value="on" {{ 'selected' if settings.photo_clean=='on' }}>✅ Toujours isoler le vêtement d'abord (retire texte, collage, mannequin) : +1 image</option>
-      <option value="off" {{ 'selected' if settings.photo_clean=='off' }}>⛔ Utiliser l'image telle quelle</option></select>
-    <label>Contrôle qualité IA</label><select name="photo_qa" class="w-full">
-      <option value="on" {{ 'selected' if settings.photo_qa=='on' }}>✅ Noter chaque photo, refaire si fidélité &lt; {{ qa_min }}/10 (avec l'autre fournisseur)</option>
-      <option value="off" {{ 'selected' if settings.photo_qa=='off' }}>⛔ Pas de contrôle</option></select>
-    <label>Budget max par jour en images payantes (€, 0 = illimité)</label>
-    <input name="daily_budget" type="number" step="0.5" min="0" value="{{ settings.daily_budget }}" style="width:140px">
-    <p class="faint" style="font-size:12.5px;margin:6px 0 0">Une fois le budget atteint, seul ton PC génère (gratuit). Les photos sur ton PC ne comptent pas.</p>
-    <div class="mt"><button class="btn">{{ icon('check',16) }} Enregistrer</button></div>
+      {% for v, l in [('auto','Seulement si gratuit (sur ton PC)'),('on','Toujours (+1 image)'),('off','Jamais')] %}<option value="{{ v }}" {{ 'selected' if settings.photo_clean==v }}>{{ l }}</option>{% endfor %}</select>
+    <label>Contrôle qualité</label><select name="photo_qa" class="w-full">
+      <option value="on" {{ 'selected' if settings.photo_qa=='on' }}>Activé : refaire puis refuser sous {{ qa_min }}/10</option>
+      <option value="off" {{ 'selected' if settings.photo_qa=='off' }}>Désactivé (déconseillé)</option></select>
+    <label>Mention dans la description</label><select name="photo_disclosure" class="w-full">
+      <option value="on" {{ 'selected' if settings.photo_disclosure=='on' }}>« Photos de présentation réalisées à partir des photos du produit »</option>
+      <option value="off" {{ 'selected' if settings.photo_disclosure=='off' }}>Pas de mention</option></select>
+    <div class="row"><div><label>Budget payant / jour (€)</label><input name="daily_budget" inputmode="decimal" value="{{ settings.daily_budget }}" style="width:120px"></div>
+      <div><label>Alerte à (%)</label><input name="budget_alert_pct" inputmode="numeric" value="{{ settings.budget_alert_pct }}" style="width:90px"></div></div>
+    <p class="help">Au-delà du budget, seul ton PC génère. 0 = illimité.</p>
+    <div class="mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div>
   </form></div>
 
   <div class="card reveal"><div class="card-head"><h2>Prises de vue</h2></div>
-    <ul class="timeline">{% for k, sh in shots.items() %}<li><span class="dot">{{ sh.emoji }}</span><span><b>{{ sh.label }}</b><br><span class="muted" style="font-size:12.5px">{{ 'Avec le modèle de la boutique' if sh.persona else 'Sans personne' }}</span></span>
-      <span class="faint" style="font-size:12px">{{ 'standard' if k in sets.standard else 'complet' }}</span></li>{% endfor %}</ul>
-    <p class="faint" style="font-size:12.5px">Niches enfants et animaux : jamais de personne générée, seulement à plat, cintre et détail.</p>
+    <ul class="timeline">{% for k, sh in shots.items() %}<li><span class="dot">▣</span><span><b>{{ sh.label }}</b><br><span class="muted small">{{ 'avec le modèle de la boutique' if sh.persona else 'sans personne' }}</span></span><span class="faint tiny">{{ 'standard' if k in sets.standard else 'complet' }}</span></li>{% endfor %}</ul>
+    <p class="help">Enfants, animaux, abayas, cosplay : jamais de personne générée. L'IA ne doit jamais inventer logo, étiquette, couture, fermeture, matière ou couleur : chaque ajout est un défaut grave au contrôle qualité.</p>
   </div>
 </div>
 
-<div class="card mt reveal"><div class="card-head"><h2>Produits à photographier</h2><span class="muted">sélectionne puis lance en lot</span></div>
+<div class="card mt reveal"><div class="card-head"><h2>Produits à photographier</h2><span class="muted">sélectionne puis lance en lot (30 max)</span></div>
 {% if todo %}<form method="post" action="/studio/lot">
 <div class="studio-grid">{% for p in todo[:40] %}
-  <label class="shot" style="cursor:pointer">
-    <img src="/media/{{ (p.photos[0] if p.photos else p.supplier_image) }}" loading="lazy" alt="">
-    <div class="shot-top"><input type="checkbox" name="ids" value="{{ p.id }}" {{ 'checked' if not p.photos }} style="pointer-events:auto;width:18px;height:18px;accent-color:var(--accent)">
-      {% if p.id in running %}<span class="badge ready">⏳ en cours</span>{% else %}{{ badge(p.status) }}{% endif %}</div>
+  <label class="shot" style="cursor:pointer"><img src="/media/{{ (p.photos[0] if p.photos else p.supplier_image) }}" loading="lazy" alt="">
+    <div class="shot-top"><input type="checkbox" name="ids" value="{{ p.id }}" {{ 'checked' if not p.photos }} style="pointer-events:auto">{% if p.id in running %}{{ badge('running') }}{% else %}{{ badge(p.status) }}{% endif %}</div>
     <figcaption><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">#{{ p.id }} {{ p.title or p.supplier_title or 'Sans titre' }}</b>
-      <span class="faint" style="font-size:12px">{{ p.photos|length }} photo{{ 's' if p.photos|length != 1 }} · {{ p.shop_name or 'sans boutique' }}</span> · <a href="/produit/{{ p.id }}#photos">ouvrir</a></figcaption>
-  </label>{% endfor %}</div>
-<div class="row mt"><button class="btn">{{ icon('spark',16) }} Générer les photos sélectionnées</button><span class="faint" style="font-size:12.5px">30 produits max par lot</span></div>
-</form>
-{% else %}<div class="empty"><span class="big">🖼️</span>Aucun produit avec image en attente. Ajoute des produits ou envoie leurs captures au bot.</div>{% endif %}
+      <span class="faint tiny">{{ p.photos|length }} photo(s) · {{ p.shop_name or 'sans boutique' }}</span> · <a class="tiny" href="/produit/{{ p.id }}#photos">ouvrir</a></figcaption></label>{% endfor %}</div>
+<div class="row mt"><button class="btn">{{ icon('spark') }} Générer les photos sélectionnées</button></div></form>
+{% else %}{{ empty('Aucun produit en attente', 'Ajoute des produits ou envoie leurs captures au bot.', '▣') }}{% endif %}
 </div>
 
-<div class="card mt reveal"><div class="card-head"><h2>Modèles photo</h2><span class="muted">la même personne sur toutes les photos d'une boutique</span></div>
-<div class="studio-grid">{% for m in personas %}
-  <figure class="shot"><div class="compare" style="padding:8px">{% for r in (m.refs or ([m.reference_image] if m.reference_image else [])) %}<img src="/media/{{ r }}" alt="">{% else %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:10px"></div>{% endfor %}</div>
-  <figcaption><b>{{ m.name }}</b><br><span class="faint" style="font-size:12px">{{ m.description[:90] }}</span></figcaption></figure>
-{% endfor %}</div>
-<details class="mt" {{ 'open' if not personas }}><summary>{{ icon('plus',16) }} Nouveau modèle</summary>
-<form method="post" action="/modeles" class="mt">
-  <input type="hidden" name="back" value="/studio">
-  <div class="grid g2" style="gap:12px">
-    <div><label>Nom</label><input name="name" required class="w-full">
-      <label>Fournisseur</label><select name="provider" class="w-full"><option value="">auto</option>{% for pr in providers %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}</select></div>
-    <div><label>Description physique (en anglais = meilleur résultat)</label>
-      <textarea name="description" required style="min-height:84px" placeholder="a 25 year old woman, pale skin, long straight black hair with bangs, slim, gothic style, silver rings"></textarea></div>
-  </div>
-  <label>Décor de la boutique (le même sur toutes les photos)</label>
-  <input name="decor" class="w-full" placeholder="a cosy dark bedroom with black bedding, fairy lights and a tall vintage mirror">
-  <div class="row mt"><button class="btn">Générer le modèle (2 photos de référence)</button></div>
-</form></details>
+<div class="grid g2 mt">
+<div class="card reveal"><div class="card-head"><h2>Modèles photo</h2><span class="muted">même personne et même décor sur toutes les photos d'une boutique</span></div>
+<div class="studio-grid">{% for m in personas %}<figure class="shot"><div class="compare" style="padding:8px">{% for r in (m.refs or ([m.reference_image] if m.reference_image else [])) %}<img src="/media/{{ r }}" alt="">{% else %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:10px"></div>{% endfor %}</div>
+  <figcaption><b>{{ m.name }}</b><br><span class="faint tiny">{{ m.description[:90] }}</span></figcaption></figure>{% endfor %}</div>
+<details class="mt" {{ 'open' if not personas }}><summary>{{ icon('plus') }} Nouveau modèle</summary>
+<form method="post" action="/modeles"><input type="hidden" name="back" value="/studio">
+  <label>Nom</label><input name="name" required class="w-full" maxlength="60">
+  <label>Description physique (en anglais = meilleur résultat)</label><textarea name="description" required style="min-height:80px" maxlength="600" placeholder="a 28 year old woman, light brown skin, long dark wavy hair, slim, elegant minimal style"></textarea>
+  <label>Décor (le même sur toutes les photos)</label><input name="decor" class="w-full" placeholder="a bright Parisian apartment with white walls and a tall mirror">
+  <label>Fournisseur</label><select name="provider"><option value="">auto</option>{% for pr in providers %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}</select>
+  <div class="mt"><button class="btn">Créer (2 photos de référence)</button></div></form></details>
+</div>
+<div class="card reveal"><div class="card-head"><h2>Dernières générations</h2></div>
+{% if history %}<div class="table-wrap"><table><tbody>{% for g in history[:14] %}<tr><td class="small">{{ g.created_at|dt }}</td><td><a href="/produit/{{ g.product_id }}#photos">#{{ g.product_id }}</a> {{ shots.get(g.kind, {}).get('label', g.kind) }}</td><td class="small">{{ g.provider or '—' }}</td><td class="r num small">{{ g.duration_s or '—' }} s</td><td class="r">{{ qa(g.fidelity, qa_min) }}</td><td>{{ badge(g.status) }}</td></tr>{% endfor %}</tbody></table></div>
+{% else %}{{ empty('Aucune génération pour le moment') }}{% endif %}</div>
 </div>
 {% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, empty %}
+{% block title %}Commandes fournisseurs{% endblock %}
+{% block heading %}Commandes fournisseurs{% endblock %}
+{% block subtitle %}<p class="muted">Chaque vente crée une commande « À acheter ». Rien n'est jamais acheté automatiquement : tu commandes toi-même puis tu mets à jour le statut.</p>{% endblock %}
+{% block content %}
+<div class="grid g5">{% for s in ['to_buy','ordered','preparing','shipped','problem'] %}
+  <a class="card kpi hover reveal" href="/commandes?statut={{ s }}" style="text-decoration:none"><div class="label">{{ ORDER_LABELS[s] }}</div><div class="value num {{ 'bad' if s in ('to_buy','problem') and counts.get(s) }}">{{ counts.get(s, 0) }}</div></a>{% endfor %}</div>
+<form method="get" class="row between mt reveal">
+  <div class="chips"><a class="chip {{ 'on' if not statut }}" href="/commandes">En cours</a>{% for s in statuses %}<a class="chip {{ 'on' if statut==s }}" href="/commandes?statut={{ s }}">{{ ORDER_LABELS[s] }}</a>{% endfor %}</div>
+  <select name="boutique" onchange="this.form.submit()"><option value="">Toutes les boutiques</option>{% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if boutique==s.id }}>{{ s.name }}</option>{% endfor %}</select>
+</form>
+<div class="stack mt">
+{% for o in orders %}
+<div class="card reveal">
+  <div class="row between">
+    <div><b>{{ (o.title or o.supplier_title or 'Produit #' ~ o.product_id)[:70] }}</b> {{ badge({'pending':'pending_order'}.get(o.status, o.status)) }}<br>
+      <span class="muted small">Commande #{{ o.id }} · {{ o.shop_name or '—' }} · T. {{ o.size or '?' }} · vendu {{ o.sale_price|eur }}{% if o.buyer %} à {{ o.buyer }}{% endif %} le {{ o.sold_at|dt }}</span></div>
+    <div class="row">{% if o.supplier_url %}<a class="btn sm" href="{{ o.supplier_url }}" target="_blank" rel="noopener">{{ icon('cart', 13) }} Ouvrir chez {{ o.supplier or 'le fournisseur' }}</a>{% endif %}<a class="btn ghost sm" href="/produit/{{ o.product_id }}">Produit</a></div>
+  </div>
+  <form method="post" action="/commande/{{ o.id }}" class="grid mt" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end">
+    <div><label>Statut</label><select name="status" class="w-full">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if o.status==s }}>{{ ORDER_LABELS[s] }}</option>{% endfor %}</select></div>
+    <div><label>Référence fournisseur</label><input name="supplier_ref" value="{{ o.supplier_ref or '' }}" class="w-full"></div>
+    <div><label>Prix payé</label><input name="supplier_price" inputmode="decimal" value="{{ o.supplier_price or '' }}" class="w-full"></div>
+    <div><label>N° de suivi</label><input name="tracking_number" value="{{ o.tracking_number or '' }}" class="w-full"></div>
+    <div><label>Transporteur</label><input name="carrier" value="{{ o.carrier or '' }}" class="w-full"></div>
+    <div><label>Note (historique)</label><input name="note" class="w-full" placeholder="ex. livraison prévue jeudi"></div>
+    <div style="grid-column:1/-1"><label>Notes personnelles</label><input name="notes" value="{{ o.notes or '' }}" class="w-full"></div>
+    <div><button class="btn sm">{{ icon('check', 13) }} Mettre à jour</button></div>
+  </form>
+  {% if o.history %}<details class="mt"><summary class="small">Historique ({{ o.history|length }})</summary><ul class="timeline small">{% for h in o.history %}<li><span class="dot">·</span><span>{{ ORDER_LABELS.get(h.status, 'Note') }}{% if h.note %} — {{ h.note }}{% endif %}</span><span class="faint tiny">{{ h.created_at|dt }}</span></li>{% endfor %}</ul></details>{% endif %}
+</div>
+{% else %}<div class="card">{{ empty('Aucune commande ici', 'Les commandes apparaissent automatiquement à chaque vente.', '✓') }}</div>{% endfor %}
+</div>
+{% endblock %}

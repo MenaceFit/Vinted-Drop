@@ -1,7 +1,7 @@
-{# Icônes (style trait 1.8px) et petits composants réutilisables #}
-{% macro icon(name, size=18) -%}
-<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-{%- if name == 'home' -%}<rect x="3" y="3" width="7" height="9" rx="2"/><rect x="14" y="3" width="7" height="5" rx="2"/><rect x="14" y="12" width="7" height="9" rx="2"/><rect x="3" y="16" width="7" height="5" rx="2"/>
+{# Icônes (trait 1.7px) et composants réutilisables #}
+{% macro icon(name, size=16) -%}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'home' -%}<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>
 {%- elif name == 'box' -%}<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>
 {%- elif name == 'receipt' -%}<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>
 {%- elif name == 'store' -%}<path d="M3 9 5 4h14l2 5"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v8h14v-8"/>
@@ -18,21 +18,68 @@
 {%- elif name == 'spark' -%}<path d="m12 3 2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/>
 {%- elif name == 'key' -%}<circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M17 6l3 3"/>
 {%- elif name == 'check' -%}<path d="m5 12 5 5L20 7"/>
+{%- elif name == 'upload' -%}<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
 {%- elif name == 'camera' -%}<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>
 {%- elif name == 'star' -%}<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>
 {%- elif name == 'trash' -%}<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>
-{%- elif name == 'upload' -%}<path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/>
+{%- elif name == 'wallet' -%}<rect x="3" y="6" width="18" height="14" rx="2"/><path d="M3 10h18M16 15h2"/>
+{%- elif name == 'pulse' -%}<path d="M3 12h4l3-8 4 16 3-8h4"/>
+{%- elif name == 'truck' -%}<path d="M3 6h11v10H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>
+{%- elif name == 'columns' -%}<rect x="3" y="4" width="5" height="16" rx="1"/><rect x="10" y="9" width="4" height="11" rx="1"/><rect x="16" y="6" width="5" height="14" rx="1"/>
+{%- elif name == 'bulb' -%}<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.7.5 1 1.2 1 2.1h5c0-.9.3-1.6 1-2.1A6 6 0 0 0 12 3z"/>
+{%- elif name == 'gear' -%}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+{%- elif name == 'trophy' -%}<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M17 5h3a3 3 0 0 1-3 4M7 5H4a3 3 0 0 0 3 4"/>
+{%- elif name == 'search' -%}<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>
+{%- elif name == 'menu' -%}<path d="M4 6h16M4 12h16M4 18h16"/>
+{%- elif name == 'download' -%}<path d="M12 4v12M7 11l5 5 5-5"/><path d="M4 20h16"/>
+{%- elif name == 'stop' -%}<rect x="5" y="5" width="14" height="14" rx="2"/>
+{%- elif name == 'play' -%}<path d="M7 4v16l13-8z"/>
 {%- endif -%}
 </svg>
 {%- endmacro %}
 
 {% macro badge(status) -%}
 <span class="badge {{ status }}">{{ {'draft':'Brouillon','ready':'Prêt','published':'En ligne','sold':'Vendu','archived':'Archivé',
- 'to_order':'À commander','ordered':'Commandé','received':'Reçu','shipped':'Envoyé','done':'Terminé',
+ 'to_order':'À commander','ordered':'Commandé','received':'Reçu','shipped':'Expédié','done':'Terminé',
+ 'to_buy':'À acheter','pending_order':'En attente','preparing':'En préparation','delivered':'Livré','cancelled':'Annulé','problem':'Problème',
  'pending':'À valider','sent':'Envoyé','ignored':'Ignoré','connected':'Connecté','expired':'Token expiré','error':'Erreur',
- 'disconnected':'Non connecté','checking':'Vérification'}.get(status, status) }}</span>
+ 'disconnected':'Non connecté','checking':'Vérification','queued':'En attente','running':'En cours','success':'Réussie',
+ 'accepted':'Acceptée','rejected':'Refusée','warning':'Attention','info':'Info'}.get(status, status) }}</span>
 {%- endmacro %}
 
 {% macro stars(r) -%}{% if r %}<span class="stars">{{ '★' * (r|round|int) }}{{ '☆' * (5 - (r|round|int)) }}</span> <b>{{ r }}</b>{% endif %}{%- endmacro %}
 
 {% macro qa(score, min=7) -%}{% if score is not none %}<span class="badge {{ 'published' if score >= min else 'error' }}" title="Fidélité au produit (contrôle IA)">{{ score }}/10</span>{% endif %}{%- endmacro %}
+
+{% macro deltabadge(cur, prev, inverse=False) -%}
+{%- set d = delta(cur, prev) -%}
+{%- if d is not none -%}<span class="delta {{ ('down' if d > 0 else 'up') if inverse else ('up' if d > 0 else ('down' if d < 0 else '')) }}" title="vs période précédente">{{ '+' if d > 0 }}{{ d }} %</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro kpi(label, value, fmt='eur', sub='', prev=None, ic='euro', hero=False, inverse=False, live=None) -%}
+<div class="card kpi reveal {{ 'hero' if hero }}">
+  <div class="label">{{ icon(ic, 14) }} {{ label }}</div>
+  <div class="value num" data-count="{{ value or 0 }}" data-format="{{ fmt }}" {% if live %}data-live="{{ live }}"{% endif %}>{{ (value|eur) if fmt == 'eur' else ((value|num) ~ (' %' if fmt == 'pct' else '')) }}</div>
+  <div class="sub">{% if prev is not none %}{{ deltabadge(value, prev, inverse) }}{% endif %}{{ sub }}</div>
+</div>
+{%- endmacro %}
+
+{% macro period_bar(per, base, extra='') -%}
+<div class="periodbar">
+  <div class="seg">{% for k, l in PERIODS.items() %}<a href="{{ base }}?period={{ k }}{{ extra }}" class="{{ 'on' if per.key == k }}">{{ l }}</a>{% endfor %}</div>
+  <form method="get" action="{{ base }}"><input type="hidden" name="period" value="custom">
+    {% if extra %}{% for part in extra.strip('&').split('&') if '=' in part %}<input type="hidden" name="{{ part.split('=')[0] }}" value="{{ part.split('=')[1] }}">{% endfor %}{% endif %}
+    <input type="date" name="start" value="{{ per.start_q }}" max="{{ per.today }}"><span class="faint">→</span><input type="date" name="end" value="{{ per.end_q }}" max="{{ per.today }}">
+    <button class="btn ghost sm" data-noload>{{ 'OK' if per.key != 'custom' else '✓' }}</button></form>
+</div>
+{%- endmacro %}
+
+{% macro pager(page, has_next=False, pages=None, base='?', extra='') -%}
+{% if page > 1 or has_next or (pages and pages > 1) %}<div class="pager">
+  {% if page > 1 %}<a class="btn ghost sm" href="{{ base }}page={{ page - 1 }}{{ extra }}">← Précédent</a>{% endif %}
+  <span class="muted">Page {{ page }}{% if pages %} / {{ pages }}{% endif %}</span>
+  {% if has_next or (pages and page < pages) %}<a class="btn ghost sm" href="{{ base }}page={{ page + 1 }}{{ extra }}">Suivant →</a>{% endif %}
+</div>{% endif %}
+{%- endmacro %}
+
+{% macro empty(title, text='', emoji='·') -%}<div class="empty"><span class="big">{{ emoji }}</span><b>{{ title }}</b>{% if text %}<br><span class="small">{{ text|safe }}</span>{% endif %}</div>{%- endmacro %}

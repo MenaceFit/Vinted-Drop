@@ -1,0 +1,25 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, empty %}
+{% block title %}Opportunités{% endblock %}
+{% block heading %}Opportunités{% endblock %}
+{% block subtitle %}<p class="muted">Détectées à partir des relevés Vinted, de tes ventes et du calendrier. Ajoute-les en favori pour suivre leur évolution.</p>{% endblock %}
+{% block actions %}<form method="post" action="/opportunites/actualiser"><button class="btn">{{ icon('refresh') }} Recalculer</button></form>{% endblock %}
+{% block content %}
+<div class="chips reveal"><a class="chip {{ 'on' if not sel and favoris != '1' }}" href="/opportunites">Toutes</a><a class="chip {{ 'on' if favoris == '1' }}" href="/opportunites?favoris=1">★ Favoris</a>
+{% for k, l in kinds.items() %}<a class="chip {{ 'on' if sel==k }}" href="/opportunites?type={{ k }}">{{ l }}</a>{% endfor %}</div>
+<div class="grid g3 mt">
+{% for o in opps %}
+<div class="card reveal" style="display:flex;flex-direction:column;gap:8px">
+  <div class="row between nowrap"><span class="badge plain">{{ o.kind_label }}</span>
+    <form method="post" action="/opportunite/{{ o.id }}/favori"><input type="hidden" name="back" value="/opportunites{{ '?type=' ~ sel if sel else '' }}"><button class="btn ghost sm icon" title="{{ 'Retirer des favoris' if o.favorite else 'Suivre' }}" data-noload>{{ '★' if o.favorite else '☆' }}</button></form></div>
+  <div class="row nowrap"><span class="ring" data-p="{{ o.score or 0 }}"><span>{{ o.score or 0 }}</span></span>
+    <div class="grow"><b>{{ o.title }}</b>{% if o.delta %}<span class="delta {{ 'up' if o.delta > 0 else 'down' }}" style="margin-left:6px">{{ '+' if o.delta > 0 }}{{ o.delta }}</span>{% endif %}<br>
+    <span class="faint tiny">{{ o.niche }} · mis à jour le {{ o.updated_at|dt }} · confiance {{ o.data.confidence or 'faible' }}</span></div></div>
+  <p class="small" style="margin:0">{{ o.data.why }}</p>
+  {% if o.data.est_profit %}<div class="small"><span class="faint">Bénéfice estimé</span> <b class="good">{{ o.data.est_profit|eur }}</b></div>{% endif %}
+  {% set h = o.data.history or [] %}{% if h|length >= 2 %}<div class="mini-bars" style="height:26px">{% for x in h[-15:] %}<i class="on" title="{{ x.date }} : {{ x.score }}" style="height:{{ x.score }}%"></i>{% endfor %}</div>{% endif %}
+  <div class="row" style="margin-top:auto">{% if o.data.url %}<a class="btn ghost sm" href="{{ o.data.url }}" target="_blank" rel="noopener">Fournisseur {{ icon('ext', 12) }}</a>{% endif %}
+    <a class="btn ghost sm" href="/niches#{{ o.niche }}">Analyse</a><a class="btn ghost sm" href="/gagnants?niche={{ o.niche }}">Produits</a></div>
+</div>
+{% else %}<div class="card" style="grid-column:1/-1">{{ empty('Aucune opportunité pour le moment', 'Clique sur « Recalculer ». Avec un compte Vinted connecté, les relevés de nuit enrichissent la détection.') }}</div>{% endfor %}
+</div>
+{% endblock %}

@@ -1,98 +1,92 @@
-{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
-{% block title %}Dashboard{% endblock %}
-{% block heading %}Bonjour 👋{% endblock %}
-{% block subtitle %}<p class="muted">Voici ce qui se passe dans tes boutiques aujourd'hui.</p>{% endblock %}
-{% block actions %}
-<form method="post" action="/pilote/lancer/sync"><button class="btn ghost">{{ icon('refresh',16) }} Synchroniser</button></form>
-<a class="btn" href="/niches">{{ icon('plus',16) }} Ajouter des produits</a>
-{% endblock %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, kpi, period_bar, deltabadge, empty %}
+{% block title %}Accueil{% endblock %}
+{% block heading %}Centre de contrôle{% endblock %}
+{% block subtitle %}<p class="muted">{{ per.label }} · comparé à la période précédente · données réelles de ta base</p>{% endblock %}
+{% block actions %}{{ period_bar(per, '/') }}{% endblock %}
 {% block content %}
-{% for sh in disconnected %}<div class="alert bad reveal">{{ icon('key') }} <span>Boutique <b>{{ sh.name }}</b> : Vinted {{ 'non connecté' if not sh.vinted_cookies else sh.vinted_status }}.</span> <a href="/boutiques" style="margin-left:auto">Connecter →</a></div>{% endfor %}
-{% if pending_msgs %}<div class="alert info reveal">{{ icon('chat') }} <span><b>{{ pending_msgs }}</b> message{{ 's' if pending_msgs > 1 }} acheteur à valider.</span> <a href="/messages" style="margin-left:auto">Répondre →</a></div>{% endif %}
+{% if checklist|selectattr('done','equalto',false)|list %}
+<div class="card reveal" style="margin-bottom:14px">
+  <div class="card-head"><h2>Mise en route</h2><span class="muted">{{ checklist|selectattr('done')|list|length }}/{{ checklist|length }} étapes faites</span></div>
+  <div class="checklist">{% for s in checklist %}<a href="{{ s.url }}" class="{{ 'done' if s.done }}"><span class="ck">{{ '✓' if s.done }}</span>{{ s.label }}</a>{% endfor %}</div>
+</div>{% endif %}
+{% for sh in disconnected %}<div class="alert bad reveal">{{ icon('key') }} <span>Boutique <b>{{ sh.name }}</b> : Vinted {{ 'non connecté' if not sh.vinted_cookies else ('token expiré' if sh.vinted_status == 'expired' else sh.vinted_status) }}.</span><a href="/connexions">Connecter le token →</a></div>{% endfor %}
+{% if pending_msgs %}<div class="alert reveal">{{ icon('chat') }} <span><b>{{ pending_msgs }}</b> message{{ 's' if pending_msgs > 1 }} acheteur à valider.</span><a href="/messages">Répondre →</a></div>{% endif %}
 
-{% set spark_profit = series_list | map(attribute='profit') | list %}
-{% set spark_sales = series_list | map(attribute='sales') | list %}
-<div class="grid g4">
-  <div class="card kpi hero reveal">
-    <div class="label"><span class="ic">{{ icon('euro',16) }}</span> Bénéfice aujourd'hui</div>
-    <div class="value num" data-count="{{ today.profit }}" data-format="eur" data-live="today.profit">0 €</div>
-    <div class="sub">{{ today.sales }} vente{{ 's' if today.sales != 1 }} · CA {{ today.revenue|eur }}</div>
-    <div style="margin-top:14px"><div class="bar" style="background:rgba(255,255,255,.2)"><i data-w="{{ [100, (100 * today.profit / goal)|round]|min if goal else 0 }}" style="background:#fff"></i></div>
-    <div class="sub" style="margin-top:6px">Objectif du jour : {{ goal|eur }}</div></div>
-  </div>
-  <div class="card kpi hover reveal">
-    <div class="label"><span class="ic">{{ icon('trend',16) }}</span> Bénéfice 7 jours</div>
-    <div class="value num" data-count="{{ week.profit }}" data-format="eur" data-live="7d.profit">0 €</div>
-    <div class="sub">CA {{ week.revenue|eur }} · marge {{ week.margin_pct }} %</div>
-    <span class="spark good" data-spark='{{ spark_profit[-14:]|tojson }}'></span>
-  </div>
-  <div class="card kpi hover reveal">
-    <div class="label"><span class="ic">{{ icon('receipt',16) }}</span> Ventes 30 jours</div>
-    <div class="value num" data-count="{{ month.sales }}" data-live="30d.sales">0</div>
-    <div class="sub">Panier moyen {{ month.avg_basket|eur }}</div>
-    <span class="spark" style="color:var(--accent)" data-spark='{{ spark_sales[-14:]|tojson }}'></span>
-  </div>
-  <div class="card kpi hover reveal">
-    <div class="label"><span class="ic">{{ icon('box',16) }}</span> En ligne</div>
-    <div class="value num" data-count="{{ total.products.published }}">0</div>
-    <div class="sub">{{ total.products.ready }} prêts · {{ total.products.draft }} brouillons</div>
-  </div>
+<div class="grid g5">
+  {{ kpi("Bénéfice net", cur.net_profit, 'eur', "après coûts IA et dépenses", prev.net_profit, 'euro', hero=True, live='period.net_profit') }}
+  {{ kpi("Chiffre d'affaires", cur.revenue, 'eur', '', prev.revenue, 'trend', live='period.revenue') }}
+  {{ kpi("Ventes", cur.sales, 'int', "", prev.sales, 'receipt', live='period.sales') }}
+  {{ kpi("Marge nette moyenne", cur.net_margin_pct, 'pct', "", prev.net_margin_pct, 'columns') }}
+  {{ kpi("Panier moyen", cur.avg_basket, 'eur', "", prev.avg_basket, 'cart') }}
+  {{ kpi("Annonces actives", cur.products.published, 'int', (cur.products.ready ~ " prêtes à publier"), None, 'box') }}
+  {{ kpi("Brouillons", cur.products.draft, 'int', "à préparer", None, 'camera') }}
+  {{ kpi("Capital engagé", cur.listed_value, 'eur', ("coût de revient des annonces · " ~ (cur.in_transit_value|eur) ~ " en transit"), None, 'wallet') }}
+  {{ kpi("Dépenses fournisseurs", cur.supplier_spend, 'eur', (cur.supplier_orders ~ " commande(s)"), prev.supplier_spend, 'truck', inverse=True) }}
+  {{ kpi("Coûts IA", cur.ai_costs, 'eur', "photos, contrôles", prev.ai_costs, 'spark', inverse=True) }}
 </div>
 
-<div class="grid g2 mt">
-  <div class="card reveal span2">
-    <div class="card-head"><div><h2>Chiffre d'affaires et bénéfice</h2><span class="muted">30 derniers jours · total {{ month.revenue|eur }}</span></div>
-      <div class="legend"><span><i style="background:var(--accent-soft)"></i>CA</span><span><i style="background:var(--grad)"></i>Bénéfice</span></div></div>
-    <div class="chart"><div id="chart" style="height:100%"></div><div class="tip"></div></div>
-  </div>
-</div>
-
-<div class="grid g2 mt">
+<div class="grid g21 mt">
   <div class="card reveal">
-    <div class="card-head"><h2>🛒 À commander</h2><a class="muted" href="/ventes?statut=to_order">Tout voir</a></div>
-    {% if to_order %}<div class="table-wrap"><table><tbody>
-    {% for s in to_order[:6] %}<tr><td><b>{{ (s.title or '?')[:42] }}</b><br><span class="muted">T. {{ s.size or '?' }} · {{ s.shop_name or '' }} · +{{ s.profit|eur }}</span></td>
-      <td style="text-align:right;white-space:nowrap">{% if s.supplier_url %}<a class="btn sm" href="{{ s.supplier_url }}" target="_blank">Commander {{ icon('ext',14) }}</a>{% endif %}
-      <form class="inline" method="post" action="/vente/{{ s.id }}/statut"><input type="hidden" name="status" value="ordered"><button class="btn ghost sm">{{ icon('check',14) }}</button></form></td></tr>{% endfor %}
-    </tbody></table></div>
-    {% else %}<div class="empty"><span class="big">📦</span>Rien à commander, tout est à jour.</div>{% endif %}
+    <div class="card-head"><div><h2>Bénéfice et chiffre d'affaires</h2><span class="muted">{{ per.label }} · bénéfice des ventes {{ cur.profit|eur }}</span></div>
+      <div class="legend"><span><i></i>Bénéfice</span><span><i class="prev"></i>Période précédente</span><span><i class="bars"></i>CA</span></div></div>
+    <div class="chart"><div data-chart='{{ series }}' data-prev='{{ prev_series }}' data-key="profit" data-bars="revenue" style="height:100%"></div><div class="tip"></div></div>
   </div>
-
   <div class="card reveal">
-    <div class="card-head"><h2>🏪 Boutiques</h2><a class="muted" href="/boutiques">Gérer</a></div>
-    {% if shops %}{% set maxp = (shops|map(attribute='profit')|max) or 1 %}
-    <div class="stack" style="gap:14px">{% for s in shops %}
-      <div><div class="row" style="justify-content:space-between"><b>{{ s.name }}</b><span class="num good">{{ s.profit|eur }}</span></div>
-      <div class="muted" style="font-size:12.5px;margin:2px 0 6px">{{ s.niche or '—' }} · {{ s.online }} en ligne · {{ s.sales }} ventes</div>
-      <div class="bar"><i data-w="{{ (100 * s.profit / maxp)|round if maxp > 0 else 0 }}"></i></div></div>
-    {% endfor %}</div>
-    {% else %}<div class="empty"><span class="big">🏪</span>Aucune boutique. <a href="/boutiques">Créer la première</a></div>{% endif %}
+    <div class="card-head"><h2>Aujourd'hui</h2><span class="muted">objectif {{ goal|eur }}</span></div>
+    <div class="kpi"><div class="value num" data-count="{{ today.profit }}" data-format="eur" data-live="today.profit">{{ today.profit|eur }}</div>
+      <div class="sub">{{ today.sales }} vente{{ 's' if today.sales != 1 }} · CA {{ today.revenue|eur }}</div></div>
+    <div class="bar mt good"><i data-w="{{ (100 * today.profit / goal)|round if goal else 0 }}"></i></div>
+    <p class="small muted" style="margin:8px 0 14px">{{ ((100 * today.profit / goal)|round|int) if goal else 0 }} % de l'objectif du jour</p>
+    <div class="card-head" style="margin:0 0 8px"><h3>Ventes par jour</h3></div>
+    {% set mx = (series_list|map(attribute='sales')|max) or 1 %}
+    <div class="mini-bars">{% for d in series_list[-30:] %}<i class="{{ 'on' if d.sales }}" title="{{ d.date }} : {{ d.sales }} vente(s)" style="height:{{ (100 * d.sales / mx)|round }}%"></i>{% endfor %}</div>
   </div>
 </div>
 
 <div class="grid g3 mt">
   <div class="card reveal">
-    <div class="card-head"><h2>💸 Dernières ventes</h2><a class="muted" href="/ventes">Tout voir</a></div>
-    {% if sales %}<ul class="timeline">{% for s in sales[:7] %}
-      <li><span class="dot">💸</span><span>{{ (s.title or '?')[:34] }}<br><span class="faint" style="font-size:12px">{{ s.shop_name or '' }} · {{ s.sold_at[5:16] }}</span></span><span class="num good">+{{ s.profit|eur }}</span></li>{% endfor %}</ul>
-    {% else %}<div class="empty"><span class="big">⏳</span>Pas encore de vente.</div>{% endif %}
+    <div class="card-head"><h2>Performance par boutique</h2><a class="small" href="/boutiques/comparer">Comparer</a></div>
+    {% if shops %}{% set mp = (shops|map(attribute='profit')|max) or 1 %}
+    <div class="hbars">{% for s in shops %}<div class="hbar"><div class="top"><a href="/boutique/{{ s.id }}"><b>{{ s.name }}</b></a><span class="num">{{ s.profit|eur }} <span class="faint">· {{ s.sales }} v.</span></span></div>
+      <div class="bar"><i data-w="{{ (100 * s.profit / mp)|round if mp > 0 else 0 }}"></i></div></div>{% endfor %}</div>
+    {% else %}{{ empty('Aucune boutique', '<a href="/boutiques">Créer la première</a>') }}{% endif %}
   </div>
   <div class="card reveal">
-    <div class="card-head"><h2>🔥 Top produits gagnants</h2><a class="muted" href="/niches">Voir tout</a></div>
-    <div class="stack" style="gap:12px">{% for w in top_products %}
-      <a href="{{ w.url }}" target="_blank" class="row" style="color:inherit;text-decoration:none;flex-wrap:nowrap">
-        <span class="ring" style="--size:42px" data-p="{{ w.score }}"><span style="font-size:12px">{{ w.score }}</span></span>
-        <span style="min-width:0"><b style="font-size:13px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ w.title }}</b>
-        <span class="muted" style="font-size:12px">{% if w.reviews %}{{ w.rating }}★ · {{ '{:,}'.format(w.reviews).replace(',', ' ') }} avis{% elif w.sold %}{{ w.sold }}{% else %}{{ w.niche_name }}{% endif %}</span></span></a>
-    {% endfor %}</div>
+    <div class="card-head"><h2>Performance par niche</h2><a class="small" href="/niches">Analyse</a></div>
+    {% if niches_perf %}{% set mn = (niches_perf|map(attribute='profit')|max) or 1 %}
+    <div class="hbars">{% for n in niches_perf %}<div class="hbar"><div class="top"><span>{{ n.niche }}</span><span class="num">{{ n.profit|eur }} <span class="faint">· {{ n.sell_through }} %</span></span></div>
+      <div class="bar"><i data-w="{{ (100 * n.profit / mn)|round if mn > 0 else 0 }}"></i></div></div>{% endfor %}</div>
+    {% else %}{{ empty('Pas encore de ventes par niche') }}{% endif %}
   </div>
   <div class="card reveal">
-    <div class="card-head"><h2>🤖 Activité du bot</h2><a class="muted" href="/pilote">Journal</a></div>
-    {% set ico = {'sale':'💸','publish':'📤','reply':'💬','offer':'🤝','price':'📉','import':'📥','market':'🔎','vinted':'🔑','error':'⚠️'} %}
-    {% if events %}<ul class="timeline">{% for e in events[:7] %}
-      <li><span class="dot">{{ ico.get(e.kind, '•') }}</span><span style="font-size:13px">{{ e.message[:70] }}</span><span class="faint" style="font-size:12px">{{ e.created_at[11:16] }}</span></li>{% endfor %}</ul>
-    {% else %}<div class="empty"><span class="big">🤖</span>Le bot n'a encore rien fait.<br>Lance-le avec <code>cli all</code>.</div>{% endif %}
+    <div class="card-head"><h2>Commandes à passer</h2><a class="small" href="/commandes">Tout voir</a></div>
+    {% if to_order %}<div class="table-wrap"><table><tbody>{% for o in to_order %}<tr>
+      <td><b>{{ (o.title or o.supplier_title or '?')[:34] }}</b><br><span class="faint small">T. {{ o.size or '?' }} · {{ o.shop_name or '' }} · vendu {{ o.sale_price|eur }}</span></td>
+      <td class="r">{% if o.supplier_url %}<a class="btn sm" href="{{ o.supplier_url }}" target="_blank" rel="noopener">Commander {{ icon('ext', 12) }}</a>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{{ empty('Aucune commande à passer', 'Toutes les ventes sont traitées.', '✓') }}{% endif %}
   </div>
 </div>
+
+<div class="grid g2 mt">
+  <div class="card reveal">
+    <div class="card-head"><h2>Produits les plus rentables</h2><span class="muted">{{ per.label }}</span></div>
+    {% if top %}<div class="table-wrap"><table data-sortable><thead><tr><th data-sort="text">Produit</th><th data-sort class="r">Prix</th><th data-sort class="r">Bénéfice</th><th data-sort class="r">Marge</th></tr></thead><tbody>
+    {% for t in top %}<tr><td><a href="/produit/{{ t.id }}">{{ (t.title or t.supplier_title or '?')[:42] }}</a><br><span class="faint tiny">{{ t.shop_name or '' }} · {{ t.niche or '' }}</span></td>
+      <td class="r num">{{ t.sale_price|eur }}</td><td class="r num good"><b>{{ t.profit|eur }}</b></td><td class="r num">{{ t.margin_pct }} %</td></tr>{% endfor %}</tbody></table></div>
+    {% else %}{{ empty('Aucune vente sur la période') }}{% endif %}
+  </div>
+  <div class="card reveal">
+    <div class="card-head"><h2>Activité récente</h2><a class="small" href="/activite">Journal</a></div>
+    {% set ico = {'sale':'€','publish':'↑','reply':'✉','offer':'⇄','price':'↓','import':'+','market':'◎','vinted':'⚿','error':'!','photo':'▣','order':'▸','finance':'€','backup':'⛁','settings':'⚙','prepare':'✎'} %}
+    {% if events %}<ul class="timeline">{% for e in events %}<li><span class="dot {{ e.level }}">{{ ico.get(e.kind, '·') }}</span><span>{{ e.message[:90] }}</span><span class="faint tiny">{{ e.created_at|dt }}</span></li>{% endfor %}</ul>
+    {% else %}{{ empty("Rien pour l'instant", "Lance le bot avec <code>python -m vinted_drop.cli all</code>") }}{% endif %}
+  </div>
+</div>
+
+{% if top_niches %}<div class="card mt reveal">
+  <div class="card-head"><h2>Meilleures niches rentables maintenant</h2><a class="small" href="/niches">Market Intelligence</a></div>
+  <div class="grid g4">{% for n in top_niches %}<a href="/niches#{{ n.id }}" class="row nowrap" style="text-decoration:none;color:inherit">
+    <span class="ring" data-p="{{ n.score }}"><span>{{ n.score }}</span></span>
+    <span class="grow"><b class="small" style="display:block">{{ n.name }}</b><span class="faint tiny">≈ {{ n.potential.est_profit|round|int }} € / vente · confiance {{ n.potential.confidence }}</span></span></a>{% endfor %}</div>
+</div>{% endif %}
 {% endblock %}
-{% block scripts %}<script>window.SERIES = {{ series|safe }};</script>{% endblock %}

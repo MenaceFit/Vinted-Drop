@@ -5,39 +5,53 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{% block title %}Vinted Drop{% endblock %} · Vinted Drop</title>
-<meta name="theme-color" content="#0a0c11">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%2322d3dc'/><text x='50' y='68' font-size='56' text-anchor='middle' font-family='Arial' font-weight='800' fill='white'>V</text></svg>">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230b0b0b'/><text x='50' y='68' font-size='58' text-anchor='middle' font-family='Arial' font-weight='800' fill='white'>V</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/app.css?v=4">
+<link rel="stylesheet" href="/static/app.css?v=20">
 <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-running="{{ '1' if running is defined and running is sameas true else '0' }}">
-{% set nav = [('home','/','Dashboard','home'),('products','/produits','Produits','box'),('studio','/studio','Studio photo','camera'),('sales','/ventes','Ventes','receipt'),
-  ('shops','/boutiques','Boutiques','store'),('messages','/messages','Messages','chat'),('niches','/niches','Produits gagnants','target'),
-  ('autopilot','/pilote','Pilote auto','bot')] %}
+{% set groups = [
+  ('Pilotage', [('home','/','Accueil','home'),('finance','/finances','Finances','wallet'),('activity','/activite','Activité','pulse')]),
+  ('Catalogue', [('products','/produits','Produits','box'),('studio','/studio','Studio photo','camera'),('messages','/messages','Messages','chat')]),
+  ('Ventes', [('sales','/ventes','Ventes','receipt'),('orders','/commandes','Commandes','truck')]),
+  ('Boutiques', [('shops','/boutiques','Boutiques','store'),('shops_compare','/boutiques/comparer','Comparer','columns'),('connections','/connexions','Connexion Vinted','key')]),
+  ('Marché', [('niches','/niches','Market Intelligence','target'),('winners','/gagnants','Produits gagnants','trophy'),('opportunities','/opportunites','Opportunités','bulb')]),
+  ('Système', [('autopilot','/pilote','Pilote auto','bot'),('settings','/parametres','Paramètres','gear')]),
+] %}
+{% set active = {'product':'products','shop':'shops'}.get(page, page) %}
 <div class="app">
-  <aside class="sidebar">
-    <a class="brand" href="/"><span class="logo">{{ icon('spark', 18) }}</span> Vinted Drop</a>
-    <nav class="nav">
-      {% for key, href, label, ic in nav %}
-      <a href="{{ href }}" class="{{ 'on' if page == key or (key=='products' and page=='product') }}">{{ icon(ic) }} {{ label }}
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="/"><span class="logo">V</span> Vinted Drop <span class="badge plain tiny" style="margin-left:auto">2.0</span></a>
+    {% for gname, items in groups %}
+    <div class="nav-group">{{ gname }}</div>
+    <nav class="nav">{% for key, href, label, ic in items %}
+      <a href="{{ href }}" class="{{ 'on' if active == key }}">{{ icon(ic) }} {{ label }}
         {% if key == 'messages' and nav_pending %}<span class="count">{{ nav_pending }}</span>{% endif %}
-        {% if key == 'sales' and nav_to_order %}<span class="count">{{ nav_to_order }}</span>{% endif %}</a>
-      {% endfor %}
-    </nav>
+        {% if key == 'orders' and nav_orders %}<span class="count alert">{{ nav_orders }}</span>{% endif %}
+        {% if key == 'connections' and nav_shops and nav_connected < nav_shops %}<span class="count alert">!</span>{% endif %}
+        {% if key == 'activity' and nav_tasks %}<span class="count">{{ nav_tasks }}</span>{% endif %}</a>
+    {% endfor %}</nav>
+    {% endfor %}
     <div class="side-foot">
-      <a class="autopill" href="/pilote" style="color:inherit;text-decoration:none">
-        <span class="pulse {{ 'on' if nav_autopilot == 'on' }}"></span>
-        <span><b>Pilote auto {{ 'actif' if nav_autopilot == 'on' else 'en pause' }}</b><span class="muted">{{ nav_connected }} boutique{{ 's' if nav_connected != 1 }} connectée{{ 's' if nav_connected != 1 }}</span></span>
-      </a>
-      <button class="btn ghost theme-btn" data-theme-toggle data-noload>{{ icon('moon', 16) }} Thème</button>
+      <a class="statuspill" href="/pilote">
+        <span class="pulse {{ 'stop' if nav_emergency else ('sim' if nav_simulation else ('on' if nav_autopilot == 'on' else '')) }}"></span>
+        <span><b>{{ 'Arrêt d\'urgence' if nav_emergency else ('Mode simulation' if nav_simulation else ('Pilote auto actif' if nav_autopilot == 'on' else 'Pilote en pause')) }}</b>
+          <span class="muted">{{ nav_connected }}/{{ nav_shops }} boutique{{ 's' if nav_shops != 1 }} connectée{{ 's' if nav_connected != 1 }}</span></span></a>
+      <button class="btn ghost sm" data-theme-toggle data-noload>{{ icon('moon', 14) }} Thème clair / sombre</button>
     </div>
   </aside>
 
   <main class="main">
-    <div class="topbar reveal">
+    <div class="topbar">
+      <button class="btn ghost icon mobile-top" data-menu data-noload aria-label="Menu" style="margin:0">{{ icon('menu') }}</button>
+      <button class="searchbtn" data-search data-noload>{{ icon('search', 15) }} <span class="stxt">Rechercher un produit, une boutique…</span> <span class="kbd">Ctrl K</span></button>
+      <div class="actions">{% block topactions %}{% endblock %}</div>
+    </div>
+    {% if nav_emergency %}<div class="alert bad">{{ icon('stop') }} <span><b>Arrêt d'urgence activé</b> : aucune action automatique n'est exécutée.</span><a href="/pilote">Relancer →</a></div>
+    {% elif nav_simulation %}<div class="alert warn">{{ icon('bot') }} <span><b>Mode simulation</b> : rien n'est envoyé à Vinted (publications, réponses, prix).</span><a href="/pilote">Désactiver →</a></div>{% endif %}
+    <div class="pagehead reveal">
       <div><h1>{% block heading %}{% endblock %}</h1>{% block subtitle %}{% endblock %}</div>
       <div class="actions">{% block actions %}{% endblock %}</div>
     </div>
@@ -46,12 +60,12 @@
 </div>
 
 <nav class="mobile-bar">
-  {% for key, href, label, ic in nav if key in ('home','products','studio','messages','niches','autopilot') %}
-  <a href="{{ href }}" class="{{ 'on' if page == key or (key=='products' and page=='product') }}">{{ icon(ic, 20) }}{{ {'Produits gagnants':'Gagnants','Pilote auto':'Pilote','Studio photo':'Studio'}.get(label, label) }}</a>
-  {% endfor %}
+  {% for key, href, label, ic in [('home','/','Accueil','home'),('products','/produits','Produits','box'),('orders','/commandes','Commandes','truck'),('finance','/finances','Finances','wallet'),('niches','/niches','Marché','target')] %}
+  <a href="{{ href }}" class="{{ 'on' if active == key }}">{{ icon(ic, 19) }}{{ label }}</a>{% endfor %}
 </nav>
+<div class="palette" id="palette"><div class="box"><input placeholder="Rechercher (produit, #id, boutique, acheteur)…" autocomplete="off"><div class="res"></div></div></div>
 <div class="toasts">{% if error %}<span data-toast="{{ error }}" data-kind="err"></span>{% endif %}</div>
-<script src="/static/app.js?v=4" defer></script>
+<script src="/static/app.js?v=20" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

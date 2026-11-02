@@ -188,11 +188,15 @@ def test_market_scan_updates_ranking(fake):
     assert top and all(n.get("live") is not None for n in niches.ranked()[:3])
 
 
-def test_assistant_tools_run():
+def test_assistant_reads_data_and_requires_confirmation_for_actions():
     from vinted_drop import assistant, db
     db.add_shop("Luna", "medieval")
-    assert "sales" in assistant.run_tool("get_stats", {"period": "7d"})
-    assert assistant.run_tool("set_setting", {"key": "publish_mode", "value": "auto"})["ok"]
+    assert "net_profit" in assistant.run_tool("finance_summary", {"period": "7d"})
+    pending = []
+    res = assistant.run_tool("set_setting", {"key": "publish_mode", "value": "auto"}, pending)
+    assert res["needs_confirmation"] and db.get_setting("publish_mode") == "validate"   # rien n'a changé
+    assert pending[0]["summary"].startswith("Changer le réglage")
+    assistant.execute(pending[0]["name"], pending[0]["args"])                           # après le clic ✅
     assert db.get_setting("publish_mode") == "auto"
     assert assistant.run_tool("top_niches", {})
 

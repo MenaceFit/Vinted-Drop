@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, empty %}
+{% block title %}Connexion Vinted{% endblock %}
+{% block heading %}Connexion Vinted{% endblock %}
+{% block subtitle %}<p class="muted">Colle ici le token (cookie de session) de chaque compte. Il est chiffré dans la base et n'apparaît jamais dans les logs ni les exports.</p>{% endblock %}
+{% block content %}
+<div class="card reveal"><div class="card-head"><h2>Comment récupérer le token</h2></div>
+  <ol class="steps">
+    <li>Ouvre <b>vinted.fr</b> dans Chrome ou Edge, connecté(e) au compte de la boutique.</li>
+    <li>Touche <span class="kbd">F12</span> → onglet <b>Réseau</b> (Network) → recharge la page avec <span class="kbd">F5</span> → clique sur la toute première ligne.</li>
+    <li>Dans <b>En-têtes de requête</b> (Request Headers), copie toute la valeur de <b>Cookie</b>. Elle doit contenir <code>access_token_web</code> et <code>refresh_token_web</code>.</li>
+    <li>Colle-la dans le champ de la boutique ci-dessous, puis « Connecter et tester ».</li>
+  </ol>
+  <p class="help">Le token expire régulièrement : le bot le renouvelle tout seul avec le <code>refresh_token_web</code>. S'il n'y arrive plus, tu reçois une alerte « token expiré » : recolle simplement le cookie. Aucun contournement anti-robot n'est utilisé ; si Vinted refuse l'accès depuis un serveur, lance le bot depuis ton PC.</p>
+</div>
+
+<div class="stack mt">
+{% for s in shops %}
+<div class="card reveal" id="shop-{{ s.id }}">
+  <div class="row between"><div class="row"><span class="logo" style="width:34px;height:34px;border-radius:10px">{{ s.name[0]|upper }}</span>
+    <div><b>{{ s.name }}</b>{% if s.vinted_login %} · <a href="https://www.{{ s.vinted_domain or 'vinted.fr' }}/member/{{ s.vinted_user_id }}" target="_blank" rel="noopener">@{{ s.vinted_login }}</a>{% endif %}<br>
+    <span class="faint small">{{ s.vinted_domain or 'vinted.fr' }}{% if s.vinted_checked_at %} · vérifié le {{ s.vinted_checked_at|dt }}{% endif %} · quota {{ s.daily_quota or 20 }}/jour</span></div></div>
+    <div class="row">{{ badge(s.vinted_status or 'disconnected') }}
+      {% if s.vinted_cookies %}<form method="post" action="/boutique/{{ s.id }}/tester"><button class="btn ghost sm">Tester</button></form>
+      <form method="post" action="/boutique/{{ s.id }}/deconnecter"><button class="btn ghost sm" data-confirm="Supprimer le token de {{ s.name }} ?">Déconnecter</button></form>{% endif %}</div>
+  </div>
+  <div class="grid g2 mt">
+    <form method="post" action="/boutique/{{ s.id }}/vinted">
+      <label>Cookie de session {{ '(remplacer)' if s.vinted_cookies }}</label>
+      <textarea name="cookie" required style="min-height:74px" placeholder="access_token_web=…; refresh_token_web=…; …" autocomplete="off" spellcheck="false"></textarea>
+      <div class="row"><div><label>Site</label><select name="domain">{% for d in ['vinted.fr','vinted.be','vinted.es','vinted.it','vinted.de','vinted.nl','vinted.co.uk','vinted.lu','vinted.pt','vinted.at','vinted.pl'] %}<option {{ 'selected' if (s.vinted_domain or 'vinted.fr')==d }}>{{ d }}</option>{% endfor %}</select></div>
+        <div><label>Publications / jour</label><input name="daily_quota" type="number" min="1" max="200" value="{{ s.daily_quota or 20 }}" style="width:100px"></div></div>
+      <label>User-Agent (optionnel, celui de ton navigateur)</label><input name="user_agent" value="{{ s.vinted_user_agent or '' }}" class="w-full">
+      <div class="mt"><button class="btn">{{ icon('key') }} Connecter et tester</button></div>
+    </form>
+    <div>
+      <label>Modèle d'annonce (catégorie, marque, tailles, colis)</label>
+      <form method="post" action="/boutique/{{ s.id }}/modele-annonce"><select name="template_id" onchange="this.form.submit()" class="w-full"><option value="">— aucun : publication impossible —</option>{% for t in templates %}<option value="{{ t.id }}" {{ 'selected' if s.template_id==t.id }}>{{ t.name }}</option>{% endfor %}</select></form>
+      {% if s.vinted_status == 'connected' %}
+      <form method="post" action="/boutique/{{ s.id }}/apprendre"><label>Apprendre d'une de tes annonces</label>
+        <div class="row nowrap"><input name="item_url" placeholder="https://www.vinted.fr/items/123…" required class="w-full"><button class="btn ghost">Apprendre</button></div>
+        <p class="help">Publie UNE annonce à la main dans la bonne catégorie : le bot recopie catégorie, marque, taille et format de colis pour les suivantes.</p></form>
+      {% else %}<p class="help">Connecte d'abord le compte pour apprendre un modèle d'annonce.</p>{% endif %}
+    </div>
+  </div>
+</div>
+{% else %}<div class="card">{{ empty('Aucune boutique', '<a href="/boutiques">Crée d\'abord une boutique</a>, puis reviens coller son token.') }}</div>{% endfor %}
+</div>
+
+<details class="card mt reveal"><summary>Créer un modèle d'annonce à la main (avancé)</summary>
+<form method="post" action="/modeles-annonce" class="row mt">
+  <input name="name" placeholder="Nom" required><input name="catalog_id" type="number" placeholder="catalog_id" required style="width:120px">
+  <input name="brand_id" placeholder="brand_id" style="width:110px"><input name="brand" placeholder="Marque" style="width:120px">
+  <input name="size_map" placeholder="S=206,M=207,L=208" style="width:190px"><input name="package_size_id" type="number" value="2" style="width:70px">
+  <button class="btn ghost">Créer</button></form></details>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, kpi, period_bar, empty %}
+{% block title %}Finances{% endblock %}
+{% block heading %}Finances{% endblock %}
+{% block subtitle %}<p class="muted">{{ per.label }}{% if boutique %} · boutique filtrée{% endif %} · toutes les valeurs viennent de tes ventes, commandes, coûts IA et dépenses</p>{% endblock %}
+{% block actions %}{{ period_bar(per, '/finances', '&boutique=' ~ (boutique or '')) }}{% endblock %}
+{% block content %}
+{% set ex = '?period=' ~ per.key ~ '&start=' ~ per.start_q ~ '&end=' ~ per.end_q %}
+<div class="grid g5">
+  {{ kpi("Bénéfice net", fin.net_profit, 'eur', "ventes − IA − dépenses", prev.net_profit if prev else None, 'euro', hero=True) }}
+  {{ kpi("Chiffre d'affaires", fin.revenue, 'eur', (fin.sales ~ " ventes"), prev.revenue if prev else None, 'trend') }}
+  {{ kpi("Bénéfice des ventes", fin.profit, 'eur', "après coût de revient", prev.profit if prev else None, 'receipt') }}
+  {{ kpi("Marge nette", fin.net_margin_pct, 'pct', "", prev.net_margin_pct if prev else None, 'columns') }}
+  {{ kpi("Achats fournisseurs", fin.supplier_spend, 'eur', (fin.supplier_orders ~ " commandes"), prev.supplier_spend if prev else None, 'truck', inverse=True) }}
+  {{ kpi("Coûts IA", fin.ai_costs, 'eur', "", prev.ai_costs if prev else None, 'spark', inverse=True) }}
+  {{ kpi("Autres dépenses", fin.expenses, 'eur', "", prev.expenses if prev else None, 'wallet', inverse=True) }}
+  {{ kpi("Panier moyen", fin.avg_basket, 'eur', ("bénéfice moyen " ~ (fin.avg_profit|eur)), prev.avg_basket if prev else None, 'cart') }}
+  {{ kpi("Capital engagé", fin.listed_value, 'eur', (fin.listed_count ~ " annonces en ligne/prêtes"), None, 'box') }}
+  {{ kpi("Stock en transit", fin.in_transit_value, 'eur', (fin.in_transit_count ~ " commandes en route"), None, 'truck') }}
+</div>
+{% if fin.cost_unknown %}<div class="alert warn mt">{{ fin.cost_unknown }} produit(s) importé(s) sans prix d'achat : leurs bénéfices sont surestimés. <a href="/produits?q=">Les compléter →</a></div>{% endif %}
+
+<div class="card mt reveal"><div class="card-head"><div><h2>Évolution</h2><span class="muted">bénéfice des ventes et chiffre d'affaires</span></div>
+  <div class="row"><a class="btn ghost sm" href="/finances/export.xlsx{{ ex }}">{{ icon('download', 13) }} Excel</a>
+  <a class="btn ghost sm" href="/finances/export.csv{{ ex }}&table=Transactions">{{ icon('download', 13) }} CSV transactions</a>
+  <a class="btn ghost sm" href="/finances/export.csv{{ ex }}&table=Ventes">CSV ventes</a><a class="btn ghost sm" href="/finances/export.csv{{ ex }}&table=Produits">CSV produits</a></div></div>
+  <div class="chart"><div data-chart='{{ series|tojson }}' data-key="profit" data-bars="revenue" style="height:100%"></div><div class="tip"></div></div></div>
+
+<div class="grid g2 mt">
+  <div class="card reveal"><div class="card-head"><h2>Par boutique</h2><a class="small" href="/boutiques/comparer">Comparer</a></div>
+  {% if by_shop %}<div class="table-wrap"><table data-sortable><thead><tr><th data-sort="text">Boutique</th><th data-sort class="r">CA</th><th data-sort class="r">Bénéfice net</th><th data-sort class="r">Marge</th><th data-sort class="r">Coûts IA</th></tr></thead><tbody>
+  {% for r in by_shop %}<tr><td><a href="/boutique/{{ r.id }}">{{ r.name }}</a></td><td class="r num">{{ r.revenue|eur }}</td><td class="r num good"><b>{{ r.finance.net_profit|eur }}</b></td><td class="r num">{{ r.finance.net_margin_pct }} %</td><td class="r num">{{ r.finance.ai_costs|eur }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ empty('Aucune boutique') }}{% endif %}</div>
+  <div class="card reveal"><div class="card-head"><h2>Dépenses</h2><span class="muted">abonnements, emballages, mise en avant…</span></div>
+    <form method="post" action="/finances/depense" class="row end">
+      <div><label>Montant</label><input name="amount" inputmode="decimal" required style="width:90px"></div>
+      <div><label>Catégorie</label><select name="category">{% for k, l in categories.items() %}<option value="{{ k }}">{{ l }}</option>{% endfor %}</select></div>
+      <div class="grow"><label>Libellé</label><input name="label" class="w-full" maxlength="120"></div>
+      <div><label>Date</label><input type="date" name="spent_at" max="{{ per.today }}"></div>
+      <div><label>Boutique</label><select name="shop_id"><option value="">—</option>{% for s in shops %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></div>
+      <button class="btn">Ajouter</button></form>
+    {% if expenses %}<div class="table-wrap mt"><table><tbody>{% for e in expenses %}<tr><td class="small">{{ e.spent_at|dt('%d/%m/%Y') }}</td><td>{{ categories.get(e.category, e.category) }}{% if e.label %} · {{ e.label }}{% endif %}</td><td class="small muted">{{ e.shop_name or '' }}</td><td class="r num">{{ e.amount|eur }}</td>
+      <td class="r"><form method="post" action="/finances/depense/{{ e.id }}/supprimer"><button class="btn ghost sm icon" data-confirm="Supprimer cette dépense ?">{{ icon('trash', 12) }}</button></form></td></tr>{% endfor %}</tbody></table></div>{% endif %}
+  </div>
+</div>
+
+<div class="grid g2 mt">
+  <div class="card reveal"><div class="card-head"><h2>Transactions</h2><span class="muted">{{ tx|length }} lignes</span></div>
+  {% if tx %}<div class="table-wrap" style="max-height:460px;overflow:auto"><table data-sortable><thead><tr><th data-sort="text">Date</th><th data-sort="text">Type</th><th data-sort="text">Libellé</th><th data-sort class="r">Montant</th></tr></thead><tbody>
+  {% for t in tx %}<tr><td class="small" data-v="{{ t.date }}">{{ t.date|dt }}</td><td class="small">{{ t.type }}</td><td class="small">{{ (t.label or '')[:46] }}<span class="faint tiny"> {{ t.ref }}</span></td><td class="r num {{ 'good' if t.amount > 0 else '' }}">{{ t.amount|eur }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ empty('Aucune transaction sur la période') }}{% endif %}</div>
+  <div class="card reveal"><div class="card-head"><h2>Invendus depuis 14 jours</h2><span class="muted">capital qui dort</span></div>
+  {% if unsold %}<div class="table-wrap"><table><tbody>{% for p in unsold %}<tr><td><a href="/produit/{{ p.id }}">{{ (p.title or '?')[:40] }}</a><br><span class="faint tiny">en ligne depuis le {{ p.published_at|dt('%d/%m') }} · {{ p.favourites or 0 }} ♥</span></td><td class="r num">{{ p.price|eur }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ empty('Aucun invendu de plus de 14 jours', '', '✓') }}{% endif %}</div>
+</div>
+{% endblock %}

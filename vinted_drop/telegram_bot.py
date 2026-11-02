@@ -45,7 +45,8 @@ HELP = """<b>Vinted Drop</b> 🤖 — écris-moi normalement ou utilise les bout
 /activite — dernières actions
 
 <b>Pilotage</b>
-/menu · /stats · /boutiques · /niches · /gagnants [niche]
+/menu · /stats · /finances [7d|30d…] · /boutiques · /niches · /gagnants [niche]
+/commandes · /parametres · /stop (arrêt d'urgence) · /reprendre
 """
 
 
@@ -68,7 +69,16 @@ def authorized(func):
     async def wrapper(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         chat = update.effective_chat
         allowed = config.telegram_chats()
-        ok = not allowed or chat.id in allowed
+        if not allowed:
+            # bot fermé par défaut : on indique seulement l'id à mettre dans .env
+            if update.effective_message:
+                await update.effective_message.reply_text(
+                    f"🔒 Bot pas encore configuré. Id de cette discussion : {chat.id}\n"
+                    "Ajoute-le dans TELEGRAM_ALLOWED_CHAT_IDS (fichier .env) puis relance le bot.")
+            elif update.callback_query:
+                await update.callback_query.answer("🔒 Bot non configuré", show_alert=True)
+            return
+        ok = chat.id in allowed
         # Dans un canal, n'importe quel abonné peut toucher un bouton : on vérifie qu'il est admin
         if ok and update.callback_query and chat.type == "channel":
             ok = await _is_channel_admin(ctx.bot, chat.id, update.callback_query.from_user.id)
@@ -178,9 +188,62 @@ async def cmd_start(update: Update, ctx):
 
 
 def main_menu():
-    return [[("📊 Stats", "m:stats"), ("🛒 À commander", "m:order"), ("💬 Messages", "m:msgs")],
-            [("📤 Prêts", "m:ready"), ("📝 Brouillons", "m:draft"), ("🟢 En ligne", "m:published")],
-            [("🤖 Pilote auto", "m:auto"), ("🔄 Synchro", "m:sync"), ("🔎 Niches", "m:niches")]]
+    return [[("📊 Dashboard", "m:dashboard"), ("💰 Finances", "m:finance")],
+            [("🛍 Boutiques", "m:shops"), ("📦 Produits", "m:products")],
+            [("📸 Studio photo", "m:studio"), ("🔎 Niches", "m:niches")],
+            [("🏆 Produits gagnants", "m:winners"), ("⚙️ Pilote automatique", "m:auto")],
+            [("📈 Statistiques", "m:stats"), ("🛠 Paramètres", "m:settings")],
+            [("🛒 Commandes à passer", "m:order"), ("💬 Messages", "m:msgs")]]
+
+
+def dashboard_text():
+    from . import finance
+    t = finance.summary(*db.period_range("today"))
+    w = finance.summary(*db.period_range("7d"))
+    oc = db.order_counts()
+    lines = ["📊 <b>Tableau de bord</b>",
+             f"Aujourd'hui : {t['sales']} ventes · bénéfice net <b>{t['net_profit']:.2f} €</b>",
+             f"7 jours : {w['sales']} ventes · CA {w['revenue']:.2f} € · bénéfice net <b>{w['net_profit']:.2f} €</b> · marge {w['net_margin_pct']} %",
+             f"En ligne : {w['products']['published']} · prêts : {w['products']['ready']} · brouillons : {w['products']['draft']}",
+             f"Commandes à passer : {oc.get('to_buy', 0)}" + (f" · ⚠️ problèmes : {oc['problem']}" if oc.get("problem") else "")]
+    if db.get_setting("emergency_stop") == "on":
+        lines.append("🛑 Arrêt d'urgence activé")
+    elif db.get_setting("simulation") == "on":
+        lines.append("🧪 Mode simulation (rien n'est envoyé à Vinted)")
+    return "\n".join(lines)
+
+
+def finance_text(period="30d"):
+    from . import finance
+    f = finance.summary(*db.period_range(period))
+    return (f"💰 <b>Finances · {db.PERIODS.get(period, period)}</b>\n"
+            f"CA {f['revenue']:.2f} € · {f['sales']} ventes · panier {f['avg_basket']:.2f} €\n"
+            f"Bénéfice des ventes {f['profit']:.2f} €\n− coûts IA {f['ai_costs']:.2f} € · − dépenses {f['expenses']:.2f} €\n"
+            f"= <b>bénéfice net {f['net_profit']:.2f} €</b> (marge {f['net_margin_pct']} %)\n"
+            f"Achats fournisseurs {f['supplier_spend']:.2f} € · capital engagé {f['listed_value']:.2f} € · "
+            f"en transit {f['in_transit_value']:.2f} €")
+
+
+def finance_buttons():
+    return [[(l, f"fin:{k}") for k, l in (("today", "Jour"), ("7d", "7 j"), ("30d", "30 j"), ("90d", "90 j"), ("year", "Année"))],
+            [("📥 Export Excel", f"{config.DASHBOARD_URL}/finances/export.xlsx")]] if config.DASHBOARD_URL.startswith("http") else \
+           [[(l, f"fin:{k}") for k, l in (("today", "Jour"), ("7d", "7 j"), ("30d", "30 j"), ("90d", "90 j"), ("year", "Année"))]]
+
+
+def settings_text():
+    s = db.all_settings()
+    return ("🛠 <b>Paramètres</b>\n"
+            f"Bénéfice minimum : {s['min_profit']} € · style des annonces : {s['listing_style']}\n"
+            f"Simulation : {s['simulation']} · arrêt d'urgence : {s['emergency_stop']}\n"
+            f"Budget IA / jour : {s['daily_budget']} € · fournisseur photo : {s['photo_provider']}\n"
+            f"Réglages complets : {config.DASHBOARD_URL}/parametres")
+
+
+def settings_buttons():
+    s = db.all_settings()
+    return [[(f"🧪 Simulation : {s['simulation']}", "tg:simulation")],
+            [("🛑 Arrêt d'urgence" if s["emergency_stop"] != "on" else "▶️ Lever l'arrêt d'urgence", "tg:emergency")],
+            [("⚙️ Pilote automatique", "m:auto"), ("📸 Studio", "m:studio")]]
 
 
 @authorized
@@ -358,6 +421,31 @@ async def cmd_studio(update, ctx):
 
 
 @authorized
+async def cmd_finances(update, ctx):
+    period = ctx.args[0] if ctx.args and ctx.args[0] in db.PERIODS else "30d"
+    await reply(update, finance_text(period), finance_buttons())
+
+
+@authorized
+async def cmd_parametres(update, ctx):
+    await reply(update, settings_text(), settings_buttons())
+
+
+@authorized
+async def cmd_stop(update, ctx):
+    db.set_setting("emergency_stop", "on")
+    db.log_event("security", "ARRÊT D'URGENCE activé (Telegram)", level="warning")
+    await reply(update, "🛑 <b>Arrêt d'urgence activé</b> : plus aucune action automatique. /reprendre pour relancer.")
+
+
+@authorized
+async def cmd_reprendre(update, ctx):
+    db.set_setting("emergency_stop", "off")
+    db.log_event("security", "Arrêt d'urgence levé (Telegram)", level="warning")
+    await reply(update, "▶️ Pilote automatique relancé.")
+
+
+@authorized
 async def cmd_couts(update, ctx):
     c7, c30 = db.cost_stats(7), db.cost_stats(30)
     prof = db.stats(30)["profit"]
@@ -447,12 +535,14 @@ async def cmd_acommander(update, ctx):
 
 
 async def _to_order(update):
-    items = db.list_sales(status="to_order")
+    items = [o for o in db.list_orders(open_only=True, limit=30) if o["status"] in ("to_buy", "problem")]
     if not items:
         return await reply(update, "Rien à commander 👌")
-    for s in items[:10]:
-        await reply(update, f"#{s['id']} · {(s.get('title') or '?')[:60]}\nTaille {s.get('size') or '?'} · "
-                            f"{s.get('shop_name') or ''} · bénéfice {s['profit']:.2f} €", notify.sale_buttons(s))
+    for o in items[:10]:
+        sale = db.get_sale(o["sale_id"]) if o.get("sale_id") else None
+        await reply(update, f"🛒 Commande #{o['id']} · <b>{db.ORDER_LABELS[o['status']]}</b>\n{(o.get('title') or '?')[:60]}\n"
+                            f"Taille {o.get('size') or '?'} · {o.get('shop_name') or ''} · vendu {o.get('sale_price') or 0:.2f} €",
+                    notify.sale_buttons(sale) if sale else None)
 
 
 def stats_text():
@@ -511,15 +601,25 @@ async def cmd_niches(update, ctx):
 
 
 async def _niches(update):
-    lines = ["🔎 <b>Top niches maintenant</b>"]
+    min_profit = float(db.get_setting("min_profit") or 30)
+    lines = [f"🔎 <b>Meilleures niches</b> (≥ {min_profit:.0f} € de bénéfice estimé)"]
     rows = []
-    for n in niches.ranked()[:8]:
+    for n in niches.ranked(profitable_only=True)[:8]:
+        pot = n["potential"]
         live = n.get("live") or {}
-        lines.append(f"{'🔥' if n['in_season'] else '⏳'} <b>{n['name']}</b> — {n['score']}/10 · achat {n['buy_price']} "
-                     f"→ vente {n['sell_price']}" + (f" · médian Vinted {live['median_price']} €" if live.get("median_price") else "")
-                     + f"\n   <i>{n['why']}</i>")
-        rows.append([(f"🔗 {n['name'][:30]}", f"win:{n['id']}")])
+        lines.append(f"{'🔥' if n['in_season'] else '⏳'} <b>{n['name']}</b> — {n['score']}/100 · ≈ {pot['est_profit']:.0f} €/vente"
+                     f" · confiance {pot['confidence']}" + (f" · médiane Vinted {live['median']:.0f} €" if live.get("median") else "")
+                     + f"\n   <i>{n['why'][:160]}</i>")
+        rows.append([(f"🏆 {n['name'][:30]}", f"win:{n['id']}")])
     await reply(update, "\n".join(lines), rows)
+
+
+async def _unsold(update):
+    items = db.unsold_products(14, 15)
+    if not items:
+        return await reply(update, "Aucun invendu de plus de 14 jours 👌")
+    await reply(update, "💤 <b>Invendus depuis 14 jours</b>",
+                [[(f"#{p['id']} {(p.get('title') or '?')[:26]} · {p.get('price') or '-'} €", f"view:{p['id']}")] for p in items])
 
 
 @authorized
@@ -617,7 +717,16 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     action, _, arg = q.data.partition(":")
 
     if action == "m":
-        handlers = {"stats": lambda: reply(update, stats_text()), "order": lambda: _to_order(update),
+        handlers = {"dashboard": lambda: reply(update, dashboard_text(), [[("🔄 Actualiser", "m:dashboard"), ("💰 Finances", "m:finance")],
+                                                                            [("🌐 Ouvrir le dashboard", config.DASHBOARD_URL)] if config.DASHBOARD_URL.startswith("https") else [("📈 Stats", "m:stats")]]),
+                    "finance": lambda: reply(update, finance_text(), finance_buttons()),
+                    "products": lambda: reply(update, "📦 <b>Produits</b>", [[("📝 Brouillons", "m:draft"), ("📤 Prêts", "m:ready")],
+                                                                           [("🟢 En ligne", "m:published"), ("💤 Invendus", "m:unsold")]]),
+                    "unsold": lambda: _unsold(update),
+                    "studio": lambda: cmd_studio(update, ctx),
+                    "winners": lambda: _winners(update, None),
+                    "settings": lambda: reply(update, settings_text(), settings_buttons()),
+                    "stats": lambda: reply(update, stats_text()), "order": lambda: _to_order(update),
                     "msgs": lambda: _messages(update), "ready": lambda: _list_products(update, "ready"),
                     "draft": lambda: _list_products(update, "draft"),
                     "published": lambda: _list_products(update, "published"),
@@ -631,11 +740,48 @@ async def on_button(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return await q.edit_message_text(auto_text(), parse_mode=ParseMode.HTML, reply_markup=kb(auto_buttons()))
     if action == "win":
         return await _winners(update, arg)
-    if action == "ss":
+    if action == "ss":  # anciens boutons (1.x)
         sid, status = arg.split(":")
         db.update_sale(int(sid), status=status)
-        return await reply(update, {"ordered": "🛒 Commandée", "received": "📦 Reçue", "shipped": "🚚 Envoyée"}[status]
-                           + f" : vente #{sid}")
+        return await reply(update, f"Vente #{sid} mise à jour")
+    if action == "os":  # commande fournisseur liée à une vente
+        sid, status = arg.split(":")
+        o = db.order_for_sale(int(sid))
+        if not o:
+            return await reply(update, "Commande introuvable")
+        db.update_order(o["id"], status=status, note="depuis Telegram")
+        db.log_event("telegram", f"Commande #{o['id']} : {db.ORDER_LABELS[status]}", product_id=o.get("product_id"))
+        return await reply(update, f"📦 Commande #{o['id']} : <b>{db.ORDER_LABELS[status]}</b>")
+    if action == "fin":
+        return await q.edit_message_text(finance_text(arg), parse_mode=ParseMode.HTML, reply_markup=kb(finance_buttons()))
+    if action == "opp":
+        from . import market
+        market.toggle_favorite(int(arg))
+        return await reply(update, "⭐ Opportunité suivie (ou retirée des favoris)")
+    if action == "tg":
+        if arg == "simulation":
+            db.set_setting("simulation", "off" if db.get_setting("simulation") == "on" else "on")
+        elif arg == "emergency":
+            on = db.get_setting("emergency_stop") != "on"
+            db.set_setting("emergency_stop", "on" if on else "off")
+            db.log_event("security", ("ARRÊT D'URGENCE activé" if on else "Arrêt d'urgence levé") + " (Telegram)", level="warning")
+        return await q.edit_message_text(settings_text(), parse_mode=ParseMode.HTML, reply_markup=kb(settings_buttons()))
+    if action == "cf":  # confirmation d'une action demandée à l'assistant
+        mem = store(ctx)
+        item = (mem.get("pending") or {}).pop(arg, None)
+        if not item:
+            return await reply(update, "Cette demande a expiré, redemande-la.")
+        await q.edit_message_reply_markup(kb([[("⏳ En cours…", "noop:0")]]))
+        try:
+            result = await run(assistant.execute, item["name"], item["args"])
+        except Exception as e:
+            return await reply(update, f"❌ {e}")
+        db.log_event("telegram", f"Action confirmée : {item['summary']}")
+        await q.edit_message_reply_markup(kb([[("✅ Fait", "noop:0")]]))
+        return await reply(update, "✅ Fait : " + item["summary"] + (f"\n<code>{str(result)[:300]}</code>" if result else ""))
+    if action == "cx":
+        (store(ctx).get("pending") or {}).pop(arg, None)
+        return await q.edit_message_reply_markup(kb([[("Annulé", "noop:0")]]))
     if action in ("rs", "ri", "re"):
         cid = int(arg)
         if action == "rs":
@@ -717,8 +863,13 @@ async def on_text(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     if not config.OPENAI_API_KEY:
         return await reply(update, "Tape /menu ou /aide.")
     await update.effective_chat.send_action("typing")
-    answer, mem["history"] = await run(assistant.ask, text, mem.get("history"))
+    answer, mem["history"], pending = await run(assistant.ask, text, mem.get("history"))
     await update.effective_message.reply_text(answer[:4000], disable_web_page_preview=True)
+    import secrets
+    for item in pending:  # actions importantes : confirmation explicite
+        token = secrets.token_hex(4)
+        mem.setdefault("pending", {})[token] = item
+        await reply(update, f"⚠️ <b>Confirmer ?</b>\n{item['summary']}", [[("✅ Confirmer", f"cf:{token}"), ("❌ Annuler", f"cx:{token}")]])
 
 
 # ---------------- tâches planifiées ----------------
@@ -739,26 +890,34 @@ async def job_daily_report(ctx: ContextTypes.DEFAULT_TYPE):
         await ctx.bot.send_message(chat_id, stats_text(), parse_mode=ParseMode.HTML)
 
 
+_TICK_LOCK = asyncio.Lock()
+
+
+async def job_tick(ctx: ContextTypes.DEFAULT_TYPE):
+    """Chaque minute : lance les tâches du planning arrivées à échéance (réglables dans Pilote auto)."""
+    if _TICK_LOCK.locked():
+        return  # le passage précédent tourne encore : pas d'exécution concurrente
+    async with _TICK_LOCK:
+        try:
+            await asyncio.to_thread(autopilot.tick)
+        except Exception:
+            log.exception("planning")
+
+
 def schedule(app: Application):
     jq = app.job_queue
     if not jq:
         log.warning("job-queue absent : pip install 'python-telegram-bot[job-queue]'")
         return
-    jq.run_repeating(_job(autopilot.run_sync), interval=60 * int(db.get_setting("sync_minutes") or 15), first=30)
-    jq.run_repeating(_job(autopilot.run_inbox), interval=60 * int(db.get_setting("inbox_minutes") or 10), first=60)
-    jq.run_repeating(_job(autopilot.run_publish), interval=15 * 60, first=90)
-    jq.run_daily(_job(autopilot.run_prepare_night), time(2, 0, tzinfo=TZ))
-    jq.run_daily(_job(autopilot.run_price_drops), time(3, 0, tzinfo=TZ))
-    jq.run_daily(_job(autopilot.run_market_scan), time(4, 0, tzinfo=TZ))
-    if config.notify_targets():
-        h, m = (int(x) for x in config.DAILY_REPORT_TIME.split(":"))
-        jq.run_daily(job_daily_report, time(h, m, tzinfo=TZ))
+    jq.run_repeating(job_tick, interval=60, first=20, name="autopilot-tick")
 
 
 def build_app() -> Application:
     if not config.TELEGRAM_BOT_TOKEN:
         raise SystemExit("TELEGRAM_BOT_TOKEN manquant dans .env")
     db.init()
+    from . import tasks
+    tasks.recover()
     app = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
     commands = {
         "start": cmd_start, "aide": cmd_start, "help": cmd_start, "menu": cmd_menu, "ajouter": cmd_ajouter,
@@ -767,7 +926,8 @@ def build_app() -> Application:
         "offre": cmd_offre, "vendu": cmd_vendu, "acommander": cmd_acommander, "stats": cmd_stats,
         "boutiques": cmd_boutiques, "niches": cmd_niches, "gagnants": cmd_gagnants, "auto": cmd_auto,
         "sync": cmd_sync, "messages": cmd_messages, "vinted": cmd_vinted, "activite": cmd_activite,
-        "studio": cmd_studio, "couts": cmd_couts,
+        "studio": cmd_studio, "couts": cmd_couts, "finances": cmd_finances, "parametres": cmd_parametres,
+        "commandes": cmd_acommander, "stop": cmd_stop, "reprendre": cmd_reprendre,
     }
     # messages privés, groupes ET publications du canal
     where = filters.UpdateType.MESSAGES | filters.UpdateType.CHANNEL_POSTS
@@ -782,6 +942,8 @@ def build_app() -> Application:
 
 def setup_logging():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    from .security import install_log_masking
+    install_log_masking()
     # httpx écrit chaque URL Telegram, qui contient le token du bot : on le fait taire
     for noisy in ("httpx", "httpcore", "apscheduler", "telegram.ext.Application"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

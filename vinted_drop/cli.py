@@ -17,6 +17,13 @@ import json
 from . import config, db, listing, niches, notify, photos, pricing, supplier
 
 
+def _require_password():
+    """Refuse d'exposer le dashboard sur le réseau sans mot de passe."""
+    if config.DASHBOARD_HOST not in ("127.0.0.1", "localhost") and not config.DASHBOARD_PASSWORD:
+        raise SystemExit("❌ DASHBOARD_HOST=" + config.DASHBOARD_HOST + " sans DASHBOARD_PASSWORD : ajoute un mot de passe "
+                         "dans .env (le dashboard contient tes tokens Vinted et tes finances).")
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(prog="vinted_drop")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -42,6 +49,9 @@ def main(argv=None):
     s = sub.add_parser("publish", help="publie un produit sur Vinted"); s.add_argument("id", type=int)
     sub.add_parser("scan", help="analyse du marché Vinted pour toutes les niches")
     sub.add_parser("all", help="lance le dashboard ET le bot (pilote automatique inclus)")
+    sub.add_parser("autopilot", help="pilote automatique seul, sans Telegram (boucle chaque minute)")
+    s = sub.add_parser("backup", help="sauvegarde la base"); s.add_argument("--restore", help="nom du fichier à restaurer")
+    sub.add_parser("check", help="vérifie la configuration (clés, sécurité, base)")
     sub.add_parser("bot")
     a = ap.parse_args(argv)
     db.init()
@@ -91,6 +101,7 @@ def main(argv=None):
                           "total": db.stats()}, ensure_ascii=False, indent=2))
     elif a.cmd == "dashboard":
         import uvicorn
+        _require_password()
         print(f"✅ Dashboard : http://localhost:{config.DASHBOARD_PORT}")
         uvicorn.run("vinted_drop.dashboard.app:app", host=config.DASHBOARD_HOST, port=config.DASHBOARD_PORT)
     elif a.cmd == "cycle":
@@ -110,9 +121,39 @@ def main(argv=None):
         from . import autopilot
         for n in autopilot.run_market_scan() or []:
             print(n["score"], n["name"])
+    elif a.cmd == "autopilot":
+        import time as _t
+        from . import autopilot, tasks
+        tasks.recover()
+        print("Pilote automatique lancé (Ctrl+C pour arrêter)")
+        while True:
+            ran = autopilot.tick()
+            if ran:
+                print(f"{db.now()} : {', '.join(ran)}")
+            _t.sleep(60)
+    elif a.cmd == "backup":
+        from . import backup
+        if a.restore:
+            print(f"Restauré. État précédent : {backup.restore(a.restore)}")
+        else:
+            print(f"Sauvegarde : {backup.backup('manuelle')}")
+    elif a.cmd == "check":
+        from .image_providers import available
+        rows = [("Base", str(config.DB_PATH)), ("Générateurs d'images", ", ".join(available()) or "aucun"),
+                ("OpenAI (texte)", "oui" if config.OPENAI_API_KEY else "non"),
+                ("Telegram", "oui" if config.TELEGRAM_BOT_TOKEN else "non"),
+                ("Discussions autorisées", ", ".join(map(str, sorted(config.telegram_chats()))) or "aucune (bot fermé)"),
+                ("Dashboard", f"{config.DASHBOARD_HOST}:{config.DASHBOARD_PORT} · mot de passe {'oui' if config.DASHBOARD_PASSWORD else 'non'}"),
+                ("Boutiques", str(len(db.list_shops()))),
+                ("Boutiques connectées à Vinted", str(sum(1 for s in db.list_shops() if s.get('vinted_status') == 'connected')))]
+        for k, v in rows:
+            print(f"  {k:<30} {v}")
+        if config.DASHBOARD_HOST != "127.0.0.1" and not config.DASHBOARD_PASSWORD:
+            print("  ⚠️  Dashboard ouvert sur le réseau sans DASHBOARD_PASSWORD")
     elif a.cmd == "all":
         import asyncio
         import uvicorn
+        _require_password()
         from .telegram_bot import run_with_dashboard
         server = uvicorn.Server(uvicorn.Config("vinted_drop.dashboard.app:app", host=config.DASHBOARD_HOST,
                                                port=config.DASHBOARD_PORT, log_level="warning"))

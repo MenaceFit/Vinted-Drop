@@ -1,50 +1,89 @@
-{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, pager, empty %}
 {% block title %}Produits{% endblock %}
 {% block heading %}Produits{% endblock %}
-{% block subtitle %}<p class="muted">{{ products|length }} produit{{ 's' if products|length != 1 }}{% if statut %} · {{ statut }}{% endif %}</p>{% endblock %}
-{% block actions %}<a class="btn ghost" href="/niches">{{ icon('target',16) }} Produits gagnants</a>{% endblock %}
+{% block subtitle %}<p class="muted">{{ total }} produit{{ 's' if total != 1 }}{% if statut %} · filtre « {{ statut }} »{% endif %}{% if q %} · recherche « {{ q }} »{% endif %}</p>{% endblock %}
+{% block actions %}<a class="btn ghost" href="/gagnants">{{ icon('trophy') }} Produits gagnants</a>{% endblock %}
 {% block content %}
-<details class="card reveal" {{ 'open' if not products }}>
-  <summary>{{ icon('plus',16) }} Ajouter un produit</summary>
-  <form method="post" action="/produits" class="row end" style="margin-top:12px">
-    <div style="flex:2;min-width:220px"><label>Lien fournisseur</label><input class="w-full" name="url" placeholder="https://fr.shein.com/… ou temu.com/…"></div>
-    <div><label>Prix d'achat</label><input name="cost" type="number" step="0.01" placeholder="14,90" required style="width:120px"></div>
-    <div><label>Taille</label><input name="size" placeholder="M" style="width:80px"></div>
+{% set qs = '&statut=' ~ (statut or '') ~ '&boutique=' ~ (boutique or '') ~ '&q=' ~ q ~ '&tri=' ~ tri ~ '&niche=' ~ (niche or '') ~ '&vue=' ~ vue %}
+<details class="card reveal" {{ 'open' if not total and not q and not statut }}>
+  <summary>{{ icon('plus') }} Ajouter un produit</summary>
+  <form method="post" action="/produits" class="row end" style="margin-top:6px">
+    <div class="grow" style="min-width:240px"><label>Lien fournisseur</label><input class="w-full" name="url" placeholder="https://www.temu.com/… ou fr.shein.com/…"></div>
+    <div><label>Prix d'achat</label><input name="cost" inputmode="decimal" placeholder="24,90" required style="width:100px"></div>
+    <div><label>Frais fournisseur</label><input name="supplier_fees" inputmode="decimal" placeholder="0" style="width:100px"></div>
+    <div><label>Port</label><input name="shipping_cost" inputmode="decimal" placeholder="0" style="width:80px"></div>
+    <div><label>Taille</label><input name="size" placeholder="M" style="width:70px"></div>
     <div><label>Boutique</label><select name="shop_id"><option value="">—</option>{% for s in shops %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select></div>
     <button class="btn">Ajouter</button>
   </form>
-  <p class="faint" style="margin:10px 0 0;font-size:12.5px">Si l'image n'est pas récupérée, tu pourras l'envoyer sur la fiche produit (ou par Telegram).</p>
+  <p class="help">L'image est récupérée en arrière-plan ; si le site la bloque, envoie la capture sur la fiche produit ou par Telegram.</p>
 </details>
 
-<div class="row mt reveal" style="justify-content:space-between">
+<form method="get" class="row between mt reveal">
   <div class="chips">
-    <a class="chip {{ 'on' if not statut }}" href="/produits{{ '?boutique=%s'|format(boutique) if boutique }}">Tous</a>
+    <a class="chip {{ 'on' if not statut }}" href="/produits?boutique={{ boutique or '' }}&vue={{ vue }}">Tous</a>
     {% for s, l in [('draft','Brouillons'),('ready','Prêts'),('published','En ligne'),('sold','Vendus'),('archived','Archivés')] %}
-    <a class="chip {{ 'on' if statut==s }}" href="/produits?statut={{ s }}{{ '&boutique=%s'|format(boutique) if boutique }}">{{ l }}</a>{% endfor %}
+    <a class="chip {{ 'on' if statut==s }}" href="/produits?statut={{ s }}&boutique={{ boutique or '' }}&vue={{ vue }}">{{ l }}</a>{% endfor %}
   </div>
-  <form method="get"><input type="hidden" name="statut" value="{{ statut or '' }}">
-    <select name="boutique" onchange="this.form.submit()"><option value="">Toutes les boutiques</option>
-    {% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if boutique==s.id }}>{{ s.name }}</option>{% endfor %}</select></form>
+  <div class="row">
+    <input type="hidden" name="statut" value="{{ statut or '' }}"><input type="hidden" name="vue" value="{{ vue }}">
+    <input name="q" value="{{ q }}" placeholder="Titre ou #id" style="width:170px">
+    <select name="boutique" onchange="this.form.submit()"><option value="">Toutes les boutiques</option>{% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if boutique==s.id }}>{{ s.name }}</option>{% endfor %}</select>
+    <select name="tri" onchange="this.form.submit()">{% for k, l in [('recent','Plus récents'),('old','Plus anciens'),('price','Prix ↓'),('price_asc','Prix ↑'),('favs','Favoris'),('title','Titre')] %}<option value="{{ k }}" {{ 'selected' if tri==k }}>{{ l }}</option>{% endfor %}</select>
+    <div class="seg"><a href="?vue=grille{{ qs|replace('&vue=' ~ vue, '') }}" class="{{ 'on' if vue=='grille' }}">Grille</a><a href="?vue=liste{{ qs|replace('&vue=' ~ vue, '') }}" class="{{ 'on' if vue=='liste' }}">Liste</a></div>
+  </div>
+</form>
+
+<form method="post" action="/produits/lot" id="bulk">
+<div class="card mt reveal" data-bulkbar style="display:none;position:sticky;top:10px;z-index:5;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px">
+  <b><span data-bulkcount>0</span> sélectionné(s)</b>
+  <button class="btn sm" name="action" value="preparer">{{ icon('spark', 13) }} Préparer</button>
+  <button class="btn ghost sm" name="action" value="photos">Photos</button>
+  <button class="btn ghost sm" name="action" value="fiche">Fiches</button>
+  <select name="shop_id" style="padding:5px 8px"><option value="">Boutique…</option>{% for s in shops %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}</select>
+  <button class="btn ghost sm" name="action" value="boutique">Attribuer</button>
+  <button class="btn ghost sm" name="action" value="archiver" data-confirm="Archiver les produits sélectionnés ?">Archiver</button>
 </div>
 
 {% if products %}
+{% if vue == 'liste' %}
+<div class="card mt reveal"><div class="table-wrap"><table data-sortable><thead><tr>
+  <th><input type="checkbox" data-checkall="ids"></th><th></th><th data-sort="text">Produit</th><th data-sort="text">Boutique</th>
+  <th data-sort class="r">Achat</th><th data-sort class="r">Prix</th><th data-sort class="r">Bénéfice</th><th data-sort class="r">Favoris</th><th>Statut</th></tr></thead><tbody>
+{% for p in products %}{% set img = (p.photos[0] if p.photos else p.supplier_image) %}
+<tr><td><input type="checkbox" name="ids" value="{{ p.id }}"></td>
+  <td>{% if img %}<img class="thumb" src="/media/{{ img }}" loading="lazy" alt="">{% endif %}</td>
+  <td><a href="/produit/{{ p.id }}">{{ (p.title or p.supplier_title or 'Sans titre')[:60] }}</a><br><span class="faint tiny">#{{ p.id }}{% if p.cost_unknown %} · <span class="warn">prix d'achat à renseigner</span>{% endif %}</span></td>
+  <td>{{ p.shop_name or '—' }}</td><td class="r num">{{ p.cost|eur }}</td><td class="r num">{{ p.price|eur if p.price else '—' }}</td>
+  <td class="r num {{ 'good' if p.price and (p.price - p.cost) > 0 }}">{{ (p.price - p.cost - (p.supplier_fees or 0) - (p.shipping_cost or 0) - (p.other_fees or 0) - 0.5)|eur if p.price else '—' }}</td>
+  <td class="r num">{{ p.favourites or 0 }}</td>
+  <td>{% if p.id in running %}{{ badge('running') }}{% else %}{{ badge(p.status) }}{% endif %}</td></tr>
+{% endfor %}</tbody></table></div></div>
+{% else %}
+<div class="row mt reveal small muted"><label class="row" style="margin:0;font-weight:500"><input type="checkbox" data-checkall="ids"> Tout sélectionner sur cette page</label></div>
 <div class="pgrid mt">
 {% for p in products %}{% set img = (p.photos[0] if p.photos else p.supplier_image) %}
-  <a class="card pcard hover reveal" href="/produit/{{ p.id }}">
-    <div class="img">{% if img %}<img src="/media/{{ img }}" loading="lazy" alt="">{% else %}<span class="noimg">👗</span>{% endif %}
-      {{ badge(p.status) }}{% if p.id in running %}<span class="badge ready" style="left:auto;right:10px">⏳ IA</span>{% endif %}</div>
+  <div class="card pcard hover reveal">
+    <input class="sel" type="checkbox" name="ids" value="{{ p.id }}" aria-label="Sélectionner">
+    <a class="img" href="/produit/{{ p.id }}">{% if img %}<img src="/media/{{ img }}" loading="lazy" alt="">{% else %}<span class="noimg">sans image</span>{% endif %}
+      {% if p.id in running %}{{ badge('running') }}{% else %}{{ badge(p.status) }}{% endif %}</a>
     <div class="body">
-      <span class="title">{{ p.title or p.supplier_title or 'Sans titre' }}</span>
-      <span class="faint" style="font-size:12px">#{{ p.id }} · {{ p.shop_name or 'sans boutique' }}{% if p.vinted_item_id %} · ❤️ {{ p.favourites }}{% endif %}</span>
-      <div class="row" style="justify-content:space-between;margin-top:8px">
+      <a class="title" href="/produit/{{ p.id }}">{{ p.title or p.supplier_title or 'Sans titre' }}</a>
+      <span class="faint tiny">#{{ p.id }} · {{ p.shop_name or 'sans boutique' }}{% if p.vinted_item_id %} · {{ p.favourites }} ♥{% endif %}</span>
+      <div class="row between" style="margin-top:6px">
         <span class="price num">{{ p.price|eur if p.price else '—' }}</span>
-        {% if p.price and p.cost %}<span class="badge plain good" style="background:var(--good-soft);border:0">+{{ (p.price - p.cost - 0.5)|eur }}</span>{% endif %}
+        {% if p.price %}{% set gain = p.price - p.cost - (p.supplier_fees or 0) - (p.shipping_cost or 0) - (p.other_fees or 0) - 0.5 %}
+        <span class="badge plain {{ 'published' if gain >= 30 else ('sold' if gain > 0 else 'error') }}">+{{ gain|eur }}</span>{% endif %}
       </div>
     </div>
-  </a>
+  </div>
 {% endfor %}
 </div>
+{% endif %}
+</form>
+{{ pager(page, pages=pages, base='/produits?', extra=qs) }}
 {% else %}
-<div class="card empty mt reveal"><span class="big">🛍️</span><b>Aucun produit ici.</b><br>Importe des produits gagnants en un clic depuis <a href="/niches">Produits gagnants</a>.</div>
+</form>
+<div class="card mt reveal">{{ empty('Aucun produit ici', 'Importe des produits en un clic depuis <a href="/gagnants">Produits gagnants</a>.') }}</div>
 {% endif %}
 {% endblock %}

@@ -1,24 +1,24 @@
-{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, period_bar, pager, empty %}
 {% block title %}Ventes{% endblock %}
 {% block heading %}Ventes{% endblock %}
-{% block subtitle %}<p class="muted">{{ sales|length }} vente{{ 's' if sales|length != 1 }} · bénéfice {{ sales|sum(attribute='profit')|eur }}</p>{% endblock %}
+{% block subtitle %}<p class="muted">{{ fin.sales }} vente{{ 's' if fin.sales != 1 }} · CA {{ fin.revenue|eur }} · bénéfice {{ fin.profit|eur }} · {{ per.label }}</p>{% endblock %}
+{% block actions %}{{ period_bar(per, '/ventes', '&statut=' ~ (statut or '') ~ '&boutique=' ~ (boutique or '')) }}{% endblock %}
 {% block content %}
-<div class="chips reveal">
-  <a class="chip {{ 'on' if not statut }}" href="/ventes">Toutes</a>
-  {% for s, l in [('to_order','🛒 À commander'),('ordered','Commandées'),('received','Reçues'),('shipped','Envoyées'),('done','Terminées')] %}
-  <a class="chip {{ 'on' if statut==s }}" href="/ventes?statut={{ s }}">{{ l }}</a>{% endfor %}
-</div>
+<form method="get" class="row between reveal"><input type="hidden" name="period" value="{{ per.key }}">
+  <div class="chips"><a class="chip {{ 'on' if not statut }}" href="/ventes?period={{ per.key }}">Toutes</a>
+  {% for s, l in [('to_order','À commander'),('ordered','Commandées'),('received','Reçues'),('shipped','Envoyées'),('done','Terminées')] %}<a class="chip {{ 'on' if statut==s }}" href="/ventes?statut={{ s }}&period={{ per.key }}">{{ l }}</a>{% endfor %}</div>
+  <select name="boutique" onchange="this.form.submit()"><option value="">Toutes les boutiques</option>{% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if boutique==s.id }}>{{ s.name }}</option>{% endfor %}</select>
+</form>
 <div class="card mt reveal">
-{% if sales %}<div class="table-wrap"><table>
-<thead><tr><th>Produit</th><th>Boutique</th><th>Date</th><th>Prix</th><th>Bénéfice</th><th>Fournisseur</th><th>Statut</th></tr></thead><tbody>
-{% for s in sales %}
-<tr><td><a href="/produit/{{ s.product_id }}" style="color:inherit"><b>{{ (s.title or '?')[:46] }}</b></a><br><span class="faint" style="font-size:12px">#{{ s.id }} · T. {{ s.size or '?' }}{% if s.buyer %} · {{ s.buyer }}{% endif %}{% if s.source == 'vinted' %} · auto{% endif %}</span></td>
-  <td>{{ s.shop_name or '—' }}</td><td class="muted num" style="white-space:nowrap">{{ s.sold_at[5:16] }}</td>
-  <td class="num">{{ s.sale_price|eur }}</td><td class="num good"><b>+{{ s.profit|eur }}</b></td>
-  <td>{% if s.supplier_url %}<a class="btn ghost sm" href="{{ s.supplier_url }}" target="_blank">Commander {{ icon('ext',13) }}</a>{% endif %}</td>
-  <td><form method="post" action="/vente/{{ s.id }}/statut"><select name="status" onchange="this.form.submit()">
-    {% for st, l in [('to_order','À commander'),('ordered','Commandé'),('received','Reçu'),('shipped','Envoyé'),('done','Terminé')] %}<option value="{{ st }}" {{ 'selected' if s.status==st }}>{{ l }}</option>{% endfor %}</select></form></td></tr>
-{% endfor %}</tbody></table></div>
-{% else %}<div class="empty"><span class="big">💸</span>Aucune vente{{ ' avec ce statut' if statut }}.</div>{% endif %}
+{% if sales %}<div class="table-wrap"><table data-sortable><thead><tr><th data-sort="text">Produit</th><th data-sort="text">Boutique</th><th data-sort="text">Date</th><th data-sort class="r">Prix</th><th data-sort class="r">Coût</th><th data-sort class="r">Bénéfice</th><th>Fournisseur</th><th>Statut client</th></tr></thead><tbody>
+{% for s in sales %}<tr><td><a href="/produit/{{ s.product_id }}"><b>{{ (s.title or '?')[:46] }}</b></a><br><span class="faint tiny">#{{ s.id }} · T. {{ s.size or '?' }}{% if s.buyer %} · {{ s.buyer }}{% endif %}{% if s.source == 'vinted' %} · détectée auto{% endif %}</span></td>
+  <td>{{ s.shop_name or '—' }}</td><td class="muted num small" data-v="{{ s.sold_at }}">{{ s.sold_at|dt }}</td>
+  <td class="r num">{{ s.sale_price|eur }}</td><td class="r num">{{ s.cost|eur }}</td><td class="r num good"><b>{{ s.profit|eur }}</b></td>
+  <td>{% if s.supplier_url %}<a class="btn ghost sm" href="{{ s.supplier_url }}" target="_blank" rel="noopener">Commander {{ icon('ext', 12) }}</a>{% endif %}</td>
+  <td><form method="post" action="/vente/{{ s.id }}/statut"><select name="status" onchange="this.form.submit()" style="padding:4px 6px;font-size:12px">
+    {% for st, l in [('to_order','À commander'),('ordered','Commandé'),('received','Reçu'),('shipped','Envoyé'),('done','Terminé')] %}<option value="{{ st }}" {{ 'selected' if s.status==st }}>{{ l }}</option>{% endfor %}</select></form></td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}{{ empty('Aucune vente sur cette période', 'Les ventes Vinted sont détectées toutes seules quand la boutique est connectée.') }}{% endif %}
 </div>
+{{ pager(page, has_next=has_next, base='/ventes?', extra='&period=' ~ per.key ~ '&statut=' ~ (statut or '') ~ '&boutique=' ~ (boutique or '')) }}
 {% endblock %}

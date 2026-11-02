@@ -42,6 +42,8 @@ ENDPOINTS = {
     "search": "GET /catalog/items",
 }
 
+DOMAINS = ("vinted.fr", "vinted.be", "vinted.es", "vinted.it", "vinted.de", "vinted.nl", "vinted.co.uk", "vinted.pl",
+           "vinted.lu", "vinted.at", "vinted.pt")
 MIN_INTERVAL = 2.5  # secondes minimum entre deux requêtes d'un même compte
 
 

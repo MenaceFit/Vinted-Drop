@@ -1,0 +1,57 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, kpi, period_bar, empty %}
+{% block title %}{{ shop.name }}{% endblock %}
+{% block heading %}<a href="/boutiques" class="faint" style="font-weight:500;text-decoration:none">Boutiques /</a> {{ shop.name }}{% endblock %}
+{% block subtitle %}<p class="muted">{{ shop.niche or 'sans niche' }} · {{ badge(shop.vinted_status or 'disconnected') }}{% if shop.vinted_login %} @{{ shop.vinted_login }}{% endif %}</p>{% endblock %}
+{% block actions %}{{ period_bar(per, '/boutique/' ~ shop.id) }}<a class="btn ghost" href="/connexions#shop-{{ shop.id }}">{{ icon('key') }} Connexion Vinted</a>{% endblock %}
+{% block content %}
+<div class="grid g5">
+  {{ kpi("Bénéfice net", fin.net_profit, 'eur', '', None, 'euro', hero=True) }}
+  {{ kpi("Chiffre d'affaires", fin.revenue, 'eur', (fin.sales ~ ' ventes'), None, 'trend') }}
+  {{ kpi("Marge nette", fin.net_margin_pct, 'pct', '', None, 'columns') }}
+  {{ kpi("Annonces actives", fin.products.published, 'int', (fin.products.draft ~ ' brouillons'), None, 'box') }}
+  {{ kpi("Coûts IA", fin.ai_costs, 'eur', '', None, 'spark') }}
+</div>
+<div class="grid g21 mt">
+  <div class="stack">
+    <div class="card reveal"><div class="card-head"><h2>Évolution</h2><span class="muted">{{ per.label }}</span></div>
+      <div class="chart"><div data-chart='{{ series|tojson }}' data-key="profit" data-bars="revenue" style="height:100%"></div><div class="tip"></div></div></div>
+    <div class="card reveal"><div class="card-head"><h2>Historique des ventes</h2></div>
+      {% if sales %}<div class="table-wrap"><table data-sortable><thead><tr><th data-sort="text">Date</th><th data-sort="text">Produit</th><th data-sort class="r">Prix</th><th data-sort class="r">Bénéfice</th></tr></thead><tbody>
+      {% for s in sales %}<tr><td class="small" data-v="{{ s.sold_at }}">{{ s.sold_at|dt }}</td><td><a href="/produit/{{ s.product_id }}">{{ (s.title or '?')[:44] }}</a></td><td class="r num">{{ s.sale_price|eur }}</td><td class="r num good">{{ s.profit|eur }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}{{ empty('Aucune vente sur la période') }}{% endif %}</div>
+    <div class="grid g2">
+      <div class="card reveal"><div class="card-head"><h2>Commandes en cours</h2><a class="small" href="/commandes?boutique={{ shop.id }}">Voir</a></div>
+        {% if orders %}<ul class="timeline">{% for o in orders %}<li><span class="dot">▸</span><span>{{ (o.title or '?')[:34] }}</span><span>{{ badge(o.status) }}</span></li>{% endfor %}</ul>{% else %}{{ empty('Aucune commande ouverte', '', '✓') }}{% endif %}</div>
+      <div class="card reveal"><div class="card-head"><h2>Invendus (+14 j)</h2></div>
+        {% if unsold %}<ul class="timeline">{% for p in unsold %}<li><span class="dot">·</span><a href="/produit/{{ p.id }}">{{ (p.title or '?')[:34] }}</a><span class="faint tiny">{{ p.favourites or 0 }} ♥</span></li>{% endfor %}</ul>{% else %}{{ empty('Aucun invendu', '', '✓') }}{% endif %}</div>
+    </div>
+    <div class="card reveal"><div class="card-head"><h2>Historique des opérations</h2><a class="small" href="/activite?boutique={{ shop.id }}">Journal complet</a></div>
+      {% if events %}<ul class="timeline">{% for e in events %}<li><span class="dot {{ e.level }}">·</span><span>{{ e.message[:100] }}</span><span class="faint tiny">{{ e.created_at|dt }}</span></li>{% endfor %}</ul>{% else %}{{ empty('Aucune opération') }}{% endif %}</div>
+  </div>
+
+  <div class="card reveal" style="align-self:start"><div class="card-head"><h2>{{ icon('gear') }} Réglages de la boutique</h2></div>
+  <form method="post" action="/boutique/{{ shop.id }}/reglages">
+    <label>Nom</label><input name="name" value="{{ shop.name }}" class="w-full" maxlength="60">
+    <label>Niche principale</label><select name="niche" class="w-full"><option value="">—</option>{% for n in niches %}<option value="{{ n.id }}" {{ 'selected' if shop.niche==n.id }}>{{ n.name }}</option>{% endfor %}</select>
+    <label>Modèle photo</label><select name="persona_id" class="w-full"><option value="">—</option>{% for m in personas %}<option value="{{ m.id }}" {{ 'selected' if shop.persona_id==m.id }}>{{ m.name }}</option>{% endfor %}</select>
+    <label>Modèle d'annonce Vinted</label><select name="template_id" class="w-full"><option value="">— aucun : publication impossible —</option>{% for t in templates %}<option value="{{ t.id }}" {{ 'selected' if shop.template_id==t.id }}>{{ t.name }}</option>{% endfor %}</select>
+    <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div><label>Publier de (h)</label><input name="publish_start" inputmode="numeric" value="{{ shop.publish_start if shop.publish_start is not none else '' }}" placeholder="global" class="w-full"></div>
+      <div><label>à (h)</label><input name="publish_end" inputmode="numeric" value="{{ shop.publish_end if shop.publish_end is not none else '' }}" placeholder="global" class="w-full"></div>
+      <div><label>Quota / jour</label><input name="daily_quota" inputmode="numeric" value="{{ shop.daily_quota or 20 }}" class="w-full"></div>
+      <div><label>Objectif / mois (€)</label><input name="monthly_goal" inputmode="decimal" value="{{ shop.monthly_goal or '' }}" class="w-full"></div>
+      <div><label>Bénéfice mini (€)</label><input name="min_profit" inputmode="decimal" value="{{ shop.min_profit or '' }}" placeholder="global" class="w-full"></div>
+      <div><label>Active</label><select name="active" class="w-full"><option value="1" {{ 'selected' if shop.active }}>Oui</option><option value="0" {{ 'selected' if not shop.active }}>En pause</option></select></div>
+    </div>
+    <label>Style des annonces</label><select name="listing_style" class="w-full"><option value="">global</option>{% for k in styles %}<option value="{{ k }}" {{ 'selected' if shop.listing_style==k }}>{{ k }}</option>{% endfor %}</select>
+    <div class="grid" style="grid-template-columns:1fr 1fr;gap:8px">
+      <div><label>Fournisseur photo</label><select name="photo_provider" class="w-full"><option value="">global</option>{% for v in ['auto'] + providers %}<option value="{{ v }}" {{ 'selected' if shop.photo_provider==v }}>{{ v }}</option>{% endfor %}</select></div>
+      <div><label>Jeu de photos</label><select name="photo_set" class="w-full"><option value="">global</option>{% for v in sets %}<option value="{{ v }}" {{ 'selected' if shop.photo_set==v }}>{{ v }}</option>{% endfor %}</select></div>
+    </div>
+    <label>Lien du profil Vinted</label><input name="vinted_url" value="{{ shop.vinted_url or '' }}" class="w-full">
+    <label>Notes</label><textarea name="notes" style="min-height:70px">{{ shop.notes or '' }}</textarea>
+    <p class="help">Les champs « global » reprennent les Paramètres généraux. Les données de chaque boutique restent séparées (ventes, coûts, journal).</p>
+    <div class="mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div>
+  </form></div>
+</div>
+{% endblock %}

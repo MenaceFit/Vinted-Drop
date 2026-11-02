@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, period_bar, pager, empty %}
+{% block title %}Activité{% endblock %}
+{% block heading %}Activité{% endblock %}
+{% block subtitle %}<p class="muted">Tout ce que font le bot, le dashboard et Telegram : synchronisations, publications, photos, finances, erreurs.</p>{% endblock %}
+{% block actions %}{{ period_bar(per, '/activite', '&type=' ~ (sel or '') ~ '&boutique=' ~ (boutique or '') ~ '&niveau=' ~ (niveau or '')) }}{% endblock %}
+{% block content %}
+<form method="get" class="row reveal"><input type="hidden" name="period" value="{{ per.key }}">
+  <select name="type" onchange="this.form.submit()"><option value="">Toutes les catégories</option>{% for k, l in categories.items() %}<option value="{{ k }}" {{ 'selected' if sel==k }}>{{ l }}</option>{% endfor %}</select>
+  <select name="boutique" onchange="this.form.submit()"><option value="">Toutes les boutiques</option>{% for s in shops %}<option value="{{ s.id }}" {{ 'selected' if boutique==s.id }}>{{ s.name }}</option>{% endfor %}</select>
+  <select name="niveau" onchange="this.form.submit()"><option value="">Tous les statuts</option>{% for k, l in [('info','Info'),('warning','Attention'),('error','Erreur')] %}<option value="{{ k }}" {{ 'selected' if niveau==k }}>{{ l }}</option>{% endfor %}</select>
+  <input name="q" value="{{ q }}" placeholder="Rechercher…" style="width:200px"><button class="btn ghost sm">Filtrer</button>
+</form>
+<div class="grid g21 mt">
+  <div class="card reveal">
+  {% if events %}<div class="table-wrap"><table data-sortable><thead><tr><th data-sort="text">Date</th><th data-sort="text">Catégorie</th><th data-sort="text">Message</th><th data-sort="text">Boutique</th></tr></thead><tbody>
+  {% for e in events %}<tr><td class="small num" data-v="{{ e.created_at }}">{{ e.created_at|dt }}</td><td>{% if e.level in ('error','warning') %}{{ badge(e.level) }}{% else %}<span class="badge plain">{{ categories.get(e.kind, e.kind) }}</span>{% endif %}</td>
+    <td class="small">{{ e.message }}{% if e.source %} <span class="faint tiny">· {{ e.source }}</span>{% endif %}{% if e.product_id %} · <a class="tiny" href="/produit/{{ e.product_id }}">#{{ e.product_id }}</a>{% endif %}</td><td class="small">{{ e.shop_name or '' }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ empty('Aucune activité avec ces filtres') }}{% endif %}
+  {{ pager(page, has_next=has_next, base='/activite?', extra='&period=' ~ per.key ~ '&type=' ~ (sel or '') ~ '&boutique=' ~ (boutique or '') ~ '&niveau=' ~ (niveau or '') ~ '&q=' ~ q) }}
+  </div>
+  <div class="card reveal" style="align-self:start"><div class="card-head"><h2>Tâches de fond</h2><span class="muted">40 dernières</span></div>
+  {% if task_list %}<ul class="timeline">{% for t in task_list %}<li><span class="dot {{ 'error' if t.status == 'error' }}">{{ {'success':'✓','error':'!','running':'…','queued':'·','cancelled':'×'}.get(t.status, '·') }}</span>
+    <span class="small"><b>#{{ t.id }}</b> {{ t.label or t.kind }} {{ badge(t.status) }}{% if t.attempts and t.attempts > 1 %} <span class="faint tiny">{{ t.attempts }} essais</span>{% endif %}
+      <div class="faint tiny">{{ t.source }} · début {{ t.started_at|dt('%d/%m %H:%M:%S') }}{% if t.finished_at %} · fin {{ t.finished_at|dt('%H:%M:%S') }}{% endif %}</div>
+      {% if t.error %}<div class="tiny bad">{{ t.error[:200] }}</div>{% endif %}</span>
+    <span>{% if t.status == 'queued' %}<form method="post" action="/tache/{{ t.id }}/annuler"><button class="btn ghost sm">Annuler</button></form>{% endif %}</span></li>{% endfor %}</ul>
+  {% else %}{{ empty('Aucune tâche') }}{% endif %}</div>
+</div>
+{% endblock %}

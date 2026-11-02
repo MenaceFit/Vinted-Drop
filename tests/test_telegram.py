@@ -90,3 +90,51 @@ def test_channel_button_requires_admin(monkeypatch):
     telegram_bot._ADMIN_CACHE.clear()
     assert asyncio.run(telegram_bot._is_channel_admin(Bot(), -100, 1))
     assert not asyncio.run(telegram_bot._is_channel_admin(Bot(), -100, 2))
+
+
+def test_menu_has_ten_sections_and_views_render():
+    from vinted_drop import db, telegram_bot
+    db.init()
+    labels = [t for row in telegram_bot.main_menu() for t, _ in row]
+    for needed in ("Dashboard", "Finances", "Boutiques", "Produits", "Studio photo", "Niches", "Produits gagnants",
+                   "Pilote automatique", "Statistiques", "Paramètres"):
+        assert any(needed in l for l in labels), needed
+    assert "Tableau de bord" in telegram_bot.dashboard_text()
+    assert "bénéfice net" in telegram_bot.finance_text("7d")
+    assert "Simulation" in telegram_bot.settings_text()
+
+
+def test_assistant_pending_action_flow(monkeypatch):
+    """L'assistant propose une publication : rien n'est publié tant que l'utilisateur n'a pas confirmé."""
+    from vinted_drop import assistant, db
+    db.init()
+    calls = iter([
+        {"tool_calls": [{"id": "1", "function": {"name": "publish_product", "arguments": '{"id": 1}'}}]},
+        {"content": "Je te demande confirmation pour publier."}])
+    monkeypatch.setattr(assistant.ai, "chat_tools", lambda m, t: next(calls))
+    published = []
+    monkeypatch.setattr(assistant.publisher, "publish", lambda pid: published.append(pid))
+    answer, hist, pending = assistant.ask("publie le produit 1")
+    assert pending and pending[0]["name"] == "publish_product" and published == []
+
+
+def test_bot_closed_when_no_chat_configured(monkeypatch):
+    from vinted_drop import config, telegram_bot
+    monkeypatch.setattr(config, "TELEGRAM_ALLOWED_CHAT_IDS", set())
+    monkeypatch.setattr(config, "TELEGRAM_CHANNEL_ID", None)
+    ran, replies = [], []
+
+    class Msg:
+        async def reply_text(self, t, **k): replies.append(t)
+
+    class Chat:
+        id, type = 555, "private"
+
+    class Upd:
+        effective_chat, effective_message, callback_query = Chat(), Msg(), None
+
+    @telegram_bot.authorized
+    async def secret(update, ctx):
+        ran.append(1)
+    asyncio.run(secret(Upd(), None))
+    assert not ran and "555" in replies[0]

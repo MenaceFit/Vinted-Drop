@@ -419,13 +419,16 @@ def set_cover(product_id: int, relpath: str):
         db.update_product(product_id, photos=[relpath] + [x for x in p["photos"] if x != relpath])
 
 
-def summary(p: dict) -> list[dict]:  # noqa: D401
-    """Photos + métadonnées, dans l'ordre (la 1re = couverture)."""
+def summary(p: dict) -> list[dict]:
+    """Photos + métadonnées, dans l'ordre (la 1re = couverture). Les photos sans métadonnées
+    (ajoutées à la main, importées) ont des valeurs par défaut."""
     meta = p.get("photo_meta") or {}
     out = []
     for i, ph in enumerate(p.get("photos") or []):
         m = meta.get(ph, {})
         spec = SHOTS.get(m.get("kind"), {})
-        out.append({"path": ph, "index": i, "cover": i == 0, "label": spec.get("label", "Photo"),
-                    "emoji": spec.get("emoji", "📷"), **m})
+        out.append({"kind": None, "provider": None, "model": None, "scene": None, "fidelity": None, "realism": None,
+                    "issues": [], "tries": None, "duration": None, "cost": None, **m,
+                    "path": ph, "index": i, "cover": i == 0, "label": spec.get("label", "Photo"),
+                    "emoji": spec.get("emoji", "📷")})
     return out

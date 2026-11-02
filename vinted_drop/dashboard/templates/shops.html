@@ -1,93 +1,34 @@
-{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
+{% extends "base.html" %}{% from "_ui.html" import icon, badge, period_bar, empty %}
 {% block title %}Boutiques{% endblock %}
 {% block heading %}Boutiques{% endblock %}
-{% block subtitle %}<p class="muted">Connecte chaque compte Vinted, choisis sa niche, son modèle photo et son modèle d'annonce.</p>{% endblock %}
+{% block subtitle %}<p class="muted">Chaque boutique a son compte Vinted, sa niche, son modèle photo, ses quotas et ses objectifs.</p>{% endblock %}
+{% block actions %}{{ period_bar(per, '/boutiques') }}<a class="btn ghost" href="/boutiques/comparer">{{ icon('columns') }} Comparer</a>{% endblock %}
 {% block content %}
-<div class="stack">
-{% for s in all_shops %}{% set perf = shops|selectattr('id','equalto',s.id)|first %}
-<div class="card reveal">
-  <div class="row" style="justify-content:space-between">
-    <div class="row">
-      <span class="logo" style="width:44px;height:44px;border-radius:14px;font-weight:800;font-size:18px">{{ s.name[0]|upper }}</span>
-      <div><h2 style="font-size:17px">{{ s.name }} {% if s.vinted_login %}<a href="https://www.{{ s.vinted_domain or 'vinted.fr' }}/member/{{ s.vinted_user_id }}" target="_blank" style="font-size:13px;font-weight:500">@{{ s.vinted_login }}</a>{% endif %}</h2>
-      <span class="muted" style="font-size:13px">{{ s.niche or 'sans niche' }} · {{ perf.online }} en ligne · {{ perf.sales }} ventes · <span class="good">{{ perf.profit|eur }}</span></span></div>
+<div class="grid g3">
+{% for s in shops %}
+  <a class="card hover reveal" href="/boutique/{{ s.id }}" style="text-decoration:none;color:inherit">
+    <div class="row between nowrap"><div class="row nowrap"><span class="logo" style="width:36px;height:36px;border-radius:10px">{{ s.name[0]|upper }}</span>
+      <div><b>{{ s.name }}</b><br><span class="faint small">{{ s.niche or 'sans niche' }}{% if s.vinted_login %} · @{{ s.vinted_login }}{% endif %}</span></div></div>
+      {{ badge(s.vinted_status or 'disconnected') }}</div>
+    <div class="grid mt" style="grid-template-columns:repeat(3,1fr);gap:8px">
+      <div><div class="faint tiny">Bénéfice</div><b class="num good">{{ s.profit|eur }}</b></div>
+      <div><div class="faint tiny">Ventes</div><b class="num">{{ s.sales }}</b></div>
+      <div><div class="faint tiny">Marge</div><b class="num">{{ s.margin_pct }} %</b></div>
+      <div><div class="faint tiny">En ligne</div><b class="num">{{ s.online }}</b></div>
+      <div><div class="faint tiny">Brouillons</div><b class="num">{{ s.drafts }}</b></div>
+      <div><div class="faint tiny">Performantes</div><b class="num">{{ s.performing }}</b></div>
     </div>
-    {{ badge(s.vinted_status or 'disconnected') }}
-  </div>
-
-  <div class="grid g2 mt">
-    <div>
-      <details {{ 'open' if s.vinted_status != 'connected' }}>
-        <summary>{{ icon('key',16) }} {{ 'Reconnecter' if s.vinted_cookies else 'Connecter' }} le compte Vinted</summary>
-        <ol class="steps">
-          <li>Ouvre <b>vinted.fr</b> dans Chrome, connecté(e) au compte de cette boutique.</li>
-          <li>Touche <b>F12</b> → onglet <b>Réseau</b> → recharge la page (F5) → clique sur la 1<sup>re</sup> ligne.</li>
-          <li>Dans <b>En-têtes de requête</b>, copie toute la valeur de <b>Cookie</b> (avec <code>access_token_web</code> et <code>refresh_token_web</code>).</li>
-        </ol>
-        <form method="post" action="/boutique/{{ s.id }}/vinted">
-          <label>Cookie</label><textarea name="cookie" required style="min-height:80px" placeholder="access_token_web=…; refresh_token_web=…; …"></textarea>
-          <div class="row">
-            <div><label>Site</label><select name="domain">{% for d in ['vinted.fr','vinted.be','vinted.es','vinted.it','vinted.de','vinted.nl','vinted.co.uk'] %}<option {{ 'selected' if (s.vinted_domain or 'vinted.fr')==d }}>{{ d }}</option>{% endfor %}</select></div>
-            <div><label>Publications / jour</label><input name="daily_quota" type="number" value="{{ s.daily_quota or 20 }}" style="width:100px"></div>
-          </div>
-          <label>User-Agent (optionnel)</label><input name="user_agent" value="{{ s.vinted_user_agent or '' }}" class="w-full">
-          <div class="row mt"><button class="btn">{{ icon('check',16) }} Connecter et tester</button>
-          {% if s.vinted_cookies %}<button class="btn ghost" formaction="/boutique/{{ s.id }}/deconnecter" formnovalidate data-confirm="Déconnecter ce compte ?">Déconnecter</button>{% endif %}</div>
-        </form>
-      </details>
-    </div>
-    <div>
-      <label style="margin-top:0">Modèle photo (personne récurrente)</label>
-      <form method="post" action="/boutique/{{ s.id }}/modele"><select name="persona_id" onchange="this.form.submit()" class="w-full"><option value="">—</option>
-        {% for m in personas %}<option value="{{ m.id }}" {{ 'selected' if s.persona_id==m.id }}>{{ m.name }}</option>{% endfor %}</select></form>
-      <label>Modèle d'annonce (catégorie, marque, tailles)</label>
-      <form method="post" action="/boutique/{{ s.id }}/modele-annonce"><select name="template_id" onchange="this.form.submit()" class="w-full"><option value="">— aucun : publication impossible —</option>
-        {% for t in templates %}<option value="{{ t.id }}" {{ 'selected' if s.template_id==t.id }}>{{ t.name }}</option>{% endfor %}</select></form>
-      {% if s.vinted_status == 'connected' %}
-      <form method="post" action="/boutique/{{ s.id }}/apprendre">
-        <label>Apprendre d'une de tes annonces</label>
-        <div class="row" style="flex-wrap:nowrap"><input name="item_url" placeholder="https://www.vinted.fr/items/123…" required class="w-full"><button class="btn ghost">Apprendre</button></div>
-        <p class="faint" style="font-size:12.5px">Publie une annonce à la main dans la bonne catégorie : le bot recopie catégorie, marque, taille et format de colis.</p>
-      </form>{% endif %}
-    </div>
-  </div>
-</div>
-{% else %}<div class="card empty reveal"><span class="big">🏪</span><b>Crée ta première boutique</b> juste en dessous.</div>{% endfor %}
+    {% if s.monthly_goal %}<div class="bar mt good"><i data-w="{{ (100 * s.profit / s.monthly_goal)|round }}"></i></div><div class="faint tiny" style="margin-top:4px">objectif {{ s.monthly_goal|eur }}</div>{% endif %}
+  </a>
+{% else %}<div class="card">{{ empty('Aucune boutique', 'Crée ta première boutique ci-dessous.') }}</div>{% endfor %}
 </div>
 
-<div class="grid g2 mt">
-<div class="card reveal"><div class="card-head"><h2>{{ icon('plus',16) }} Nouvelle boutique</h2></div>
-<form method="post" action="/boutiques">
-  <label>Nom (ex. Sophie)</label><input name="name" required class="w-full">
-  <label>Niche</label><select name="niche" class="w-full"><option value="">—</option>{% for n in niches %}<option value="{{ n.id }}">{{ n.name }}</option>{% endfor %}</select>
-  <label>Modèle photo</label><select name="persona_id" class="w-full"><option value="">—</option>{% for m in personas %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</select>
-  <label>Lien du profil Vinted</label><input name="vinted_url" class="w-full">
+<div class="card mt reveal" style="max-width:720px"><div class="card-head"><h2>{{ icon('plus') }} Nouvelle boutique</h2></div>
+<form method="post" action="/boutiques" class="grid" style="grid-template-columns:1fr 1fr;gap:0 12px">
+  <div><label>Nom (ex. Sophie)</label><input name="name" required maxlength="60" class="w-full"></div>
+  <div><label>Niche</label><select name="niche" class="w-full"><option value="">—</option>{% for n in niches %}<option value="{{ n.id }}">{{ n.name }}</option>{% endfor %}</select></div>
+  <div><label>Modèle photo</label><select name="persona_id" class="w-full"><option value="">—</option>{% for m in personas %}<option value="{{ m.id }}">{{ m.name }}</option>{% endfor %}</select></div>
+  <div><label>Lien du profil Vinted</label><input name="vinted_url" class="w-full"></div>
   <div class="mt"><button class="btn">Créer la boutique</button></div>
 </form></div>
-
-<div class="card reveal"><div class="card-head"><h2>{{ icon('spark',16) }} Nouveau modèle photo</h2></div>
-<form method="post" action="/modeles">
-  <label>Nom</label><input name="name" required class="w-full">
-  <label>Description physique (en anglais = meilleur résultat)</label>
-  <textarea name="description" required style="min-height:96px" placeholder="a 25 year old woman, pale skin, long straight black hair with bangs, slim, alternative gothic style, silver rings"></textarea>
-  <div class="row mt"><button class="btn">Générer le modèle</button><span class="faint" style="font-size:12.5px">≈ 1 min</span></div>
-</form></div>
-</div>
-
-<div class="card mt reveal"><div class="card-head"><h2>Modèles photo</h2></div>
-<div class="gallery">{% for m in personas %}<div>{% if m.reference_image %}<img src="/media/{{ m.reference_image }}" alt="">{% else %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:12px"></div>{% endif %}
-<b style="display:block;margin-top:8px">{{ m.name }}</b><span class="faint" style="font-size:12px">{{ m.description[:80] }}</span></div>
-{% else %}<p class="muted">Aucun modèle pour l'instant.</p>{% endfor %}</div></div>
-
-<div class="card mt reveal"><div class="card-head"><h2>Modèles d'annonce</h2></div>
-{% if templates %}<div class="table-wrap"><table><thead><tr><th>Nom</th><th>Catégorie</th><th>Marque</th><th>Tailles</th><th>Colis</th></tr></thead><tbody>
-{% for t in templates %}<tr><td>{{ t.name }}</td><td class="num">{{ t.catalog_id }}</td><td>{{ t.brand or t.brand_id or '—' }}</td><td><code>{{ t.size_map }}</code></td><td>{{ t.package_size_id }}</td></tr>{% endfor %}
-</tbody></table></div>{% else %}<p class="muted">Aucun. Connecte Vinted puis « Apprendre d'une annonce ».</p>{% endif %}
-<details class="mt"><summary>Créer à la main (avancé)</summary>
-<form method="post" action="/modeles-annonce" class="row mt">
-  <input name="name" placeholder="Nom" required><input name="catalog_id" type="number" placeholder="catalog_id" required style="width:120px">
-  <input name="brand_id" placeholder="brand_id" style="width:110px"><input name="brand" placeholder="Marque" style="width:120px">
-  <input name="size_map" placeholder="S=206,M=207,L=208" style="width:180px"><input name="package_size_id" type="number" value="2" style="width:70px">
-  <button class="btn ghost">Créer</button></form></details>
-</div>
 {% endblock %}
