@@ -11,6 +11,7 @@ Aucun contournement : si Vinted refuse ou limite, le relevé s'arrête et le sco
 import json
 import math
 import statistics
+import time
 from collections import Counter
 from datetime import date, datetime, timedelta
 
@@ -68,6 +69,7 @@ def scan_all(client: VintedClient, max_keywords=3) -> dict:
                           "p75_price, sample, brands, taken_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
                           (n["id"], kw, r["total"], r["avg_fav"], r["median_price"], r["p25_price"], r["p75_price"],
                            r["sample"], json.dumps(r["brands"], ensure_ascii=False), taken))
+            clear_cache()
         ok = [r for r in rows if "error" not in r]
         meds = [r["median_price"] for r in ok if r.get("median_price")]
         result["niches"][n["id"]] = {"score": opportunity(ok), "keywords": rows,
@@ -86,15 +88,50 @@ def last_scan():
         return None
 
 
-def _snapshots(niche_id, since_days=120):
-    since = (datetime.now() - timedelta(days=since_days)).strftime("%Y-%m-%d %H:%M:%S")
+_snap_cache: dict = {}
+SNAP_RECHECK_S = 5   # un relevé ajouté par un autre processus (pilote auto lancé à part) est vu sous 5 s
+
+
+def clear_cache():
+    _snap_cache.clear()
+
+
+def _all_snapshots():
+    """Tous les relevés des 120 derniers jours, groupés par niche. Rechargés seulement quand un relevé
+    est ajouté (clé = base + nombre + dernier id), donc une page Niches ne fait qu'une requête."""
+    since = (datetime.now() - timedelta(days=120)).strftime("%Y-%m-%d")
+    if (_snap_cache.get("db") == str(config.DB_PATH) and _snap_cache.get("since") == since
+            and time.monotonic() - _snap_cache.get("checked", 0) < SNAP_RECHECK_S):
+        return _snap_cache["data"]
     with db.connect() as c:
-        return [db._row(r) for r in c.execute(
-            "SELECT * FROM market_snapshots WHERE niche=? AND taken_at >= ? ORDER BY taken_at", (niche_id, since))]
+        cnt, last = c.execute("SELECT COUNT(*), MAX(id) FROM market_snapshots").fetchone()
+        key = (str(config.DB_PATH), cnt, last, since)
+        if _snap_cache.get("key") != key:
+            grouped = {}
+            for r in c.execute("SELECT * FROM market_snapshots WHERE taken_at >= ? ORDER BY taken_at", (since,)):
+                row = db._row(r)
+                grouped.setdefault(row["niche"], []).append(row)
+            _snap_cache.update(key=key, data=grouped, history={})
+        _snap_cache.update(db=str(config.DB_PATH), since=since, checked=time.monotonic())
+    return _snap_cache["data"]
+
+
+def _snapshots(niche_id, since_days=120):
+    rows = _all_snapshots().get(niche_id, [])
+    if since_days >= 120:
+        return list(rows)
+    since = (datetime.now() - timedelta(days=since_days)).strftime("%Y-%m-%d %H:%M:%S")
+    return [r for r in rows if r["taken_at"] >= since]
 
 
 def history(niche_id, since_days=120) -> list[dict]:
     """Un point par relevé : annonces, favoris moyens, prix médian."""
+    snaps = _all_snapshots()
+    memo = _snap_cache.setdefault("history", {})
+    if since_days == 120 and niche_id in memo:
+        return [dict(x) for x in memo[niche_id]]
+    if not snaps.get(niche_id):
+        return []
     by_day = {}
     for s in _snapshots(niche_id, since_days):
         by_day.setdefault(s["taken_at"][:10], []).append(s)
@@ -105,6 +142,8 @@ def history(niche_id, since_days=120) -> list[dict]:
                     "avg_fav": round(statistics.mean(r["avg_fav"] or 0 for r in rows), 2),
                     "median_price": round(statistics.median(meds), 2) if meds else None,
                     "sample": sum(r["sample"] or 0 for r in rows)})
+    if since_days == 120:
+        memo[niche_id] = [dict(x) for x in out]
     return out
 
 
@@ -141,12 +180,13 @@ def _mid(r):
     return niches._midpoint(r)
 
 
-def potential(n: dict, month: int | None = None, perf: dict | None = None) -> dict:
+def potential(n: dict, month: int | None = None, perf: dict | None = None, min_profit: float | None = None) -> dict:
     """Score sur 100 détaillé composante par composante, avec le niveau de confiance des données."""
     month = month or date.today().month
     mk = niche_market(n["id"])
     tr = trend(n["id"])
-    min_profit = float(db.get_setting("min_profit") or config.MIN_PROFIT)
+    if min_profit is None:
+        min_profit = float(db.get_setting("min_profit") or config.MIN_PROFIT)
     comps = []
     live = bool(mk and mk.get("sample", 0) >= 10 and mk.get("age_days", 99) <= 30)
 
@@ -156,9 +196,19 @@ def potential(n: dict, month: int | None = None, perf: dict | None = None) -> di
         comps.append({"label": "Demande", "points": d, "max": 25,
                       "detail": f"{mk['avg_fav']} favoris en moyenne par annonce (relevé du {mk['date']})", "source": "Vinted"})
     else:
-        d = round(n.get("demand", 5) * 2.5)
-        comps.append({"label": "Demande", "points": d, "max": 25, "detail": f"estimation {n.get('demand')}/10",
-                      "source": "estimation"})
+        est = n.get("demand", 5) / 10
+        proof = niches.supplier_proof(n["id"])
+        if proof:
+            # estimation manuelle complétée par les ventes prouvées chez le fournisseur
+            d = round(25 * (0.6 * est + 0.4 * proof["score"]))
+            what = (f"{proof['sold']} vendus" if proof.get("sold") else f"{proof['reviews']:,} avis".replace(",", " "))
+            comps.append({"label": "Demande", "points": d, "max": 25,
+                          "detail": f"estimation {n.get('demand')}/10 + preuve fournisseur ({what})",
+                          "source": "fournisseur"})
+        else:
+            d = round(est * 25)
+            comps.append({"label": "Demande", "points": d, "max": 25, "detail": f"estimation {n.get('demand')}/10",
+                          "source": "estimation"})
 
     # 2. Concurrence (20) : moins d'annonces = mieux
     if live:
@@ -244,7 +294,7 @@ def detect_opportunities(month=None) -> int:
     perf = {r["niche"]: r for r in db.niche_breakdown()}
     found = 0
     for n in niches.load():
-        pot = potential(n, month, perf.get(n["id"]))
+        pot = potential(n, month, perf.get(n["id"]), min_profit)
         tr, mk = pot["trend"], pot["market"]
         base = {"potential": pot["score"], "est_profit": pot["est_profit"], "confidence": pot["confidence"]}
         if tr and (tr["demand_pct"] or 0) >= 20:

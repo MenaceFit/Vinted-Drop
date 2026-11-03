@@ -1,5 +1,43 @@
 # Analyse des niches Vinted — novembre 2026
 
+## 🎯 Classement de novembre — version finale (3 novembre 2026)
+
+**36 niches** et **98 produits fournisseurs** avec lien direct. Le score /100 combine demande, concurrence,
+marge, saison, tendance et tes résultats. Nouveau : quand Vinted n'est pas encore connecté, la **demande**
+est complétée par les **preuves de vente chez le fournisseur** (avis, note, ventes du meilleur produit de
+la niche). Le chiffre « (N vendus) » de Temu est souvent celui de toute la boutique du vendeur : son poids
+est donc limité.
+
+Top 10 en novembre parmi les niches à **30 € de bénéfice ou plus** (estimations, remplacées par les prix
+réels de Vinted dès qu'un compte est connecté) :
+
+| # | Niche | Score | Bénéfice estimé |
+|--:|---|--:|--:|
+| 1 | Vestes chauffantes | 78 | ≈ 47 € |
+| 2 | Ensembles tailleur femme | 77 | ≈ 57 € |
+| 3 | Blousons aviateur homme | 77 | ≈ 60 € |
+| 4 | **Vestes moto homme** (nouveau) | 76 | ≈ 50 € |
+| 5 | Bottes hautes | 75 | ≈ 47 € |
+| 6 | Doudounes longues femme | 75 | ≈ 57 € |
+| 7 | **Robes de soirée grande taille** (nouveau) | 73 | ≈ 42 € |
+| 8 | Ski adulte | 72 | ≈ 52 € |
+| 9 | Robes de soirée longues | 72 | ≈ 47 € |
+| 10 | Vestes simili cuir femme | 70 | ≈ 55 € |
+
+**5 nouvelles niches**, choisies pour durer au-delà de Noël :
+
+| Niche | Achat | Vente | Saison | Pourquoi |
+|---|---|---|---|---|
+| Costumes homme mariage | 45-70 € | 110-160 € | avril → septembre, décembre | ≈ 77 € par vente ; invités de mariage qui ne veulent pas payer 300 € |
+| Robes de soirée grande taille | 20-35 € | 55-85 € | mariages, réveillon | très peu d'offre neuve en grande taille sur Vinted |
+| Vestes moto homme | 30-45 € | 75-100 € | printemps et automne | Temu 4,6★ (516 avis) à 32 € |
+| Robes bohème été | 18-30 € | 50-75 € | mars → août | vacances et festivals ; Temu 4,7★ (265 avis) |
+| Vestes à poils (teddy) | 18-28 € | 45-65 € | octobre → février | Temu 4,9★ (2 987 avis) |
+
+Les 7 niches qui n'avaient aucun produit (gothique classique, médiéval, Saint-Valentin, robe de mariée civile,
+ski adulte, veste cuir femme, robe bohème) ont maintenant au moins un lien fournisseur. Certaines n'ont que
+peu d'avis (veste cuir femme : 2 avis) : leur score reste prudent, vérifie la fiche avant de commander.
+
 ## 💶 Niches à forte marge (≥ 30 € de bénéfice par vente) — 3 novembre 2026
 
 Objectif : au moins **30 € de bénéfice net par vente**. Cela demande des paniers de 70 € et plus : on sort des

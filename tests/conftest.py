@@ -17,5 +17,7 @@ def isolated_data(tmp_path, monkeypatch):
     for name in ("niches.json", "winning_products.json"):
         (data / name).write_text((real / name).read_text(encoding="utf-8"), encoding="utf-8")
     db._columns_cache.clear()
+    from vinted_drop import market
+    market.clear_cache()
     yield
     db._columns_cache.clear()

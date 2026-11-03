@@ -231,6 +231,7 @@ def test_potential_score_is_explainable_and_uses_snapshots():
             c.execute("INSERT INTO market_snapshots (niche, keyword, total, avg_fav, median_price, p25_price, "
                       "p75_price, sample, brands, taken_at) VALUES ('trench','trench femme',1200,?,85,70,99,96,'[\"Zara\"]',?)",
                       (fav, f"{day} 04:00:00"))
+    market.clear_cache()   # l'appli le fait après chaque relevé (scan_all)
     monkey_today = market.niche_market("trench")
     assert monkey_today["median"] == 85 and monkey_today["brands"] == ["Zara"]
     tr = market.trend("trench")

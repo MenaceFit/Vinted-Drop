@@ -1,10 +1,10 @@
-# Vinted Drop 2.0
+# Vinted Drop 2.1
 
 Plateforme de gestion pour boutiques Vinted en dropshipping : boutiques, produits, photos IA, annonces,
 ventes, commandes fournisseurs, finances, analyse du marché et pilote automatique, depuis un dashboard web
 et un bot Telegram.
 
-> Nouveau en 2.0 : voir [CHANGELOG.md](CHANGELOG.md). Tu viens de la 1.x ? Suis [docs/MIGRATION.md](docs/MIGRATION.md).
+> Nouveau en 2.1 (version finale) : voir [CHANGELOG.md](CHANGELOG.md). Tu viens de la 1.x ? Suis [docs/MIGRATION.md](docs/MIGRATION.md).
 
 ## Ce que fait l'outil
 
@@ -17,7 +17,7 @@ et un bot Telegram.
 | **Annonces** | Titre, description, caractéristiques, mots-clés, catégorie, marque. 4 styles rédactionnels, anti-répétition. Prix conseillé (coût complet, marché, demande, historique, bénéfice minimum) avec niveau de confiance. |
 | **Ventes et commandes** | Ventes détectées sur Vinted, commande fournisseur créée à chaque vente (à acheter → commandé → expédié → livré, problème, annulé), référence, suivi, notes, historique. **Aucun achat automatique.** |
 | **Finances** | Fiche financière par produit, journal des transactions, dépenses, bénéfice net (après coûts IA et dépenses), capital engagé, invendus, export CSV et Excel. |
-| **Market Intelligence** | Score de potentiel /100 expliqué (demande, concurrence, marge, saison, tendance, tes résultats) avec niveau de confiance, relevés Vinted historisés, marques, 31 niches dont 12 à forte marge. Page **Opportunités** avec favoris et suivi. |
+| **Market Intelligence** | Score de potentiel /100 expliqué (demande, concurrence, marge, saison, tendance, tes résultats) avec niveau de confiance, relevés Vinted historisés, marques, 36 niches dont 19 à 30 € de bénéfice ou plus, 98 produits fournisseurs avec lien direct, preuves de vente fournisseur dans le score. Page **Opportunités** avec favoris et suivi. |
 | **Telegram** | Menu en 10 sections, notifications utiles sans doublon (ventes, offres, messages, publications, token expiré, budget, opportunités…), assistant en langage naturel qui demande confirmation avant toute action importante. |
 | **Pilote automatique** | Chaque tâche réglable (activée, horaire, réessais, alerte), journaux d'exécution, historique des erreurs, pause globale, **arrêt d'urgence**, **mode simulation**. Validation humaine par défaut pour les opérations sensibles. |
 | **Fiabilité** | Base SQLite en WAL, tâches de fond traçables sans doublon, sauvegarde automatique chaque nuit et avant migration, restauration testée, page Activité filtrable. |
@@ -61,7 +61,7 @@ Le dashboard s'ouvre sur http://localhost:8000. La liste « Mise en route » de 
 | `python -m vinted_drop.cli autopilot` | pilote automatique seul, sans Telegram |
 | `python -m vinted_drop.cli check` | vérifie la configuration |
 | `python -m vinted_drop.cli backup` | sauvegarde la base (`--restore fichier.db` pour restaurer) |
-| `python -m pytest -q` | lance les 69 tests (aucun appel réseau) |
+| `python -m pytest -q` | lance les 76 tests (aucun appel réseau) |
 
 Raccourcis du dashboard : `Ctrl K` ou `/` recherche globale, `g` puis `a` accueil, `p` produits, `s` studio,
 `v` ventes, `c` commandes, `f` finances, `b` boutiques, `m` marché, `o` opportunités, `t` activité, `r` pilote.

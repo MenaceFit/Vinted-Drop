@@ -887,6 +887,154 @@
     "manteau cuir femme",
     "veste cuir marron"
    ]
+  },
+  {
+   "id": "costume-homme-mariage",
+   "name": "Costumes homme 3 pièces (mariage, témoin)",
+   "persona": "homme 25-35 ans, photo en extérieur chic",
+   "months": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    12
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "45-70 €",
+   "sell_price": "110-160 €",
+   "brands": [
+    "Celio",
+    "Jules",
+    "Zara Man",
+    "Suitsupply"
+   ],
+   "why": "Saison des mariages : témoins et invités veulent un 3 pièces sans payer 300 € en boutique. Tweed et chevrons très recherchés. Gros panier, hommes qui négocient peu.",
+   "keywords": [
+    "costume 3 pièces homme",
+    "costume mariage homme",
+    "costume tweed homme",
+    "costume témoin"
+   ]
+  },
+  {
+   "id": "soiree-grande-taille",
+   "name": "Robes de soirée grande taille",
+   "persona": "femme ronde 30-45 ans, élégante",
+   "months": [
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    12
+   ],
+   "demand": 8,
+   "competition": 3,
+   "buy_price": "20-35 €",
+   "sell_price": "55-85 €",
+   "brands": [
+    "Asos Curve",
+    "Kiabi",
+    "Mango Violeta"
+   ],
+   "why": "Très peu de robes de soirée neuves en 46-56 sur Vinted, alors que la demande est forte pour les mariages et le réveillon. Preuve fournisseur : 98 000+ ventes sur une seule robe grande taille.",
+   "keywords": [
+    "robe soirée grande taille",
+    "robe longue grande taille",
+    "robe mariage grande taille",
+    "robe cocktail 48"
+   ]
+  },
+  {
+   "id": "veste-moto-homme",
+   "name": "Vestes moto / biker homme (simili cuir)",
+   "persona": "homme 22-35 ans, style urbain rock",
+   "months": [
+    3,
+    4,
+    5,
+    9,
+    10,
+    11
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "30-45 €",
+   "sell_price": "75-100 €",
+   "brands": [
+    "Schott",
+    "Redskins",
+    "Zara Man"
+   ],
+   "why": "Pièce de mi-saison (printemps et automne), indémodable. Temu 4,6★ sur 516 avis. Les hommes achètent vite.",
+   "keywords": [
+    "veste moto homme",
+    "veste biker homme",
+    "perfecto homme",
+    "veste simili cuir homme"
+   ]
+  },
+  {
+   "id": "robe-boheme-ete",
+   "name": "Robes bohème, dentelle et volants (tendance été 2027)",
+   "persona": "femme 22-35 ans, photo en extérieur lumineuse",
+   "months": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "demand": 8,
+   "competition": 6,
+   "buy_price": "18-30 €",
+   "sell_price": "50-75 €",
+   "brands": [
+    "Sézane",
+    "Rouje",
+    "Zara",
+    "Free People"
+   ],
+   "why": "Les défilés printemps-été 2027 misent sur les robes fluides, la dentelle, les volants et l'esprit années 70. À préparer dès février pour être en ligne au premier soleil.",
+   "keywords": [
+    "robe bohème",
+    "robe dentelle blanche",
+    "robe longue fluide",
+    "robe volants"
+   ]
+  },
+  {
+   "id": "veste-poils",
+   "name": "Vestes courtes à poils / sherpa",
+   "persona": "femme 18-30 ans, style cosy",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2
+   ],
+   "demand": 8,
+   "competition": 6,
+   "buy_price": "18-28 €",
+   "sell_price": "45-65 €",
+   "brands": [
+    "Zara",
+    "Bershka",
+    "Pull&Bear"
+   ],
+   "why": "Best-seller hivernal (Temu 4,9★, 2 987 avis). Panier moyen : bénéfice proche du minimum, à réserver aux modèles achetés sous 22 €.",
+   "keywords": [
+    "veste moumoute",
+    "veste sherpa femme",
+    "veste à poils",
+    "veste teddy femme"
+   ]
   }
  ]
 }

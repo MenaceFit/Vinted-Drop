@@ -204,9 +204,14 @@ def now() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 
+_dirs_ready: set = set()
+
+
 @contextmanager
 def connect():
-    config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if config.DB_PATH.parent not in _dirs_ready:
+        config.DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _dirs_ready.add(config.DB_PATH.parent)
     conn = sqlite3.connect(config.DB_PATH, timeout=15)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
@@ -626,6 +631,21 @@ def update_order(oid, note=None, **fields):
 def order_history(oid):
     with connect() as c:
         return [dict(r) for r in c.execute("SELECT * FROM order_events WHERE order_id=? ORDER BY id", (oid,))]
+
+
+def order_histories(ids) -> dict:
+    """Historique de plusieurs commandes en une requête : {order_id: [événements]}."""
+    ids = [int(i) for i in ids]
+    out = {i: [] for i in ids}
+    if not ids:
+        return out
+    with connect() as c:
+        for i in range(0, len(ids), 500):
+            chunk = ids[i:i + 500]
+            q = f"SELECT * FROM order_events WHERE order_id IN ({','.join('?' * len(chunk))}) ORDER BY id"
+            for r in c.execute(q, chunk):
+                out[r["order_id"]].append(dict(r))
+    return out
 
 
 def order_counts():

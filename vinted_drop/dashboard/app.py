@@ -12,6 +12,7 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, status
 from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.staticfiles import StaticFiles
 
@@ -53,7 +54,18 @@ async def csrf_and_headers(request: Request, call_next):
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("Referrer-Policy", "same-origin")
+    path = request.url.path
+    if response.status_code == 200:
+        if path.startswith("/static/") and "v" in request.query_params:
+            # fichiers versionnés (?v=…) : le navigateur les garde, le numéro change à chaque mise à jour
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        elif path.startswith("/media/"):
+            response.headers["Cache-Control"] = "private, max-age=86400"
     return response
+
+
+# compresse les pages et le JSON (ajouté après le middleware ci-dessus, donc exécuté en premier)
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 
 
 # ---------------- accueil ----------------

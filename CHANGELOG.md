@@ -1,5 +1,25 @@
 # Changelog
 
+## 2.1.0 — version finale — 3 novembre 2026
+
+### Niches et produits gagnants
+- 5 nouvelles niches hors Noël : costumes homme mariage, robes de soirée grande taille, vestes moto homme,
+  robes bohème été, vestes à poils. 36 niches au total, dont 19 à 30 € de bénéfice estimé ou plus.
+- 98 produits fournisseurs (+20 depuis la 2.0) avec lien direct ; plus aucune niche sans produit.
+- Score de potentiel : sans compte Vinted connecté, la demande est complétée par les preuves de vente
+  du fournisseur (avis, note, ventes). Le total « vendus » de la boutique Temu a un poids limité.
+
+### Performances
+- Toutes les pages du dashboard sous 80 ms avec 2 000 produits, 800 ventes et 5 000 événements
+  (avant : jusqu'à 170 ms).
+- Relevés du marché lus en une requête et mis en cache (rechargés après chaque relevé, ou sous 5 s s'ils
+  viennent d'un autre processus).
+- Fichiers de niches et de produits lus une seule fois tant qu'ils ne changent pas.
+- Page Commandes : historiques chargés en une requête au lieu d'une par commande.
+- Pages compressées (gzip) ; CSS et JavaScript gardés en cache par le navigateur.
+
+Aucun changement de base ni de `.env` : mise à jour directe depuis la 2.0.
+
 ## 2.0.0 — 3 novembre 2026
 
 Refonte complète : audit ([docs/AUDIT.md](docs/AUDIT.md)), fiabilité, sécurité, finances, studio photo 3.0,

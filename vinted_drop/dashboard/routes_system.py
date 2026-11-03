@@ -36,8 +36,9 @@ def sale_status(sid: int, status_: str = Form(..., alias="status")):
 @router.get("/commandes")
 def orders(request: Request, statut: str | None = None, boutique: int | None = None):
     rows = db.list_orders(status=statut or None, shop_id=boutique, open_only=not statut)
+    hist = db.order_histories(o["id"] for o in rows)
     for o in rows:
-        o["history"] = db.order_history(o["id"])
+        o["history"] = hist[o["id"]]
     return render(request, "orders.html", orders=rows, counts=db.order_counts(), statut=statut, boutique=boutique,
                   shops=db.list_shops(), statuses=db.ORDER_STATUSES)
 
