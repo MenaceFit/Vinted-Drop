@@ -10,11 +10,32 @@
     <p class="tiny faint">Photos à plat, cintre et détail · pas de photo portée · détourage {{ 'IA' if rembg else 'basique (fonds unis)' }}</p></a>
   <a class="card reveal" href="#hf" style="text-decoration:none;color:inherit"><div class="card-head"><h2>② Hugging Face</h2><span class="badge {{ 'published' if hf.enabled else 'plain' }}">{{ 'activé' if hf.enabled else 'à activer' }}</span></div>
     <p class="small">L'IA Qwen-Image-Edit-2511 sur les serveurs de Hugging Face, sans carte graphique. Gratuit avec un compte, dans la limite d'un quota GPU quotidien.</p>
-    <p class="tiny faint">Photos portées possibles · quelques photos par jour · {{ hf.today }} aujourd'hui</p></a>
+    <p class="tiny faint">Photos portées (cabine d'essayage) · quelques photos par jour · {{ hf.today }} aujourd'hui</p></a>
   <a class="card reveal" href="#pc" style="text-decoration:none;color:inherit"><div class="card-head"><h2>③ Ton PC (ComfyUI)</h2><span class="badge {{ 'published' if s.ready else ('sold' if st.ok else 'plain') }}">{{ 'prêt' if s.ready else ('presque prêt' if st.ok else 'à brancher') }}</span></div>
     <p class="small">La même IA sur ta carte graphique NVIDIA : illimité, rapide, rien ne sort de chez toi.</p>
     <p class="tiny faint">Toutes les photos · 8 Go de VRAM minimum</p></a>
 </div>
+
+<div class="card mt reveal" id="cabine"><div class="card-head"><h2>👗 Photos portées gratuites · cabine d'essayage</h2><span class="badge {{ 'published' if settings.tryon != 'off' else 'plain' }}">{{ 'activée' if settings.tryon != 'off' else 'désactivée' }}</span></div>
+  <div class="grid g2">
+    <div>
+      <p class="small">Ton modèle (toujours le même visage, la même pièce) porte chaque produit : l'IA part de sa photo de base et remplace seulement ses vêtements par le vêtement du fournisseur, détouré au préalable. Modèle Qwen-Image-Edit (Apache 2.0).</p>
+      {% set has_base = personas|selectattr('reference_image')|list %}
+      <ol class="small" style="padding-left:18px">
+        <li>{% if free_ai %}<span class="good">✓</span> IA gratuite branchée : {{ free_ai|join(', ')|replace('local', 'ton PC')|replace('hf', 'Hugging Face') }}{% else %}Active <a href="#hf">Hugging Face</a> (sans carte graphique) ou <a href="#pc">ton PC</a>.{% endif %}</li>
+        <li>{% if has_base %}<span class="good">✓</span> Modèle prêt : {{ has_base|map(attribute='name')|join(', ') }}{% else %}Crée un modèle gratuitement ou importe une vraie photo (avec accord) : <a href="/studio">Studio photo → Modèles photo</a>.{% endif %}</li>
+        <li>Lance un essai sur ton dernier produit, puis génère tes photos avec le fournisseur « 100 % gratuit ».</li>
+      </ol>
+      <div class="row"><form method="post" action="/photos-gratuites/essayage-test"><button class="btn" {{ 'disabled' if not free_ai or not has_base }}>{{ icon('camera', 14) }} Essayer sur le dernier produit</button></form>
+        <form method="post" action="/photos-gratuites/essayage">{% if settings.tryon != 'off' %}<button class="btn ghost">Désactiver</button>{% else %}<input type="hidden" name="tryon_on" value="on"><button class="btn ghost">Activer</button>{% endif %}</form></div>
+      <p class="help">Vêtements du haut, du bas et robes / ensembles. Pour les chaussures et accessoires, la photo portée est créée sans cabine. Avec un décor choisi (rue, café…), une nouvelle scène est créée.</p>
+    </div>
+    <div>{% if tryon_test %}<div class="grid" style="grid-template-columns:1fr 1fr 2fr;gap:6px;align-items:end">
+        <figure style="margin:0"><img src="/media/{{ tryon_test.base }}" alt="Photo de base du modèle" style="width:100%;border-radius:8px"><figcaption class="tiny faint">modèle</figcaption></figure>
+        <figure style="margin:0"><img src="/media/{{ tryon_test.garment }}" alt="Vêtement détouré" style="width:100%;border-radius:8px"><figcaption class="tiny faint">vêtement</figcaption></figure>
+        <figure style="margin:0"><img src="/media/{{ tryon_test.path }}?t={{ tryon_test.at|replace(' ', '') }}" alt="Le modèle porte le vêtement" style="width:100%;border-radius:10px"><figcaption class="tiny faint">résultat · {{ tryon_test.seconds }} s · {{ 'ton PC' if tryon_test.provider == 'local' else 'Hugging Face' }} · 0 €</figcaption></figure></div>
+      {% else %}<div class="empty"><p class="muted small">Le résultat de l'essai s'affichera ici : photo de base, vêtement détouré, et le modèle qui le porte.</p></div>{% endif %}</div>
+  </div></div>
 
 <div class="card mt reveal"><div class="card-head"><h2>Mode 100 % gratuit</h2><span class="badge {{ 'published' if settings.photo_provider == 'gratuit' else 'plain' }}">{{ 'activé' if settings.photo_provider == 'gratuit' else 'fournisseur actuel : ' ~ settings.photo_provider }}</span></div>
   <p class="small">Ton PC si ComfyUI est branché, sinon Hugging Face, sinon le studio instantané. <b>Gemini et OpenAI ne sont jamais appelés</b>, quel que soit le budget.</p>

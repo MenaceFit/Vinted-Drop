@@ -1,7 +1,7 @@
 """Produits, fiche produit et studio photo."""
 from pathlib import Path
 
-from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from .. import comfyui, config, db, finance, listing, notify, photos, pricing, publisher, studio, supplier, tasks
 from ..image_providers import available
@@ -314,6 +314,30 @@ def add_persona(name: str = Form(...), description: str = Form(...), decor: str 
     background("persona", photos.create_persona, name.strip()[:60], description.strip()[:600], decor or None,
                provider or None, label=f"Modèle photo « {name} »", dedupe_key=f"persona:{name}")
     return redirect(back if back.startswith("/") else "/studio", ok="Création du modèle lancée (≈ 1 min)")
+
+
+@router.post("/modeles/importer")
+async def import_persona(name: str = Form(...), decor: str = Form(""), consent: str = Form(""),
+                         image: UploadFile = File(...), back: str = Form("/studio")):
+    back = back if back.startswith("/") else "/studio"
+    if consent != "on":
+        return redirect(back, err="Coche la case d'accord : la photo doit être la tienne ou celle d'une personne "
+                                  "majeure qui t'a donné son accord.")
+    data = await image.read()
+    if len(data) > 15 * 1024 * 1024:
+        return redirect(back, err="Photo trop lourde (15 Mo maximum)")
+    try:
+        photos.import_persona(name.strip()[:60] or "Modèle", data, decor.strip()[:300] or None)
+    except ValueError as e:
+        return redirect(back, err=str(e))
+    return redirect(back, ok="Modèle importé : il servira de base à la cabine d'essayage")
+
+
+@router.post("/modeles/{mid}/pose")
+def persona_pose(mid: int, pose: str = Form("trois-quarts"), provider: str = Form(""), back: str = Form("/studio")):
+    background("persona", photos.add_persona_pose, mid, pose, provider or None, label=f"Nouvelle pose du modèle #{mid}",
+               dedupe_key=f"persona-pose:{mid}")
+    return redirect(back if back.startswith("/") else "/studio", ok="Nouvelle pose en cours (≈ 1 min, voir Activité)")
 
 
 @router.get("/api/produit/{pid}/prix")

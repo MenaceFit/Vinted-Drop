@@ -68,15 +68,26 @@
 
 <div class="grid g2 mt">
 <div class="card reveal"><div class="card-head"><h2>Modèles photo</h2><span class="muted">même personne et même décor sur toutes les photos d'une boutique</span></div>
-<div class="studio-grid">{% for m in personas %}<figure class="shot"><div class="compare" style="padding:8px">{% for r in (m.refs or ([m.reference_image] if m.reference_image else [])) %}<img src="/media/{{ r }}" alt="">{% else %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:10px"></div>{% endfor %}</div>
-  <figcaption><b>{{ m.name }}</b><br><span class="faint tiny">{{ m.description[:90] }}</span></figcaption></figure>{% endfor %}</div>
+<p class="help">Cabine d'essayage : la 1re photo en pied du modèle sert de base, l'IA lui fait porter chaque produit (même visage, même pièce). Ajoute des poses pour varier.</p>
+<div class="studio-grid">{% for m in personas %}<figure class="shot"><div class="compare" style="padding:8px">{% for r in (m.refs or ([m.reference_image] if m.reference_image else [])) %}<img src="/media/{{ r }}" alt="Photo de référence du modèle {{ m.name }}">{% else %}<div class="shimmer" style="aspect-ratio:3/4;border-radius:10px"></div>{% endfor %}</div>
+  <figcaption><b>{{ m.name }}</b><br><span class="faint tiny">{{ m.description[:90] }}</span>
+    {% if m.reference_image %}<form method="post" action="/modeles/{{ m.id }}/pose" class="row mt" style="gap:6px"><input type="hidden" name="back" value="/studio">
+      <select name="pose" style="padding:5px 8px;font-size:12px"><option value="trois-quarts">Trois-quarts</option><option value="profil">Profil</option><option value="marche">En marchant</option></select>
+      <button class="btn ghost sm">{{ icon('plus', 12) }} Ajouter une pose</button></form>{% endif %}</figcaption></figure>{% endfor %}</div>
 <details class="mt" {{ 'open' if not personas }}><summary>{{ icon('plus') }} Nouveau modèle</summary>
 <form method="post" action="/modeles"><input type="hidden" name="back" value="/studio">
   <label>Nom</label><input name="name" required class="w-full" maxlength="60">
   <label>Description physique (en anglais = meilleur résultat)</label><textarea name="description" required style="min-height:80px" maxlength="600" placeholder="a 28 year old woman, light brown skin, long dark wavy hair, slim, elegant minimal style"></textarea>
   <label>Décor (le même sur toutes les photos)</label><input name="decor" class="w-full" placeholder="a bright Parisian apartment with white walls and a tall mirror">
-  <label>Fournisseur</label><select name="provider"><option value="">auto</option>{% for pr in providers %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}</select>
-  <div class="mt"><button class="btn">Créer (2 photos de référence)</button></div></form></details>
+  <label>Fournisseur</label><select name="provider"><option value="gratuit">Gratuit : ton PC, sinon FLUX sur Hugging Face</option><option value="">Réglage du studio ({{ settings.photo_provider }})</option>{% for pr in providers %}<option value="{{ pr }}">{{ pr }}</option>{% endfor %}</select>
+  <div class="mt"><button class="btn">Créer le modèle</button></div></form></details>
+<details class="mt"><summary>{{ icon('download') }} Importer une vraie photo</summary>
+<form method="post" action="/modeles/importer" enctype="multipart/form-data"><input type="hidden" name="back" value="/studio">
+  <label>Nom</label><input name="name" required class="w-full" maxlength="60">
+  <label>Photo en pied, de face, vêtements près du corps, bonne lumière</label><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required>
+  <label>Décor (facultatif)</label><input name="decor" class="w-full" placeholder="décrit la pièce de la photo">
+  <label class="row nowrap" style="gap:8px;font-weight:400;margin-top:10px"><input type="checkbox" name="consent" required style="width:auto"> C'est ma photo, ou celle d'une personne majeure qui m'a donné son accord pour l'utiliser dans mes annonces.</label>
+  <div class="mt"><button class="btn">Importer</button></div></form></details>
 </div>
 <div class="card reveal"><div class="card-head"><h2>Dernières générations</h2></div>
 {% if history %}<div class="table-wrap"><table><tbody>{% for g in history[:14] %}<tr><td class="small">{{ g.created_at|dt }}</td><td><a href="/produit/{{ g.product_id }}#photos">#{{ g.product_id }}</a> {{ shots.get(g.kind, {}).get('label', g.kind) }}</td><td class="small">{{ g.provider or '—' }}</td><td class="r num small">{{ g.duration_s or '—' }} s</td><td class="r">{{ qa(g.fidelity, qa_min) }}</td><td>{{ badge(g.status) }}</td></tr>{% endfor %}</tbody></table></div>

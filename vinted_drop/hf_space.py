@@ -17,6 +17,8 @@ from pathlib import Path
 from . import config, db, security
 
 SIZES = {"3:4": (896, 1184), "1:1": (1024, 1024), "4:3": (1184, 896)}
+# Création gratuite de la photo du modèle (texte → image) : FLUX.1 [schnell], licence Apache 2.0, 4 étapes
+T2I_SPACE = "black-forest-labs/FLUX.1-schnell"
 QUOTA_KEY = "_hf_quota_until"
 _clients: dict = {}
 _lock = threading.Lock()
@@ -74,9 +76,9 @@ def quota_until() -> str | None:
     return until if until and until > db.now() else None
 
 
-def _client():
+def _client(space_name=None):
     from gradio_client import Client
-    key = (space(), token())
+    key = (space_name or space(), token())
     with _lock:
         if key not in _clients:
             _clients[key] = Client(key[0], token=key[1] or None, verbose=False,
@@ -102,6 +104,31 @@ def _first_image(result) -> Path:
     return Path(str(item))
 
 
+def _pause_on_quota(e: Exception):
+    msg = str(e)
+    if _is_quota(msg):
+        until = (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
+        db.set_setting(QUOTA_KEY, until)
+        db.log_event("photo", "Quota gratuit Hugging Face épuisé : pause de 3 h", level="warning")
+        raise HFError("Quota gratuit Hugging Face épuisé pour le moment") from e
+    raise HFError(f"Space Hugging Face indisponible : {security.mask(msg)[:200]}") from e
+
+
+def text_to_image(prompt: str, aspect="3:4", timeout=300) -> bytes:
+    """Image à partir d'un texte (photo du modèle de la boutique), gratuite via FLUX.1 [schnell]."""
+    if quota_until():
+        raise HFError(f"Quota gratuit Hugging Face épuisé (nouvel essai après {quota_until()[11:16]})")
+    w, h = {"3:4": (768, 1024), "1:1": (1024, 1024), "4:3": (1024, 768)}.get(aspect, (768, 1024))
+    try:
+        job = _client(T2I_SPACE).submit(prompt, 0, True, w, h, 4, api_name="/infer")
+        path = _first_image(job.result(timeout=timeout))
+    except HFError:
+        raise
+    except Exception as e:
+        _pause_on_quota(e)
+    return path.read_bytes()
+
+
 def _is_quota(msg: str) -> bool:
     m = msg.lower()
     return "quota" in m or "zerogpu" in m and "exceed" in m
@@ -119,13 +146,7 @@ def generate(prompt: str, refs, aspect="3:4", timeout=420) -> bytes:
     except HFError:
         raise
     except Exception as e:
-        msg = str(e)
-        if _is_quota(msg):
-            until = (datetime.now() + timedelta(hours=3)).strftime("%Y-%m-%d %H:%M:%S")
-            db.set_setting(QUOTA_KEY, until)
-            db.log_event("photo", "Quota gratuit Hugging Face épuisé : pause de 3 h", level="warning")
-            raise HFError("Quota gratuit Hugging Face épuisé pour le moment") from e
-        raise HFError(f"Space Hugging Face indisponible : {security.mask(msg)[:200]}") from e
+        _pause_on_quota(e)
     return path.read_bytes()
 
 

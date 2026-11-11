@@ -14,7 +14,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from . import ai, config, db, studio
+from . import ai, config, db, studio, tryon
 from .image_providers import ImageError, generate
 
 FIDELITY = (
@@ -131,19 +131,97 @@ def _provider(provider):
 
 
 # ---------------- modèles (personas) ----------------
+POSE_PROMPT = (
+    "The exact same person as in picture 1: identical face, hair, skin tone, body shape and the same plain "
+    "clothes, in the same room with the same light. She now stands in a {pose}, full body visible from head to "
+    "shoes, arms away from the torso so the outfit is clearly visible. Realistic smartphone photo. "
+)
+POSE_CHOICES = {"trois-quarts": "relaxed three-quarter view with one hand on her hip",
+                "profil": "natural side view, looking towards the window",
+                "marche": "natural walking pose towards the camera"}
+
+
+def _free_text_to_image(prompt: str, out: Path) -> Path:
+    """Photo de base gratuite du modèle : ton PC si ComfyUI est branché, sinon FLUX.1 [schnell] sur Hugging Face."""
+    from . import hf_space
+    from .image_providers import available
+    if "local" in available():
+        return generate(prompt, [], out, provider="local", kind="persona")["path"]
+    try:
+        raw = hf_space.text_to_image(prompt, "3:4")
+    except hf_space.HFError as e:
+        raise ImageError(str(e)) from e
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_bytes(raw)
+    db.log_cost("hf", "FLUX.1-schnell", "persona", 0.0, None)
+    return out
+
+
 def create_persona(name: str, description: str, decor: str | None = None, provider=None) -> dict:
-    """Crée la personne récurrente d'une boutique : photo en pied + portrait (2 références)."""
+    """Crée la personne récurrente d'une boutique : photo de base en pied (+ portrait si possible).
+    En mode gratuit : ton PC ou Hugging Face (FLUX.1 [schnell], Apache 2.0), 0 €."""
     decor = decor or DEFAULT_DECOR
     pid = db.add_persona(name, description)
     db.update_persona(pid, decor=decor)
     d = config.MEDIA_DIR / "personas"
-    full = generate(PERSONA_FULL.format(description=description, decor=decor), [], d / f"persona_{pid}_full.png",
-                    provider=_provider(provider), kind="persona")
-    full_path = finish(full["path"])
-    face = generate(PERSONA_FACE, [full_path], d / f"persona_{pid}_face.png", provider=full["provider"], kind="persona")
-    face_path = finish(face["path"], size=(1200, 1200))
-    db.update_persona(pid, reference_image=rel(full_path), refs=[rel(full_path), rel(face_path)])
+    prompt = PERSONA_FULL.format(description=description, decor=decor)
+    prov = _provider(provider)
+    if prov in ("gratuit", "studio"):
+        full_path = finish(_free_text_to_image(prompt, d / f"persona_{pid}_full.png"))
+        refs = [rel(full_path)]
+        try:   # portrait serré : utile pour les photos sans cabine, facultatif
+            face = generate(PERSONA_FACE, [full_path], d / f"persona_{pid}_face.png", provider="gratuit", kind="persona")
+            refs.append(rel(finish(face["path"], size=(1200, 1200))))
+        except ImageError:
+            pass
+    else:
+        full = generate(prompt, [], d / f"persona_{pid}_full.png", provider=prov, kind="persona")
+        full_path = finish(full["path"])
+        face = generate(PERSONA_FACE, [full_path], d / f"persona_{pid}_face.png", provider=full["provider"],
+                        kind="persona")
+        refs = [rel(full_path), rel(finish(face["path"], size=(1200, 1200)))]
+    db.update_persona(pid, reference_image=refs[0], refs=refs)
     return db.get_persona(pid)
+
+
+def import_persona(name: str, data: bytes, decor: str | None = None) -> dict:
+    """Modèle à partir d'une vraie photo (toi ou une personne majeure qui a donné son accord)."""
+    from io import BytesIO
+    from PIL import Image, ImageOps
+    try:
+        img = ImageOps.exif_transpose(Image.open(BytesIO(data))).convert("RGB")
+    except Exception as e:
+        raise ValueError("Image illisible (JPEG, PNG ou WebP attendu)") from e
+    if min(img.size) < 400:
+        raise ValueError("Photo trop petite : au moins 400 px de large, en pied")
+    img.thumbnail((1600, 2000))
+    pid = db.add_persona(name, "photo importée")
+    d = config.MEDIA_DIR / "personas"
+    d.mkdir(parents=True, exist_ok=True)
+    path = d / f"persona_{pid}_full.jpg"
+    img.save(path, "JPEG", quality=92)
+    db.update_persona(pid, decor=decor or "the room of the reference photo", reference_image=rel(path),
+                      refs=[rel(path)])
+    db.log_event("photo", f"Modèle importé depuis une photo : {name} (accord de la personne confirmé)")
+    return db.get_persona(pid)
+
+
+def add_persona_pose(persona_id: int, pose: str = "trois-quarts", provider=None) -> dict:
+    """Ajoute une 2e (ou 3e) photo de base du même modèle dans une autre pose, pour varier les photos portées."""
+    persona = db.get_persona(persona_id)
+    base = tryon.bases(persona)
+    if not base:
+        raise ValueError("Ce modèle n'a pas encore de photo de base")
+    refs = list(persona.get("refs") or [])
+    out = config.MEDIA_DIR / "personas" / f"persona_{persona_id}_pose{len(refs) + 1}.png"
+    prov = _provider(provider)
+    res = generate(POSE_PROMPT.format(pose=POSE_CHOICES.get(pose, POSE_CHOICES["trois-quarts"])), [base[0]], out,
+                   provider="gratuit" if prov in ("gratuit", "studio") else prov, kind="persona")
+    new = rel(finish(res["path"]))
+    faces = [r for r in refs if "_face" in Path(r).stem]
+    bodies = [r for r in refs if "_face" not in Path(r).stem] + [new]
+    db.update_persona(persona_id, refs=bodies + faces)
+    return db.get_persona(persona_id)
 
 
 def persona_for(p: dict):
@@ -312,14 +390,24 @@ def _ai_shot(p, kind, provider, product_ref, persona, n, original, scene="auto",
     if spec["persona"]:
         prompt = prompt.replace("standing relaxed near the window", POSES.get(pose, "") + "near the window") \
             if pose not in ("auto", "") else prompt
-    if spec["persona"] and persona_refs:
+    category = tryon.category_for(p) if spec["persona"] else None
+    # cabine seulement avec le décor de la boutique : un décor choisi (rue, café…) demande une nouvelle scène
+    use_cabin = spec["persona"] and category and tryon.enabled() and scene in ("auto", "", None)
+    base_photos = tryon.bases(persona) if use_cabin else []
+    if base_photos:
+        # cabine d'essayage : on habille la vraie photo de base du modèle (même visage, même pièce)
+        base = base_photos[(1 if kind == "porte_pose" else 0) % len(base_photos)]
+        refs = [base, tryon.garment_ref(p, product_ref)]
+        prompt = tryon.prompt_for(category)
+        persona_refs = [base]
+    elif spec["persona"] and persona_refs:
         refs = persona_refs[:2] + [product_ref]
         prompt = (f"Reference images: images 1-{len(persona_refs[:2])} = PERSON, last image = PRODUCT. " + prompt)
     else:
         refs = [product_ref]
         prompt = "Reference image = PRODUCT. " + prompt.replace("the person from the PERSON reference image",
                                                                   "a young woman")
-    prompt += garment_rules(p.get("garment") or {}) + FIDELITY + " " + AMATEUR
+    prompt += garment_rules(p.get("garment") or {}) + FIDELITY + ("" if base_photos else " " + AMATEUR)
     out_dir = product_dir(p["id"])
     from .image_providers import available
     attempts, best = [], None

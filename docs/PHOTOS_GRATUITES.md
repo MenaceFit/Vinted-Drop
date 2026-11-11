@@ -11,6 +11,33 @@ Trois méthodes, toutes réglables depuis le dashboard, page **« Photos gratuit
 Le **mode 100 % gratuit** (un clic) enchaîne ton PC → Hugging Face → studio instantané et **n'appelle jamais
 Gemini ni OpenAI**, quel que soit le budget.
 
+## 👗 Photos portées gratuites : la cabine d'essayage
+
+Ton modèle porte tes vêtements, gratuitement :
+
+1. **Une IA gratuite** : Hugging Face (sans carte graphique, voir ②) ou ton PC (voir ③).
+2. **Un modèle** (Studio photo → Modèles photo), au choix :
+   - **Créer gratuitement** : décris la personne, sa photo en pied est générée par ton PC ou, sinon, par
+     FLUX.1 [schnell] sur Hugging Face (licence Apache 2.0, 4 étapes, presque rien sur le quota) ;
+   - **Importer une vraie photo** : la tienne, ou celle d'une personne majeure qui t'a donné son accord
+     (case à cocher obligatoire). Photo en pied, de face, vêtements près du corps, bonne lumière.
+   - **Ajouter une pose** (trois-quarts, profil, en marchant) : même personne, même pièce, pour varier les photos.
+3. **Essayer sur le dernier produit** (page Photos gratuites), puis génère tes photos avec « 100 % gratuit ».
+
+Comment ça marche : au lieu d'inventer une scène entière, l'IA (Qwen-Image-Edit, Apache 2.0) part de la
+photo de base du modèle et remplace **uniquement ses vêtements** par le produit, détouré au préalable par le
+studio instantané (pour ne pas recopier le mannequin ni le décor du fournisseur). Même visage et même pièce
+sur toutes tes annonces, vêtement plus fidèle, moins de calcul donc plus de photos sur le quota gratuit.
+
+- Vêtements du haut, du bas, robes et ensembles. Chaussures et accessoires : photo portée créée sans cabine.
+- Avec un décor choisi dans le studio (rue, café…), une nouvelle scène est créée à la place.
+- La cabine se coupe sur la page Photos gratuites (bouton « Désactiver »).
+
+**Pourquoi pas un modèle spécialisé d'essayage ?** Les plus connus (IDM-VTON, CatVTON, OOTDiffusion) sont
+interdits en usage commercial. FASHN VTON v1.5 est sous Apache 2.0, mais il s'appuie sur un découpeur du
+corps (FASHN Human Parser) soumis à la licence SegFormer de NVIDIA, réservée à la recherche : trop risqué
+pour vendre. Qwen-Image-Edit est entièrement sous Apache 2.0.
+
 ## ① Studio instantané (le plus simple)
 
 À partir de la photo du fournisseur : le vêtement est détouré, posé sur un fond studio propre (gris clair,

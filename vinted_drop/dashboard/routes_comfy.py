@@ -3,7 +3,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import JSONResponse
 
 from .. import comfy_manager as cm
-from .. import comfyui, config, db, hf_space, studio, tasks
+from .. import comfyui, config, db, hf_space, image_providers, photos, studio, tasks, tryon
 from .common import background, redirect, render
 
 router = APIRouter()
@@ -16,6 +16,8 @@ def page(request: Request):
     return render(request, "comfyui.html", s=state, test=cm.last_test(), settings=db.all_settings(),
                   hf=hf_space.check(), rembg=studio.rembg_available(), studio_bgs=studio.BACKGROUNDS,
                   studio_test=db.get_json_setting("_studio_test", None),
+                  tryon_test=db.get_json_setting("_tryon_test", None), personas=db.list_personas(),
+                  free_ai=[k for k in image_providers.available() if k in image_providers.FREE],
                   config_port=config.DASHBOARD_PORT,
                   running=bool(tasks.active(dedupe_key="comfy:download") or tasks.active(dedupe_key="comfy:test")),
                   gen=db.generation_stats())
@@ -168,3 +170,46 @@ def hf_test():
     r = hf_space.ping()
     return redirect(PAGE + "#hf", ok=f"Space {hf_space.space()} joignable") if r["ok"] else redirect(
         PAGE + "#hf", err=f"Space injoignable : {r['error']}")
+
+
+# ---------------- cabine d'essayage (photos portées gratuites) ----------------
+def run_tryon_test() -> dict:
+    """Le modèle de la boutique porte le dernier produit (IA gratuite uniquement)."""
+    import time
+    with db.connect() as c:
+        rows = [db._row(r) for r in c.execute("SELECT * FROM products WHERE supplier_image IS NOT NULL AND "
+                                           "supplier_image != '' ORDER BY id DESC LIMIT 20")]
+    product = next((p for p in rows if tryon.category_for(p)), None)
+    if not product:
+        raise ValueError("Ajoute d'abord un produit avec sa photo fournisseur (vêtement, pas de chaussures).")
+    persona = photos.persona_for(product)
+    if not tryon.bases(persona):
+        persona = next((m for m in db.list_personas() if tryon.bases(m)), None)
+    if not persona:
+        raise ValueError("Crée ou importe d'abord un modèle (Studio photo → Modèles photo).")
+    base = tryon.bases(persona)[0]
+    garment = tryon.garment_ref(product, photos.abs_media(product["supplier_image"]))
+    t0 = time.time()
+    res = image_providers.generate(tryon.prompt_for(tryon.category_for(product)), [base, garment],
+                                   config.MEDIA_DIR / "tryon_test.png", provider="gratuit", kind="tryon_test")
+    out = photos.finish(res["path"])
+    data = {"seconds": round(time.time() - t0, 1), "provider": res["provider"], "at": db.now(),
+            "product_id": product["id"], "persona": persona["name"], "path": photos.rel(out),
+            "base": photos.rel(base), "garment": photos.rel(garment)}
+    db.set_setting("_tryon_test", __import__("json").dumps(data))
+    db.log_event("photo", f"Essai cabine : {persona['name']} porte le produit #{product['id']} ({res['provider']}, 0 €)")
+    return data
+
+
+@router.post(f"{PAGE}/essayage-test")
+def tryon_test():
+    if not [k for k in image_providers.available() if k in image_providers.FREE]:
+        return redirect(PAGE + "#cabine", err="Active Hugging Face (gratuit) ou branche ComfyUI d'abord.")
+    background("photo", run_tryon_test, label="Essai cabine d'essayage", dedupe_key="tryon:test")
+    return redirect(PAGE + "#cabine", ok="Essai lancé (30 s à 2 min, voir Activité) : recharge la page ensuite.")
+
+
+@router.post(f"{PAGE}/essayage")
+def tryon_toggle(tryon_on: str = Form("")):
+    db.set_setting("tryon", "on" if tryon_on == "on" else "off")
+    return redirect(PAGE + "#cabine", ok="Cabine d'essayage " + ("activée" if tryon_on == "on" else "désactivée"))

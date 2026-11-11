@@ -105,6 +105,16 @@ def test_full_studio_run_with_persona_qa_and_finish(fake_ai):
     assert set(kinds) == {"porte", "plat", "detail"}
     with Image.open(config.MEDIA_DIR / p["photos"][0]) as im:
         assert im.size == (1200, 1600) and im.format == "JPEG"
+    worn = [pr for pr in fake_ai["prompts"] if "Dress the person from picture 1" in pr][0]
+    assert "Keep everything else" in worn          # cabine d'essayage : on habille la photo de base du modèle
+    assert 2 in fake_ai["refs"]                    # photo de base du modèle + le vêtement
+
+
+def test_tryon_off_uses_new_scene(fake_ai):
+    from vinted_drop import db, photos
+    db.set_setting("tryon", "off")
+    pid = _product()
+    photos.generate_product_photos(pid, kinds=["porte"])
     worn = [pr for pr in fake_ai["prompts"] if "Mirror selfie" in pr][0]
     assert "PERSON" in worn and "dark cosy bedroom" in worn
     assert max(fake_ai["refs"]) == 3               # 2 références du modèle + le produit

@@ -933,6 +933,7 @@ DEFAULT_SETTINGS = {
     "photo_scene": "auto",        # décor des photos portées
     "studio_bg": "auto",          # fond du studio instantané (auto = noir pour le goth, gris sinon)
     "hf_enabled": "off",          # Space Hugging Face gratuit (quota GPU quotidien)
+    "tryon": "on",                # cabine d'essayage : le modèle de la boutique porte le produit
     "daily_budget": "2",
     "budget_alert_pct": "80",
     "ship_delay": "envoi sous 5 à 8 jours",

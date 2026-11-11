@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.5.0 — Photos portées gratuites (cabine d'essayage) — 11 novembre 2026
+
+- **Cabine d'essayage** : pour les photos portées, l'IA part de la photo de base du modèle de la boutique et
+  remplace uniquement ses vêtements par le produit (détouré au préalable). Même visage et même pièce sur toutes
+  les annonces, vêtement plus fidèle. Fonctionne avec ton PC, Hugging Face (gratuit) ou les IA payantes.
+  Haut, bas, robes/ensembles détectés automatiquement ; chaussures et accessoires gardent l'ancienne méthode.
+- **Modèle créé gratuitement** : photo en pied par ton PC ou FLUX.1 [schnell] sur Hugging Face (Apache 2.0).
+- **Import d'une vraie photo de modèle**, avec accord obligatoire de la personne (case à cocher).
+- **Poses supplémentaires** du même modèle (trois-quarts, profil, en marchant) pour varier les photos.
+- Page Photos gratuites : section cabine d'essayage (étapes, essai sur le dernier produit, avant/après).
+- Évalué et écarté : FASHN VTON v1.5 (dépend d'un composant sous licence NVIDIA non commerciale),
+  IDM-VTON / CatVTON / OOTDiffusion (non commerciaux).
+
 ## 2.4.0 — Photos gratuites sans carte graphique — 11 novembre 2026
 
 ### Corrigé (important)
