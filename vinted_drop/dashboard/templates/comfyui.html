@@ -1,0 +1,108 @@
+{% extends "base.html" %}{% from "_ui.html" import icon, badge %}
+{% block title %}Photos gratuites{% endblock %}
+{% block heading %}Photos gratuites · ComfyUI{% endblock %}
+{% block subtitle %}<p class="muted">Tes photos générées sur ta carte graphique, avec Qwen-Image-Edit (licence Apache 2.0, usage commercial autorisé) : 0 € par image. Tout se règle ici.</p>{% endblock %}
+{% block content %}
+{% set st = s.status %}{% set pr = s.presets[s.preset] %}{% set dl = s.download %}
+<div class="grid g4">
+  <div class="card kpi hero reveal"><div class="label">{{ icon('home', 14) }} ComfyUI</div>
+    <div class="value" style="font-size:20px">{% if s.ready %}Prêt{% elif st.ok %}Presque prêt{% else %}Hors ligne{% endif %}</div>
+    <div class="sub">{{ s.url or 'pas encore branché' }}{% if st.version %} · v{{ st.version }}{% endif %}</div></div>
+  <div class="card kpi reveal"><div class="label">{{ icon('spark', 14) }} Carte graphique</div>
+    <div class="value" style="font-size:16px">{{ st.gpu if st.ok else '—' }}</div>
+    <div class="sub">{% if st.ok %}{{ st.vram_gb }} Go de VRAM · {{ st.vram_free_gb }} Go libres{% if st.ram_gb %} · RAM {{ st.ram_gb }} Go{% endif %}{% else %}lance ComfyUI pour la voir{% endif %}</div></div>
+  <div class="card kpi reveal"><div class="label">{{ icon('box', 14) }} Modèle</div>
+    <div class="value" style="font-size:16px">{{ pr.label.split(' — ')[0] }}</div>
+    <div class="sub">{{ (s.files|selectattr('present')|list|length) }} / {{ s.files|length }} fichiers{% if s.missing_gb %} · {{ s.missing_gb }} Go à télécharger{% endif %}</div></div>
+  <div class="card kpi reveal"><div class="label">{{ icon('pulse', 14) }} File d'attente</div>
+    <div class="value num" style="font-size:20px">{{ s.queue.running + s.queue.pending }}</div>
+    <div class="sub">{{ s.queue.running }} en cours · {{ s.queue.pending }} en attente</div></div>
+</div>
+
+{% if s.problems %}<div class="card mt reveal"><div class="card-head"><h2>À faire</h2></div>
+  {% for p in s.problems %}<div class="alert {{ 'bad' if loop.first and not st.ok else '' }}" style="margin:0 0 8px">{{ p }}</div>{% endfor %}</div>
+{% elif s.ready %}<div class="alert mt" style="margin-bottom:0">Tout est prêt : les photos des produits passent par ton PC, gratuitement. Lance une image test pour voir la qualité et la vitesse.</div>{% endif %}
+
+<div class="grid g2 mt">
+  <div class="card reveal"><div class="card-head"><h2>1 · Brancher ComfyUI</h2><span class="muted small">une fois</span></div>
+    <p class="help">Installe <a href="https://www.comfy.org/download" target="_blank" rel="noopener">ComfyUI Desktop</a> (choisis NVIDIA) ou la version portable, lance-le, puis clique « Détecter ». Avec ComfyUI Desktop, mets son port sur 8188 (Paramètres → Server) : le dashboard utilise déjà le port {{ config_port }}.</p>
+    <form method="post" action="/photos-gratuites/reglages">
+      <label>Adresse de ComfyUI</label><input name="url" value="{{ settings.comfy_url }}" placeholder="http://127.0.0.1:8188" class="w-full">
+      <label>Dossier de ComfyUI sur ce PC</label><input name="folder" value="{{ settings.comfy_dir }}" placeholder="C:\Users\toi\Documents\ComfyUI  ou  D:\ComfyUI_windows_portable" class="w-full">
+      <p class="help">Sert à télécharger les modèles au bon endroit et à démarrer ComfyUI. Dossier des modèles : <b>{{ s.models_dir or '—' }}</b>{% if s.disk_free_gb is defined %} · {{ s.disk_free_gb }} Go libres{% endif %}</p>
+      <div class="row mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div>
+    </form>
+    <div class="row mt">
+      <form method="post" action="/photos-gratuites/detecter"><button class="btn ghost sm">{{ icon('refresh', 13) }} Détecter</button></form>
+      <form method="post" action="/photos-gratuites/demarrer"><button class="btn ghost sm">{{ icon('spark', 13) }} Démarrer ComfyUI</button></form>
+    </div></div>
+
+  <div class="card reveal"><div class="card-head"><h2>2 · Choisir le modèle</h2>{% if s.recommended %}<span class="badge plain">conseillé pour ta carte : {{ s.presets[s.recommended].label.split(' — ')[0] }}</span>{% endif %}</div>
+    {% for key, p in s.presets.items() %}
+    <form method="post" action="/photos-gratuites/profil" class="row between nowrap" style="padding:10px 0;border-top:1px solid var(--border);align-items:flex-start">
+      <input type="hidden" name="preset" value="{{ key }}">
+      <div><b>{{ p.label }}</b>{% if key == s.preset %} <span class="badge solid">choisi</span>{% endif %}{% if key == s.recommended %} <span class="badge published">conseillé</span>{% endif %}
+        <div class="small muted">{{ p.help }}</div>
+        <div class="tiny faint">VRAM {{ p.vram }} Go+ · RAM {{ p.ram }} Go conseillés · {{ p.files.values()|sum(attribute='gb')|round(1) }} Go sur le disque</div></div>
+      {% if key != s.preset %}<button class="btn ghost sm">Choisir</button>{% endif %}
+    </form>{% endfor %}</div>
+</div>
+
+<div class="card mt reveal"><div class="card-head"><h2>3 · Fichiers du modèle</h2><span class="muted small">{{ pr.label }}</span></div>
+  <div class="table-wrap"><table><thead><tr><th>Fichier</th><th>Dossier</th><th class="r">Taille</th><th>État</th></tr></thead><tbody>
+  {% for f in s.files %}<tr><td class="small"><a href="{{ f.url }}" target="_blank" rel="noopener">{{ f.name }}</a></td><td class="small muted">models/{{ f.folder }}</td><td class="r num">{{ f.gb }} Go</td>
+    <td>{% if f.present %}<span class="badge published">présent{{ '' if f.seen_by_comfy is not sameas false else ' (redémarre ComfyUI)' }}</span>{% elif f.partial_gb %}<span class="badge sold">commencé · {{ f.partial_gb }} Go</span>{% else %}<span class="badge error">manquant</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <div id="dl" data-status="{{ dl.status or '' }}" class="mt" {% if dl.status != 'running' %}hidden{% endif %}>
+    <div class="small"><b id="dl-file">{{ dl.file or '' }}</b> <span class="muted" id="dl-text"></span></div>
+    <div class="bar mt"><i id="dl-bar" style="width:{{ (100 * (dl.done or 0) / (dl.total or 1))|round }}%"></i></div></div>
+  {% if dl.status == 'error' %}<div class="alert bad mt" style="margin-bottom:0">Téléchargement interrompu : {{ dl.error }}</div>{% elif dl.status == 'done' and dl.message %}<div class="alert mt" style="margin-bottom:0">{{ dl.message }}</div>{% endif %}
+  <div class="row mt">
+    {% if s.files|rejectattr('present')|list %}<form method="post" action="/photos-gratuites/telecharger"><button class="btn" {{ 'disabled' if not s.models_dir }}>{{ icon('download', 14) }} Télécharger les fichiers manquants ({{ s.missing_gb }} Go)</button></form>{% endif %}
+    {% if dl.status == 'running' %}<form method="post" action="/photos-gratuites/arreter"><button class="btn ghost">Mettre en pause</button></form>{% endif %}
+    {% if pr.custom_node %}<form method="post" action="/photos-gratuites/gguf"><button class="btn ghost">{{ icon('plus', 13) }} Installer l'extension {{ pr.custom_node }}</button></form>{% endif %}
+  </div>
+  <p class="help">Les fichiers viennent de Hugging Face (Comfy-Org, lightx2v, unsloth). Une coupure n'est pas grave : relance, ça reprend où ça s'est arrêté.</p>
+  {% if s.nodes %}{% set bad = s.nodes|rejectattr('ok')|list %}<div class="row mt" style="gap:6px">{% if bad %}<span class="small muted">Nœuds absents de ComfyUI :</span>{% for n in bad %}<span class="badge error">{{ n.name }}</span>{% endfor %}{% else %}<span class="badge published">Nœuds ComfyUI : tous présents ({{ s.nodes|length }})</span>{% endif %}</div>{% endif %}
+</div>
+
+<div class="grid g2 mt">
+  <div class="card reveal"><div class="card-head"><h2>4 · Tester</h2>{% if test %}<span class="badge plain">{{ test.seconds }} s · 0 €</span>{% endif %}</div>
+    {% if test %}<img src="/media/comfy_test.png?t={{ test.at|replace(' ', '') }}" alt="Image test générée par ComfyUI" style="width:100%;max-height:420px;object-fit:contain;border-radius:12px;background:var(--surface-2)">
+      <p class="help">Générée le {{ test.at|dt }} avec le profil {{ s.presets[test.preset].label if test.preset in s.presets else test.preset }} à partir de {{ 'la photo fournisseur du dernier produit' if test.ref != 'comfy_test_ref.png' else 'un vêtement dessiné' }}.</p>{% endif %}
+    {% if not test %}<p class="small muted">Génère une photo à plat à partir de la photo fournisseur de ton dernier produit (ou d'un vêtement dessiné). Le premier essai est plus long : ComfyUI charge le modèle en mémoire.</p>{% endif %}
+    <form method="post" action="/photos-gratuites/test" class="row mt"><button class="btn" {{ 'disabled' if not st.ok }}>{{ icon('camera', 14) }} Générer une image test</button><a class="btn ghost" href="/activite">Suivre dans Activité</a></form></div>
+
+  <div class="card reveal"><div class="card-head"><h2>5 · Mode 100 % gratuit</h2></div>
+    <p class="small">Photos uniquement sur ton PC et budget IA payant à 0 € : aucune image n'est jamais facturée. Si le PC est éteint, les photos attendent la prochaine préparation.</p>
+    <p class="help">Actuellement : fournisseur <b>{{ settings.photo_provider }}</b> · budget payant <b>{{ settings.daily_budget }} €/jour</b> · contrôle qualité <b>{{ 'activé' if settings.photo_qa != 'off' else 'coupé' }}</b>. Le contrôle qualité et la rédaction des annonces utilisent encore OpenAI/Gemini en texte (quelques millièmes d'euro par photo) : coupe le contrôle si tu veux 0 € absolu.</p>
+    <form method="post" action="/photos-gratuites/gratuit"><label class="row nowrap" style="gap:8px;font-weight:400"><input type="checkbox" name="qa_off" style="width:auto"> Couper aussi le contrôle qualité IA</label>
+      <div class="mt"><button class="btn">{{ icon('check') }} Activer le mode gratuit</button></div></form>
+    <div class="card-head mt"><h2>File d'attente</h2></div>
+    <div class="row">{% for a, l in [('interrompre','Interrompre la génération'),('vider','Vider la file'),('liberer','Libérer la mémoire vidéo')] %}<form method="post" action="/photos-gratuites/file/{{ a }}"><button class="btn ghost sm" {{ 'disabled' if not st.ok }}>{{ l }}</button></form>{% endfor %}</div>
+    {% if gen %}<div class="table-wrap mt"><table class="small"><thead><tr><th>Fournisseur (30 j)</th><th class="r">Images</th><th class="r">Durée moy.</th><th class="r">Coût</th></tr></thead><tbody>
+      {% for g in gen %}<tr><td>{{ 'Ton PC' if g.provider == 'local' else g.provider }}</td><td class="r num">{{ g.n }}</td><td class="r num">{{ g.avg_s or '—' }} s</td><td class="r num">{{ (g.eur or 0)|eur }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+  </div>
+</div>
+
+<script>
+(() => {
+  const box = document.getElementById('dl');
+  if (!box || box.dataset.status !== 'running') return;
+  const fmt = (b) => (b / 1e9).toFixed(2) + ' Go';
+  const tick = async () => {
+    try {
+      const s = await (await fetch('/api/comfyui')).json();
+      const d = s.download || {};
+      if (d.status !== 'running') { location.reload(); return; }
+      document.getElementById('dl-file').textContent = (d.index ? `${d.index}/${d.count} · ` : '') + (d.file || '');
+      document.getElementById('dl-text').textContent = `${fmt(d.done || 0)} / ${fmt(d.total || 0)}` +
+        (d.speed_mb ? ` · ${d.speed_mb} Mo/s` : '') + (d.eta_min ? ` · encore ~${Math.ceil(d.eta_min)} min` : '');
+      document.getElementById('dl-bar').style.width = (100 * (d.done || 0) / (d.total || 1)).toFixed(1) + '%';
+    } catch (e) {}
+    setTimeout(tick, 3000);
+  };
+  tick();
+})();
+</script>
+{% endblock %}

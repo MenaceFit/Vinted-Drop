@@ -31,20 +31,24 @@ GEMINI_IMAGE_MODEL = os.getenv("GEMINI_IMAGE_MODEL", "gemini-nano-banana-2.1")
 GEMINI_IMAGE_SIZE = os.getenv("GEMINI_IMAGE_SIZE", "1K")  # 1K = 0,034 $/image, 2K = 0,050 $
 GEMINI_TEXT_MODEL = os.getenv("GEMINI_TEXT_MODEL", "gemini-3-flash-preview")
 
-# --- Photos gratuites sur ton PC : ComfyUI + Qwen-Image-Edit-2509 (voir docs/PHOTOS_GRATUITES.md) ---
-COMFYUI_URL = os.getenv("COMFYUI_URL", "")          # ex. http://127.0.0.1:8188
-COMFY_WORKFLOW = os.getenv("COMFY_WORKFLOW", "")    # vide = workflow fourni
-COMFY_UNET = os.getenv("COMFY_UNET", "qwen_image_edit_2509_fp8_e4m3fn.safetensors")
-COMFY_CLIP = os.getenv("COMFY_CLIP", "qwen_2.5_vl_7b_fp8_scaled.safetensors")
-COMFY_VAE = os.getenv("COMFY_VAE", "qwen_image_vae.safetensors")
-COMFY_LORA = os.getenv("COMFY_LORA", "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors")
+# --- Photos gratuites sur ton PC : ComfyUI + Qwen-Image-Edit (voir docs/PHOTOS_GRATUITES.md) ---
+# Tout se règle aussi depuis le dashboard (page « Photos gratuites ») ; ces variables servent de valeurs par défaut.
+COMFYUI_URL = os.getenv("COMFYUI_URL", "")          # ex. http://127.0.0.1:8188 (vide = détection depuis le dashboard)
+COMFY_DIR = os.getenv("COMFY_DIR", "")              # dossier de ComfyUI sur ce PC (téléchargement des modèles, démarrage)
+COMFY_PRESET = os.getenv("COMFY_PRESET", "")        # standard | leger | 2509 (vide = standard)
+COMFY_WORKFLOW = os.getenv("COMFY_WORKFLOW", "")    # vide = workflow du profil
+# Noms de fichiers personnalisés (vides = ceux du profil). Une ancienne config 2509 est reconnue automatiquement.
+COMFY_UNET = os.getenv("COMFY_UNET", "")
+COMFY_CLIP = os.getenv("COMFY_CLIP", "")
+COMFY_VAE = os.getenv("COMFY_VAE", "")
+COMFY_LORA = os.getenv("COMFY_LORA", "")
 COMFY_STEPS = int(os.getenv("COMFY_STEPS", "4"))
 COMFY_CFG = float(os.getenv("COMFY_CFG", "1.0"))
 COMFY_TIMEOUT = int(os.getenv("COMFY_TIMEOUT", "600"))
 
 # Fournisseur préféré en mode "auto" : local (gratuit), gemini ou openai.
-# Par défaut : local s'il est configuré, sinon gemini.
-PHOTO_PROVIDER = os.getenv("PHOTO_PROVIDER", "local" if COMFYUI_URL else "gemini")
+# Vide (conseillé) : ton PC d'abord dès que ComfyUI est branché, sinon gemini puis openai.
+PHOTO_PROVIDER = os.getenv("PHOTO_PROVIDER", "")
 # Note minimale de fidélité (0-10) d'une photo ; en dessous elle est refaite une fois
 PHOTO_QA_MIN = int(os.getenv("PHOTO_QA_MIN", "7"))
 # Estimation du coût par image (€) pour le suivi des dépenses

@@ -1436,6 +1436,181 @@
     "alt"
    ],
    "alt": true
+  },
+  {
+   "id": "bottes-cavalieres",
+   "name": "Bottes cavalières hautes (style équitation)",
+   "persona": "femme 18-35 ans, style classique / preppy",
+   "months": [
+    8,
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "17-24 €",
+   "sell_price": "44-75 €",
+   "brands": [],
+   "why": "« Riding boots » est une tendance phare de Depop (août 2026) : médiane 75 € sur 22 annonces. Modèles AliExpress à 17-24 € (jusqu'à 305 commandes, 4,9★).",
+   "tip": "Une partie des annonces Depop sont en cuir véritable d'occasion : en simili neuf, vise plutôt 55-65 €. Photo de profil de la botte et hauteur de tige dans l'annonce.",
+   "keywords": [
+    "bottes cavalières",
+    "bottes hautes femme",
+    "bottes d'équitation",
+    "riding boots",
+    "knee high boots"
+   ],
+   "depop": {
+    "p25": 44,
+    "median": 75,
+    "p75": 116,
+    "n": 22,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "ridingboots",
+    "kneehighboots",
+    "equestrian",
+    "boots",
+    "vintage"
+   ],
+   "alt": true
+  },
+  {
+   "id": "bottes-western",
+   "name": "Bottes western / santiags brodées",
+   "persona": "femme 18-35 ans, western / boho / festival",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 7,
+   "competition": 5,
+   "buy_price": "11-20 €",
+   "sell_price": "35-58 €",
+   "brands": [],
+   "why": "Le western reste une valeur sûre (festivals, country, boho) : médiane Depop 58 € (20 annonces). Bottes brodées AliExpress à 11-19 € avec 250 à 300 commandes (4,6-4,8★).",
+   "tip": "Prends les modèles brodés à 11-19 € ; au-dessus de 30 € d'achat, le bénéfice tombe sous 20 €. Ne jamais écrire « Sendra » ni « Durango » : « santiags brodées ».",
+   "keywords": [
+    "santiags femme",
+    "bottes cowboy",
+    "bottes western",
+    "cowboy boots",
+    "western boots"
+   ],
+   "depop": {
+    "p25": 35,
+    "median": 58,
+    "p75": 121,
+    "n": 20,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "cowboyboots",
+    "westernboots",
+    "cowgirl",
+    "boho",
+    "boots"
+   ],
+   "alt": true
+  },
+  {
+   "id": "manteau-leopard",
+   "name": "Manteaux et vestes imprimé léopard",
+   "persona": "femme 18-35 ans, « mob wife » / vintage glam",
+   "months": [
+    10,
+    11,
+    12,
+    1,
+    2,
+    3
+   ],
+   "demand": 8,
+   "competition": 6,
+   "buy_price": "22-26 €",
+   "sell_price": "30-60 €",
+   "brands": [],
+   "why": "L'imprimé léopard tient depuis deux saisons : médiane Depop 60 € (45 annonces, beaucoup d'offre). Parka léopard AliExpress à 25 € (172 commandes, 4,9★).",
+   "tip": "Beaucoup d'annonces : soigne les photos portées (Studio photo) et vise 55-60 €. Les manteaux à plus de 30 € d'achat ne laissent pas 20 €.",
+   "keywords": [
+    "manteau léopard",
+    "veste léopard",
+    "fausse fourrure léopard",
+    "leopard coat"
+   ],
+   "depop": {
+    "p25": 30,
+    "median": 60,
+    "p75": 105,
+    "n": 45,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "leopardcoat",
+    "leopardprint",
+    "fauxfur",
+    "mobwife",
+    "vintage"
+   ],
+   "alt": true
+  },
+  {
+   "id": "veste-franges-daim",
+   "name": "Vestes en suédine à franges (boho / western) — à tester",
+   "persona": "femme 18-35 ans, boho / festival",
+   "months": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "demand": 6,
+   "competition": 4,
+   "buy_price": "13-19 €",
+   "sell_price": "32-70 €",
+   "brands": [],
+   "why": "Médiane Depop 70 € (25 annonces), mais surtout du daim véritable vintage. Côté fournisseur, peu de preuves : 94 commandes au mieux, sans note.",
+   "tip": "Preuve fournisseur faible : commande une seule pièce pour juger la qualité avant d'en publier plusieurs. En suédine neuve, vise 45-55 €.",
+   "keywords": [
+    "veste à franges",
+    "veste daim franges",
+    "veste western femme",
+    "fringe jacket"
+   ],
+   "depop": {
+    "p25": 32,
+    "median": 70,
+    "p75": 95,
+    "n": 25,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "fringejacket",
+    "suede",
+    "western",
+    "boho",
+    "festival"
+   ],
+   "alt": true
   }
  ]
 }

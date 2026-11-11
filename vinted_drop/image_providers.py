@@ -30,7 +30,8 @@ PAID = ("gemini", "openai")
 
 def available() -> list[str]:
     out = []
-    if config.COMFYUI_URL:
+    from . import comfyui
+    if comfyui.url():
         out.append("local")
     if config.GEMINI_API_KEY:
         out.append("gemini")
@@ -42,11 +43,13 @@ def available() -> list[str]:
 def order(provider: str) -> list[str]:
     keys = available()
     if not keys:
-        raise ImageError("Aucun générateur d'images : configure COMFYUI_URL (gratuit), GEMINI_API_KEY ou OPENAI_API_KEY dans .env")
+        raise ImageError("Aucun générateur d'images : branche ComfyUI (gratuit, page Photos gratuites), "
+                         "ou mets GEMINI_API_KEY / OPENAI_API_KEY dans .env")
     if provider in ("openai", "gemini", "local"):
         if provider not in keys:
             raise ImageError(f"Clé manquante pour {provider} dans .env")
         return [provider] + [k for k in keys if k != provider]  # l'autre en secours
+    # ton PC (gratuit) d'abord, sauf si PHOTO_PROVIDER impose autre chose
     pref = config.PHOTO_PROVIDER if config.PHOTO_PROVIDER in keys else keys[0]
     return [pref] + [k for k in keys if k != pref]
 
@@ -188,7 +191,7 @@ def generate(prompt: str, refs, out_path: Path, provider="auto", aspect="3:4", k
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(raw)
         model = {"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL,
-                 "local": config.COMFY_UNET.split(".")[0]}[name]
+                 "local": comfyui.settings()["unet"].split(".")[0]}[name]
         db.log_cost(name, model, kind, cost, product_id)
         if name in PAID:
             _budget_alert()

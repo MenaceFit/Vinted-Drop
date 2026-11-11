@@ -109,7 +109,7 @@ def setup_checklist():
     from ..image_providers import available
     shops = db.list_shops()
     steps = [
-        ("Ajouter une clé IA ou ComfyUI", bool(available() or config.OPENAI_API_KEY), "/parametres"),
+        ("Brancher ComfyUI (photos gratuites) ou une clé IA", bool(available() or config.OPENAI_API_KEY), "/photos-gratuites"),
         ("Créer une boutique", bool(shops), "/boutiques"),
         ("Connecter le compte Vinted (token)", any(s.get("vinted_status") == "connected" for s in shops), "/connexions"),
         ("Apprendre un modèle d'annonce", any(s.get("template_id") for s in shops), "/connexions"),

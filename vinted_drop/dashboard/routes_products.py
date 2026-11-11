@@ -277,7 +277,7 @@ def studio_page(request: Request):
                   running=running, qa_min=config.PHOTO_QA_MIN, gen_stats=db.generation_stats(30),
                   history=db.list_generations(limit=30), scenes=photos.SCENE_LABELS,
                   models={"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL,
-                          "local": config.COMFY_UNET.split(".")[0]})
+                          "local": comfyui.settings()["unet"].split(".")[0]})
 
 
 @router.post("/studio/reglages")

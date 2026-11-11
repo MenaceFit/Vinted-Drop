@@ -1,5 +1,35 @@
 # Analyse des niches Vinted / Depop — novembre 2026
 
+## 👢 Nouvelles niches — 11 novembre 2026 (2e vague)
+
+Même méthode que ci-dessous : prix normal AliExpress (hors soldes 11.11), médiane des annonces Depop, 3 € de
+coût fixe par vente et frais Depop déduits. Objectif : 20 € de bénéfice minimum.
+
+### ✅ Retenues
+
+| Produit | Achat | Preuve fournisseur | Revente Depop (médiane) | Bénéfice estimé |
+|---|--:|---|--:|--:|
+| [Bottes d'équitation en suédine à lacets](https://fr.aliexpress.com/item/1005007729704774.html) | 17,53 € | 4,9★ · 305 commandes | 75 € (bottes cavalières) | ≈ 44 € |
+| [Bottes hautes au genou, bout rond](https://fr.aliexpress.com/item/1005008156710762.html) | 21,11 € | 4,6★ · 102 commandes | 75 € | ≈ 41 € |
+| [Santiags brodées bout pointu](https://fr.aliexpress.com/item/1005006176816828.html) | 11,29 € | 4,6★ · 295 commandes | 58 € | ≈ 36 € |
+| [Bottes cowgirl sans lacet, tige haute](https://fr.aliexpress.com/item/1005007316338465.html) | 19,02 € | 4,8★ · 254 commandes | 58 € | ≈ 28 € |
+| [Parka d'hiver imprimé léopard](https://fr.aliexpress.com/item/1005002589788448.html) | 25,36 € | 4,9★ · 172 commandes | 60 € | ≈ 24 € |
+| [Veste à franges en suédine](https://fr.aliexpress.com/item/1005003547930998.html) — **à tester** | 13,15 € | 94 commandes, pas de note | 70 € | ≈ 44 € |
+
+**Prudence** : sur Depop, une partie des bottes cavalières et des vestes à franges sont en cuir ou en daim
+véritable d'occasion. En simili neuf, vise plutôt 55-65 € (bottes) et 45-55 € (franges) : le bénéfice reste
+au-dessus de 20 €. Pour la veste à franges, commande une seule pièce pour juger la qualité.
+
+### ❌ Testées et écartées
+
+| Article | Revente Depop (médiane) | Pourquoi |
+|---|--:|---|
+| Robes « bandage » (recherches +542 % selon Depop) | 18 € | beaucoup de demande, mais des prix très bas |
+| Vestes varsity / college | 40 € | trop proche du prix d'achat |
+| Tops en cotte de mailles (tendance médiévale) | 34 € | panier trop bas |
+| Bottines western haut de gamme (31 € d'achat) | 58 € | ≈ 16 € seulement |
+
+
 ## 🖤 Mode alternative et Depop — recherche du 11 novembre 2026
 
 **Objectif : au moins 20 € de bénéfice net par article**, après les 3 € de coût fixe par vente (emballage,

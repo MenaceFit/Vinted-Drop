@@ -113,9 +113,10 @@ def health():
     return {"ok": True}
 
 
-from . import routes_market, routes_products, routes_shops, routes_system  # noqa: E402
+from . import routes_comfy, routes_market, routes_products, routes_shops, routes_system  # noqa: E402
 
 app.include_router(routes_products.router)
 app.include_router(routes_shops.router)
 app.include_router(routes_market.router)
 app.include_router(routes_system.router)
+app.include_router(routes_comfy.router)

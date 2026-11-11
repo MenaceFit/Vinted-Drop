@@ -14,7 +14,7 @@
 <body data-running="{{ '1' if running is defined and running is sameas true else '0' }}">
 {% set groups = [
   ('Pilotage', [('home','/','Accueil','home'),('finance','/finances','Finances','wallet'),('activity','/activite','Activité','pulse')]),
-  ('Catalogue', [('products','/produits','Produits','box'),('studio','/studio','Studio photo','camera'),('messages','/messages','Messages','chat')]),
+  ('Catalogue', [('products','/produits','Produits','box'),('studio','/studio','Studio photo','camera'),('comfyui','/photos-gratuites','Photos gratuites','spark'),('messages','/messages','Messages','chat')]),
   ('Ventes', [('sales','/ventes','Ventes','receipt'),('orders','/commandes','Commandes','truck')]),
   ('Boutiques', [('shops','/boutiques','Boutiques','store'),('shops_compare','/boutiques/comparer','Comparer','columns'),('connections','/connexions','Connexion Vinted','key')]),
   ('Marché', [('niches','/niches','Market Intelligence','target'),('winners','/gagnants','Produits gagnants','trophy'),('opportunities','/opportunites','Opportunités','bulb')]),
@@ -23,7 +23,7 @@
 {% set active = {'product':'products','shop':'shops'}.get(page, page) %}
 <div class="app">
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="/"><span class="logo">V</span> Vinted Drop <span class="badge plain tiny" style="margin-left:auto">2.2</span></a>
+    <a class="brand" href="/"><span class="logo">V</span> Vinted Drop <span class="badge plain tiny" style="margin-left:auto">2.3</span></a>
     {% for gname, items in groups %}
     <div class="nav-group">{{ gname }}</div>
     <nav class="nav">{% for key, href, label, ic in items %}

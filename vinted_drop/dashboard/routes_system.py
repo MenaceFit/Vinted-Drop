@@ -207,7 +207,7 @@ def settings_page(request: Request):
     from .. import comfyui
     from ..image_providers import available
     keys = {"OpenAI": bool(config.OPENAI_API_KEY), "Gemini": bool(config.GEMINI_API_KEY),
-            "ComfyUI (PC)": bool(config.COMFYUI_URL), "Telegram": bool(config.TELEGRAM_BOT_TOKEN)}
+            "ComfyUI (PC)": bool(comfyui.url()), "Telegram": bool(config.TELEGRAM_BOT_TOKEN)}
     sec = {"password": bool(config.DASHBOARD_PASSWORD), "host": config.DASHBOARD_HOST,
            "secret_key": "variable SECRET_KEY" if config.SECRET_KEY else "fichier data/secret.key",
            "channel": config.TELEGRAM_CHANNEL_ID, "chats": sorted(config.TELEGRAM_ALLOWED_CHAT_IDS)}

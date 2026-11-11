@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.3.0 — Photos gratuites pilotées depuis le dashboard — 11 novembre 2026
+
+### Photos gratuites (ComfyUI sur ton PC)
+- Nouvelle page **Photos gratuites** : détection automatique de ComfyUI, carte graphique (VRAM totale et
+  libre), mémoire vive, version, nœuds nécessaires, espace disque, file d'attente.
+- Passage à **Qwen-Image-Edit-2511** (workflow officiel : Edit Model Reference Method, CFGNorm, shift 3,1,
+  LoRA Lightning 4 étapes). Trois profils : Qualité (fp8, 12 Go+), Léger (GGUF Q4, 8-11 Go) et Ancien
+  (2509, pour garder une installation existante, reconnue automatiquement).
+- **Téléchargement des modèles en un clic** dans le dossier de ComfyUI, avec progression, vitesse, temps
+  restant, pause et reprise après coupure ; contrôle de l'espace disque avant de commencer.
+- Installation de l'extension ComfyUI-GGUF (profil Léger), démarrage de ComfyUI (portable ou installation
+  manuelle), interrompre / vider la file / libérer la mémoire vidéo.
+- **Image test** (photo fournisseur du dernier produit, ou vêtement dessiné) avec la durée de génération.
+- **Mode 100 % gratuit** en un clic : photos uniquement sur le PC, budget payant à 0 €, contrôle qualité
+  coupable.
+- Ton PC passe toujours en premier dès que ComfyUI est branché (même s'il est branché depuis le dashboard).
+
+### Niches
+- 4 nouvelles niches avec prix Depop relevés : bottes cavalières (médiane 75 €), bottes western (58 €),
+  manteaux léopard (60 €), vestes à franges (70 €, à tester). 48 niches, 138 produits.
+- Écartées après relevé : robes « bandage », vestes varsity, tops en cotte de mailles.
+
+### Changements dans `.env`
+- Nouveaux : `COMFY_DIR`, `COMFY_PRESET` (facultatifs, réglables dans le dashboard).
+- `COMFY_UNET`, `COMFY_CLIP`, `COMFY_VAE`, `COMFY_LORA` : vides par défaut (fichiers du profil). Une ancienne
+  configuration 2509 continue de fonctionner sans rien changer.
+- `PHOTO_PROVIDER` : vide par défaut (ton PC d'abord).
+
 ## 2.2.0 — Depop et mode alternative — 11 novembre 2026
 
 ### Depop

@@ -11,7 +11,7 @@
   <div class="card kpi reveal"><div class="label">{{ icon('home', 14) }} Ton PC · gratuit</div>
     <div class="value" style="font-size:18px">{% if local.ok %}<span class="good">En ligne</span>{% elif 'local' in providers %}<span class="bad">Éteint</span>{% else %}Non configuré{% endif %}</div>
     <div class="sub">{% if local.ok %}{{ local.gpu }} · {{ local.vram_gb }} Go{% else %}{{ local.error }}{% endif %}</div>
-    <form method="post" action="/studio/test-local" class="row mt"><button class="btn ghost sm">{{ icon('refresh', 13) }} Tester</button><a class="btn ghost sm" href="https://github.com/MenaceFit/Vinted-Drop/blob/claude/vigilant-goodall-xdxrej/docs/PHOTOS_GRATUITES.md" target="_blank" rel="noopener">Guide</a></form></div>
+    <form method="post" action="/studio/test-local" class="row mt"><button class="btn ghost sm">{{ icon('refresh', 13) }} Tester</button><a class="btn ghost sm" href="/photos-gratuites">Gérer ComfyUI</a></form></div>
   {% for name, label in [('gemini','Gemini · Nano Banana'),('openai','OpenAI · GPT Image')] %}{% set st = costs.by_provider|selectattr('provider','equalto',name)|first %}
   <div class="card kpi reveal"><div class="label">{{ icon('spark', 14) }} {{ label }}</div>
     <div class="value" style="font-size:18px">{{ 'Connecté' if name in providers else 'Pas de clé' }}</div>
