@@ -98,12 +98,24 @@ DASHBOARD_OPEN_BROWSER = os.getenv("DASHBOARD_OPEN_BROWSER", "1") == "1"
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", f"http://localhost:{DASHBOARD_PORT}")
 
 TARGET_MULTIPLIER = _float("TARGET_MULTIPLIER", 2.5)
-MIN_PROFIT = _float("MIN_PROFIT", 30)
+MIN_PROFIT = _float("MIN_PROFIT", 20)
 NEGOTIATION_BUFFER = _float("NEGOTIATION_BUFFER", 0.15)
+# Ancien réglage (emballage seul). Remplacé en 2.2 par COST_PER_SALE, gardé pour compatibilité.
 PACKAGING_COST = _float("PACKAGING_COST", 0.5)
+# Coût fixe payé à chaque vente (emballage, étiquette, dépôt…). Modifiable dans Paramètres.
+COST_PER_SALE = _float("COST_PER_SALE", 3)
 # Frais de plateforme payés par le vendeur (% du prix). Particulier Vinted : 0 (l'acheteur paie la protection).
 # Vérifie les conditions de ton compte (Vinted Pro) et ajuste.
 PLATFORM_FEE_PCT = _float("PLATFORM_FEE_PCT", 0)
+# Depop, vendeur basé en France (hors Royaume-Uni / États-Unis / Australie) : 10 % de commission Depop
+# + frais PayPal (≈ 2,9 % + 0,35 € selon ton compte PayPal). Source : aide Depop « Seller fees and charges ».
+DEPOP_FEE_PCT = _float("DEPOP_FEE_PCT", 12.9)
+DEPOP_FIXED_FEE = _float("DEPOP_FIXED_FEE", 0.35)
+
+PLATFORMS = {
+    "vinted": {"label": "Vinted", "pct": PLATFORM_FEE_PCT, "fixed": 0.0},
+    "depop": {"label": "Depop", "pct": DEPOP_FEE_PCT, "fixed": DEPOP_FIXED_FEE},
+}
 
 # --- Sécurité / sauvegardes ---
 # Clé de chiffrement des tokens Vinted. Vide = générée dans data/secret.key (à sauvegarder avec la base).

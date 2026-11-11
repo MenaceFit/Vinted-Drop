@@ -180,13 +180,37 @@ def _mid(r):
     return niches._midpoint(r)
 
 
-def potential(n: dict, month: int | None = None, perf: dict | None = None, min_profit: float | None = None) -> dict:
+def platform_profits(n: dict, mk: dict | None, live: bool, per_sale: float) -> dict:
+    """Bénéfice estimé par vente sur chaque plateforme, après frais et coût fixe par vente.
+    Vinted : prix médian relevé si dispo, sinon estimation. Depop : médiane relevée dans data/niches.json."""
+    from . import pricing
+    buy = _mid(n.get("buy_price"))
+    out = {}
+    if not buy:
+        return out
+    v_sell = mk["median"] if live and mk.get("median") else _mid(n.get("sell_price"))
+    if v_sell:
+        out["vinted"] = {"sell": round(v_sell, 2), "profit": pricing.net(v_sell, buy + per_sale, "vinted"),
+                         "source": "Vinted" if live and mk.get("median") else "estimation"}
+    dp = n.get("depop") or {}
+    if dp.get("median"):
+        out["depop"] = {"sell": dp["median"], "profit": pricing.net(dp["median"], buy + per_sale, "depop"),
+                        "source": f"Depop (relevé du {dp.get('date', '?')}, {dp.get('n', '?')} annonces)",
+                        "p75": dp.get("p75"),
+                        "profit_p75": pricing.net(dp["p75"], buy + per_sale, "depop") if dp.get("p75") else None}
+    return out
+
+
+def potential(n: dict, month: int | None = None, perf: dict | None = None, min_profit: float | None = None,
+              per_sale: float | None = None) -> dict:
     """Score sur 100 détaillé composante par composante, avec le niveau de confiance des données."""
     month = month or date.today().month
     mk = niche_market(n["id"])
     tr = trend(n["id"])
     if min_profit is None:
         min_profit = float(db.get_setting("min_profit") or config.MIN_PROFIT)
+    if per_sale is None:
+        per_sale = db.cost_per_sale()
     comps = []
     live = bool(mk and mk.get("sample", 0) >= 10 and mk.get("age_days", 99) <= 30)
 
@@ -201,7 +225,9 @@ def potential(n: dict, month: int | None = None, perf: dict | None = None, min_p
         if proof:
             # estimation manuelle complétée par les ventes prouvées chez le fournisseur
             d = round(25 * (0.6 * est + 0.4 * proof["score"]))
-            what = (f"{proof['sold']} vendus" if proof.get("sold") else f"{proof['reviews']:,} avis".replace(",", " "))
+            sold = str(proof.get("sold") or "")
+            what = ((sold if ("vendu" in sold or "commande" in sold) else f"{sold} vendus") if sold
+                    else f"{proof['reviews']:,} avis".replace(",", " "))
             comps.append({"label": "Demande", "points": d, "max": 25,
                           "detail": f"estimation {n.get('demand')}/10 + preuve fournisseur ({what})",
                           "source": "fournisseur"})
@@ -220,15 +246,19 @@ def potential(n: dict, month: int | None = None, perf: dict | None = None, min_p
         comps.append({"label": "Concurrence", "points": c, "max": 20,
                       "detail": f"estimation {n.get('competition')}/10 (10 = saturé)", "source": "estimation"})
 
-    # 3. Marge (25) : bénéfice estimé par vente vs bénéfice minimum
+    # 3. Marge (25) : bénéfice estimé par vente vs bénéfice minimum, sur la meilleure plateforme
     buy = _mid(n.get("buy_price"))
-    sell = mk["median"] if live and mk.get("median") else _mid(n.get("sell_price"))
-    est_profit = round(sell - buy - config.PACKAGING_COST - sell * config.PLATFORM_FEE_PCT / 100, 2) if buy and sell else None
+    profits = platform_profits(n, mk, live, per_sale)
+    best_platform = max(profits, key=lambda k: profits[k]["profit"]) if profits else None
+    est_profit = profits[best_platform]["profit"] if best_platform else None
+    sell = profits[best_platform]["sell"] if best_platform else None
     if est_profit is not None:
         m = max(0, min(25, round(25 * est_profit / (min_profit * 1.5))))
+        detail = " · ".join(f"{config.PLATFORMS[k]['label']} ≈ {v['profit']:.0f} € (vente ~{v['sell']:.0f} €)"
+                            for k, v in profits.items())
         comps.append({"label": "Marge", "points": m, "max": 25,
-                      "detail": f"≈ {est_profit:.0f} € de bénéfice (achat ~{buy:.0f} €, vente ~{sell:.0f} €)",
-                      "source": "Vinted" if live and mk.get("median") else "estimation"})
+                      "detail": f"achat ~{buy:.0f} € + {per_sale:.0f} € par vente → {detail}",
+                      "source": profits[best_platform]["source"]})
     else:
         m = 0
         comps.append({"label": "Marge", "points": 0, "max": 25, "detail": "prix inconnus", "source": "—"})
@@ -264,6 +294,7 @@ def potential(n: dict, month: int | None = None, perf: dict | None = None, min_p
     score = sum(x["points"] for x in comps)
     conf = "haute" if live and mk["sample"] >= 30 and tr else ("moyenne" if live else "faible")
     return {"score": score, "components": comps, "confidence": conf, "est_profit": est_profit,
+            "profits": profits, "best_platform": best_platform,
             "meets_min_profit": est_profit is not None and est_profit >= min_profit, "market": mk, "trend": tr,
             "sell_estimate": sell, "buy_estimate": buy}
 
@@ -331,7 +362,7 @@ def detect_opportunities(month=None) -> int:
         mk = niche_market(w["niche"])
         sell = mk["median"] if mk and mk.get("median") else w.get("est_sell")
         if w.get("cost") and sell:
-            profit = sell - w["cost"] - config.PACKAGING_COST
+            profit = sell - w["cost"] - db.cost_per_sale()
             if profit >= min_profit * 1.3:
                 _upsert_opportunity("undervalued", w["url"], w["title"], w["niche"], w["score"],
                                     {"why": f"Achat {w['cost']:.2f} € → vente ~{sell:.0f} € : ≈ {profit:.0f} € de bénéfice",

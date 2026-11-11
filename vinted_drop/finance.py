@@ -51,12 +51,14 @@ def product_sheet(pid) -> dict:
     ai = db.product_cost(pid)
     lines = [("Prix d'achat", p.get("cost") or 0), ("Frais fournisseur", p.get("supplier_fees") or 0),
              ("Port fournisseur", p.get("shipping_cost") or 0), ("Autres frais", p.get("other_fees") or 0),
-             ("Emballage", config.PACKAGING_COST)]
+             ("Coût fixe par vente", db.cost_per_sale())]
     total_cost = round(sum(v for _, v in lines), 2)
     sale_price = sale["sale_price"] if sale else (p.get("price") or 0)
-    fees = sale["fees"] if sale else round(sale_price * config.PLATFORM_FEE_PCT / 100, 2)
+    fees = sale["fees"] if sale else db.platform_fee(sale_price, "vinted")
     profit = round(sale_price - fees - total_cost, 2)
+    platform = (sale["platform"] if sale and "platform" in sale.keys() else None) or "vinted"
     return {"product": p, "lines": lines, "total_cost": total_cost, "sale_price": sale_price, "sold": bool(sale),
+            "platform": platform, "platform_label": config.PLATFORMS.get(platform, {}).get("label", platform),
             "platform_fees": fees, "ai_cost": ai, "profit": profit, "net_profit": round(profit - ai, 2),
             "margin_pct": round(100 * (profit - ai) / sale_price, 1) if sale_price else 0,
             "cost_unknown": bool(p.get("cost_unknown"))}

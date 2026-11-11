@@ -74,7 +74,8 @@ def finances(request: Request, boutique: int | None = None):
     s, e = per["start"], per["end"]
     return render(request, "finance.html", per=per, fin=finance.summary(s, e, boutique),
                   prev=finance.summary(*db.previous_range(s, e), boutique) if per["key"] != "all" else None,
-                  by_shop=finance.by_shop(s, e), tx=finance.transactions(s, e, boutique, 300),
+                  by_shop=finance.by_shop(s, e), by_platform=db.platform_breakdown(s, e),
+                  tx=finance.transactions(s, e, boutique, 300),
                   expenses=db.list_expenses(s, e, boutique, 100), categories=finance.EXPENSE_CATEGORIES,
                   shops=db.list_shops(), boutique=boutique, series=db.series(s, e, boutique),
                   unsold=db.unsold_products(14, 20, boutique), niches_perf=db.niche_breakdown(s, e))
@@ -218,7 +219,7 @@ def settings_page(request: Request):
 @router.post("/parametres")
 async def settings_save(request: Request):
     form = await request.form()
-    numeric = {"min_profit", "target_multiplier", "negotiation_buffer", "daily_goal", "daily_budget"}
+    numeric = {"min_profit", "target_multiplier", "negotiation_buffer", "daily_goal", "daily_budget", "cost_per_sale"}
     for k, v in form.items():
         if k not in db.DEFAULT_SETTINGS:
             continue

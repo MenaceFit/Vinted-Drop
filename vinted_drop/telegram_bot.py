@@ -31,7 +31,7 @@ HELP = """<b>Vinted Drop</b> 🤖 — écris-moi normalement ou utilise les bout
 /prix &lt;achat&gt; · /offre &lt;id&gt; &lt;montant&gt;
 
 <b>Ventes</b>
-/vendu &lt;id&gt; &lt;prix&gt; · /acommander
+/vendu &lt;id&gt; &lt;prix&gt; [depop] · /acommander
 (les ventes Vinted sont détectées toutes seules)
 
 <b>Pilote automatique</b>
@@ -515,14 +515,20 @@ async def cmd_vendu(update, ctx):
     p = db.get_product(pid)
     if not p:
         raise ValueError("Produit introuvable")
-    price = _float(ctx.args[1]) if len(ctx.args) > 1 else p.get("price")
+    rest = list(ctx.args[1:])
+    platform = "vinted"
+    for w in list(rest):                      # « depop » ou « vinted » n'importe où après l'id
+        if w.lower() in config.PLATFORMS:
+            platform = w.lower()
+            rest.remove(w)
+    price = _float(rest[0]) if rest else p.get("price")
     if not price:
-        raise ValueError("Usage : /vendu <id> <prix>")
-    await _record_sale(update, pid, price, ctx.args[2] if len(ctx.args) > 2 else None)
+        raise ValueError("Usage : /vendu <id> <prix> [depop] [acheteur]")
+    await _record_sale(update, pid, price, rest[1] if len(rest) > 1 else None, platform)
 
 
-async def _record_sale(update, pid, price, buyer=None):
-    sale = db.get_sale(db.record_sale(pid, price, buyer))
+async def _record_sale(update, pid, price, buyer=None, platform="vinted"):
+    sale = db.get_sale(db.record_sale(pid, price, buyer, platform=platform))
     await reply(update, notify.sale_message(sale), notify.sale_buttons(sale))
 
 

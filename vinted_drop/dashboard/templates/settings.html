@@ -11,10 +11,11 @@
     <div><label>Multiplicateur cible</label><input name="target_multiplier" inputmode="decimal" value="{{ settings.target_multiplier }}" class="w-full"></div>
     <div><label>Marge de négociation</label><input name="negotiation_buffer" inputmode="decimal" value="{{ settings.negotiation_buffer }}" class="w-full"><p class="help">0,15 = prix affiché 15 % au-dessus du mini</p></div>
     <div><label>Objectif de bénéfice / jour (€)</label><input name="daily_goal" inputmode="decimal" value="{{ settings.daily_goal }}" class="w-full"></div>
+    <div><label>Coût fixe par vente (€)</label><input name="cost_per_sale" inputmode="decimal" value="{{ settings.cost_per_sale }}" class="w-full"><p class="help">emballage, étiquette, dépôt… compté à chaque vente</p></div>
   </div>
   <label>Style rédactionnel par défaut</label><select name="listing_style" class="w-full">{% for k, v in styles.items() %}<option value="{{ k }}" {{ 'selected' if settings.listing_style==k }}>{{ k }} — {{ v[:60] }}…</option>{% endfor %}</select>
   <label>Délai d'envoi annoncé</label><input name="ship_delay" value="{{ settings.ship_delay }}" class="w-full">
-  <p class="help">Frais de plateforme vendeur : {{ config.PLATFORM_FEE_PCT }} % (variable PLATFORM_FEE_PCT) · emballage : {{ config.PACKAGING_COST|eur }} (PACKAGING_COST).</p>
+  <p class="help">Frais vendeur : Vinted {{ config.PLATFORM_FEE_PCT }} % (PLATFORM_FEE_PCT) · Depop {{ config.DEPOP_FEE_PCT }} % + {{ config.DEPOP_FIXED_FEE|eur }} (DEPOP_FEE_PCT, DEPOP_FIXED_FEE : 10 % Depop + PayPal, à ajuster selon ton compte PayPal).</p>
   <div class="mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div>
 </form></div>
 

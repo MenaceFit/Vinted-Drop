@@ -183,7 +183,9 @@ MIGRATIONS = {
     },
     "personas": {"decor": "TEXT", "refs": "TEXT DEFAULT '[]'"},
     "sales": {"vinted_transaction_id": "INTEGER", "source": "TEXT DEFAULT 'manuel'",
-              "fees": "REAL DEFAULT 0"},
+              "fees": "REAL DEFAULT 0",
+              # 2.2 : plateforme de la vente (vinted | depop)
+              "platform": "TEXT DEFAULT 'vinted'"},
     "events": {"level": "TEXT DEFAULT 'info'", "source": "TEXT", "detail": "TEXT"},
 }
 
@@ -241,7 +243,21 @@ def init():
                         c.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
             c.executescript(INDEXES)
             _backfill_orders(c)
+            _defaults_v22(c)
         _columns_cache.clear()
+
+
+def _defaults_v22(c):
+    """2.2 (une seule fois) : bénéfice minimum demandé = 20 € au lieu de l'ancien défaut de 30 €.
+    Une valeur personnalisée (autre que 30) n'est jamais touchée."""
+    if c.execute("SELECT 1 FROM settings WHERE key='_v22_defaults'").fetchone():
+        return
+    row = c.execute("SELECT value FROM settings WHERE key='min_profit'").fetchone()
+    current = float(row["value"]) if row and row["value"] not in (None, "") else config.MIN_PROFIT
+    if current == 30:
+        c.execute("INSERT INTO settings (key, value) VALUES ('min_profit', '20') "
+                  "ON CONFLICT(key) DO UPDATE SET value=excluded.value")
+    c.execute("INSERT INTO settings (key, value) VALUES ('_v22_defaults', ?)", (now(),))
 
 
 def _backfill_orders(c):
@@ -494,10 +510,27 @@ def published_today(shop_id):
                          (shop_id, now())).fetchone()[0]
 
 
+def cost_per_sale() -> float:
+    """Coût fixe payé à chaque vente (emballage, étiquette, dépôt…), réglable dans Paramètres."""
+    try:
+        return float(get_setting("cost_per_sale") or config.COST_PER_SALE)
+    except (ValueError, sqlite3.OperationalError):
+        return config.COST_PER_SALE
+
+
+PLATFORMS = list(config.PLATFORMS)
+
+
+def platform_fee(sale_price: float, platform: str = "vinted") -> float:
+    """Frais prélevés par la plateforme sur une vente (Vinted particulier : 0 ; Depop : % + fixe)."""
+    pf = config.PLATFORMS.get(platform or "vinted", config.PLATFORMS["vinted"])
+    return round(float(sale_price) * pf["pct"] / 100 + (pf["fixed"] if sale_price else 0), 2)
+
+
 def product_total_cost(p: dict) -> float:
-    """Coût de revient complet d'un produit."""
+    """Coût de revient complet d'un produit (achat + frais + coût fixe par vente)."""
     return round((p.get("cost") or 0) + (p.get("supplier_fees") or 0) + (p.get("shipping_cost") or 0)
-                 + (p.get("other_fees") or 0) + config.PACKAGING_COST, 2)
+                 + (p.get("other_fees") or 0) + cost_per_sale(), 2)
 
 
 # ================= ventes =================
@@ -505,15 +538,18 @@ class AlreadySold(ValueError):
     pass
 
 
-def record_sale(product_id, sale_price, buyer=None, vinted_transaction_id=None, source="manuel", fees=None):
+def record_sale(product_id, sale_price, buyer=None, vinted_transaction_id=None, source="manuel", fees=None,
+                platform="vinted"):
     """Enregistre une vente (une seule par produit) et crée la commande fournisseur à passer."""
+    if platform not in config.PLATFORMS:
+        raise ValueError(f"Plateforme inconnue : {platform}")
     p = get_product(product_id)
     if not p:
         raise ValueError(f"Produit #{product_id} introuvable")
     if sale_price is None or float(sale_price) <= 0:
         raise ValueError("Prix de vente invalide")
     sale_price = float(sale_price)
-    fees = float(fees if fees is not None else round(sale_price * config.PLATFORM_FEE_PCT / 100, 2))
+    fees = float(fees if fees is not None else platform_fee(sale_price, platform))
     total_cost = product_total_cost(p)
     profit = round(sale_price - total_cost - fees, 2)
     ts = now()
@@ -522,8 +558,9 @@ def record_sale(product_id, sale_price, buyer=None, vinted_transaction_id=None, 
             raise AlreadySold(f"Le produit #{product_id} est déjà enregistré comme vendu")
         cur = c.execute(
             "INSERT INTO sales (product_id, shop_id, sale_price, cost, profit, buyer, vinted_transaction_id, source,"
-            " fees, sold_at) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (product_id, p["shop_id"], sale_price, total_cost, profit, buyer, vinted_transaction_id, source, fees, ts))
+            " fees, platform, sold_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+            (product_id, p["shop_id"], sale_price, total_cost, profit, buyer, vinted_transaction_id, source, fees,
+             platform, ts))
         sid = cur.lastrowid
         c.execute("UPDATE products SET status='sold', updated_at=? WHERE id=?", (ts, product_id))
         oc = c.execute(
@@ -773,6 +810,26 @@ def daily_series(days=30):
     return series(s, e)
 
 
+def platform_breakdown(start=None, end=None):
+    """Ventes, CA, frais et bénéfice par plateforme (Vinted, Depop)."""
+    args, w = [], ""
+    if start:
+        w = " WHERE sold_at BETWEEN ? AND ?"
+        args = [start, end]
+    with connect() as c:
+        rows = {r["platform"]: dict(r) for r in c.execute(
+            f"""SELECT COALESCE(platform,'vinted') platform, COUNT(*) sales, COALESCE(SUM(sale_price),0) revenue,
+                       COALESCE(SUM(fees),0) fees, COALESCE(SUM(profit),0) profit
+                FROM sales{w} GROUP BY COALESCE(platform,'vinted')""", args)}
+    out = []
+    for key, pf in config.PLATFORMS.items():
+        r = rows.get(key, {"platform": key, "sales": 0, "revenue": 0, "fees": 0, "profit": 0})
+        r["label"] = pf["label"]
+        r["avg_profit"] = round(r["profit"] / r["sales"], 2) if r["sales"] else 0
+        out.append(r)
+    return out
+
+
 def shop_breakdown(start=None, end=None):
     args, sw = [], ""
     if start:
@@ -855,6 +912,7 @@ DEFAULT_SETTINGS = {
     "inbox_minutes": "10",
     "daily_goal": "100",
     "min_profit": f"{config.MIN_PROFIT:g}",                # bénéfice minimum par vente (€), défaut MIN_PROFIT du .env
+    "cost_per_sale": f"{config.COST_PER_SALE:g}",          # coût fixe payé à chaque vente (€), défaut COST_PER_SALE
     "target_multiplier": f"{config.TARGET_MULTIPLIER:g}",
     "negotiation_buffer": f"{config.NEGOTIATION_BUFFER:g}",
     "listing_style": "naturel",   # naturel | enthousiaste | minimaliste | detaille

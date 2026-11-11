@@ -167,3 +167,15 @@
     const poll = async () => { try { const r = await (await fetch(url)).json(); if (!r.active.length) { location.reload(); return; } } catch {} setTimeout(poll, 4000); };
     setTimeout(poll, 4000); }
 })();
+
+/* Copier un texte (annonce Depop…) : <button data-copy="#id"> */
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-copy]');
+  if (!b) return;
+  const el = document.querySelector(b.dataset.copy);
+  if (!el) return;
+  const done = () => { const t = b.textContent; b.textContent = 'Copié ✓'; setTimeout(() => { b.textContent = t; }, 1500); };
+  const text = el.value ?? el.textContent;
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => { el.select(); document.execCommand('copy'); done(); });
+  else { el.select(); document.execCommand('copy'); done(); }
+});

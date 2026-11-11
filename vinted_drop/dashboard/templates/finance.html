@@ -30,6 +30,9 @@
   {% if by_shop %}<div class="table-wrap"><table data-sortable><thead><tr><th data-sort="text">Boutique</th><th data-sort class="r">CA</th><th data-sort class="r">Bénéfice net</th><th data-sort class="r">Marge</th><th data-sort class="r">Coûts IA</th></tr></thead><tbody>
   {% for r in by_shop %}<tr><td><a href="/boutique/{{ r.id }}">{{ r.name }}</a></td><td class="r num">{{ r.revenue|eur }}</td><td class="r num good"><b>{{ r.finance.net_profit|eur }}</b></td><td class="r num">{{ r.finance.net_margin_pct }} %</td><td class="r num">{{ r.finance.ai_costs|eur }}</td></tr>{% endfor %}</tbody></table></div>
   {% else %}{{ empty('Aucune boutique') }}{% endif %}</div>
+  <div class="card reveal"><div class="card-head"><h2>Par plateforme</h2><span class="muted">frais déduits</span></div>
+  <div class="table-wrap"><table><thead><tr><th>Plateforme</th><th class="r">Ventes</th><th class="r">CA</th><th class="r">Frais</th><th class="r">Bénéfice</th><th class="r">Moy. / vente</th></tr></thead><tbody>
+  {% for r in by_platform %}<tr><td>{{ r.label }}</td><td class="r num">{{ r.sales }}</td><td class="r num">{{ r.revenue|eur }}</td><td class="r num faint">{{ r.fees|eur }}</td><td class="r num good"><b>{{ r.profit|eur }}</b></td><td class="r num">{{ r.avg_profit|eur }}</td></tr>{% endfor %}</tbody></table></div></div>
   <div class="card reveal"><div class="card-head"><h2>Dépenses</h2><span class="muted">abonnements, emballages, mise en avant…</span></div>
     <form method="post" action="/finances/depense" class="row end">
       <div><label>Montant</label><input name="amount" inputmode="decimal" required style="width:90px"></div>

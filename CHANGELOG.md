@@ -1,5 +1,33 @@
 # Changelog
 
+## 2.2.0 — Depop et mode alternative — 11 novembre 2026
+
+### Depop
+- Frais Depop pour un vendeur en France (10 % + PayPal ≈ 2,9 % + 0,35 €), réglables avec `DEPOP_FEE_PCT`
+  et `DEPOP_FIXED_FEE`.
+- Fiche produit : prix, prix mini, frais et bénéfice sur Vinted et Depop, et annonce Depop prête à copier
+  (Depop n'a pas d'API ouverte aux vendeurs en France).
+- Une vente peut être enregistrée sur Depop (dashboard, ou `/vendu <id> <prix> depop` sur Telegram) : les frais
+  sont déduits du bénéfice. Page Finances : tableau par plateforme.
+
+### Bénéfice
+- Nouveau réglage **coût fixe par vente** (3 € par défaut, `COST_PER_SALE`), qui remplace l'emballage à 0,50 €.
+- Bénéfice minimum par défaut : **20 €**. Si ta base avait encore l'ancien défaut (30 €), il passe à 20 € une
+  seule fois ; une autre valeur que tu as choisie n'est pas modifiée.
+- Score des niches et des produits : bénéfice calculé sur la meilleure plateforme, frais compris.
+
+### Niches et produits
+- 8 niches de mode alternative avec les prix Depop relevés le 11/11/2026 (44 niches au total) : vestes
+  « Napoléon », bottes plateforme gothiques, tenues whimsigoth en lot, et 5 niches testées puis écartées
+  (corsets seuls, jeans baggy, lolita, Mary Jane, sweats à strass), visibles avec le filtre « toutes ».
+- Médiéval mis à jour avec les données Depop.
+- 31 produits AliExpress et Shein (129 au total), avec nombre exact de commandes et prix hors soldes.
+- Détails et sources : [docs/NICHES.md](docs/NICHES.md).
+
+### Changements dans `.env`
+- `COST_PER_SALE` (nouveau, 3), `DEPOP_FEE_PCT` (nouveau, 12.9), `DEPOP_FIXED_FEE` (nouveau, 0.35).
+- `MIN_PROFIT` : défaut 20. `PACKAGING_COST` n'est plus utilisé.
+
 ## 2.1.0 — version finale — 3 novembre 2026
 
 ### Niches et produits gagnants

@@ -2,9 +2,11 @@
 
 Sur Vinted (compte particulier), la protection acheteur et le port sont payés par l'acheteur. Le vendeur
 touche le prix affiché moins d'éventuels frais de plateforme (PLATFORM_FEE_PCT, 0 par défaut).
+Sur Depop (vendeur en France), Depop prend 10 % et PayPal ≈ 2,9 % + 0,35 € (DEPOP_FEE_PCT, DEPOP_FIXED_FEE) :
+le prix Depop conseillé est celui qui laisse le même bénéfice qu'au prix Vinted.
 
-Prix minimum rentable = (coût de revient complet + bénéfice minimum) / (1 - frais plateforme)
-Coût de revient = achat + frais fournisseur + port fournisseur + autres frais + emballage
+Prix minimum rentable = (coût de revient complet + bénéfice minimum + frais fixes) / (1 - frais plateforme en %)
+Coût de revient = achat + frais fournisseur + port fournisseur + autres frais + coût fixe par vente (3 € par défaut)
 
 Le prix conseillé part de l'objectif (achat × multiplicateur), puis est ajusté avec :
 - les prix de produits comparables observés sur Vinted (analyse du marché),
@@ -36,13 +38,48 @@ def _settings():
                 "buffer": config.NEGOTIATION_BUFFER}
 
 
-def floor_price(total_cost: float, min_profit: float) -> float:
-    fee = config.PLATFORM_FEE_PCT / 100
-    return _round_price((total_cost + min_profit) / (1 - fee))
+def per_sale_cost() -> float:
+    """Coût fixe par vente (Paramètres), ou la valeur du .env si la base n'est pas prête."""
+    from . import db
+    try:
+        return db.cost_per_sale()
+    except Exception:
+        return config.COST_PER_SALE
 
 
-def net(sale_price: float, total_cost: float) -> float:
-    return round(sale_price * (1 - config.PLATFORM_FEE_PCT / 100) - total_cost, 2)
+def _pf(platform):
+    return config.PLATFORMS.get(platform or "vinted", config.PLATFORMS["vinted"])
+
+
+def floor_price(total_cost: float, min_profit: float, platform: str = "vinted") -> float:
+    pf = _pf(platform)
+    return _round_price((total_cost + min_profit + pf["fixed"]) / (1 - pf["pct"] / 100))
+
+
+def net(sale_price: float, total_cost: float, platform: str = "vinted") -> float:
+    pf = _pf(platform)
+    fee = sale_price * pf["pct"] / 100 + (pf["fixed"] if sale_price else 0)
+    return round(sale_price - fee - total_cost, 2)
+
+
+def equivalent_price(vinted_price: float, total_cost: float, platform: str = "depop") -> float:
+    """Prix à afficher sur une autre plateforme pour garder le même bénéfice qu'au prix Vinted."""
+    pf = _pf(platform)
+    target_net = net(vinted_price, total_cost, "vinted")
+    return _round_price((target_net + total_cost + pf["fixed"]) / (1 - pf["pct"] / 100))
+
+
+def platform_prices(list_price: float, min_price: float, total_cost: float, min_profit: float) -> dict:
+    """Prix affiché / minimum / plancher et bénéfice pour chaque plateforme."""
+    out = {}
+    for key, pf in config.PLATFORMS.items():
+        price = list_price if key == "vinted" else equivalent_price(list_price, total_cost, key)
+        mini = min_price if key == "vinted" else equivalent_price(min_price, total_cost, key)
+        out[key] = {"label": pf["label"], "price": price, "min_price": mini,
+                    "floor": floor_price(total_cost, min_profit, key),
+                    "profit_at_price": net(price, total_cost, key), "profit_at_min": net(mini, total_cost, key),
+                    "fees_at_price": round(price - total_cost - net(price, total_cost, key), 2)}
+    return out
 
 
 def compute_prices(cost: float, multiplier: float | None = None, min_profit: float | None = None,
@@ -53,11 +90,12 @@ def compute_prices(cost: float, multiplier: float | None = None, min_profit: flo
     multiplier = s["multiplier"] if multiplier is None else multiplier
     min_profit = s["min_profit"] if min_profit is None else min_profit
     buffer = s["buffer"] if buffer is None else buffer
-    total_cost = cost + supplier_fees + shipping_cost + other_fees + config.PACKAGING_COST
+    total_cost = cost + supplier_fees + shipping_cost + other_fees + per_sale_cost()
     floor = floor_price(total_cost, min_profit)
     target = max(_round_price(cost * multiplier), floor)
     list_price = _round_price(target * (1 + buffer))
     return {
+        "platforms": platform_prices(list_price, target, total_cost, min_profit),
         "price": round(list_price, 2),
         "min_price": round(target, 2),
         "floor": floor,
@@ -117,6 +155,7 @@ def recommend(product: dict, market: dict | None = None, history: list | None = 
     list_price = _round_price(target * (1 + s["buffer"]))
     confidence = min(confidence, 0.95)
     return {
+        "platforms": platform_prices(list_price, round(target, 2), total_cost, min_profit),
         "price": list_price, "min_price": round(target, 2), "floor": floor, "total_cost": total_cost,
         "profit_at_price": net(list_price, total_cost), "profit_at_min": net(target, total_cost),
         "margin_pct": round(100 * net(list_price, total_cost) / list_price, 1) if list_price else 0,
@@ -145,5 +184,5 @@ def accept_offer(offer: float, min_price: float) -> bool:
 
 
 def profit(sale_price: float, cost: float) -> float:
-    """Compatibilité 1.x : bénéfice avec le seul prix d'achat + emballage."""
-    return net(sale_price, cost + config.PACKAGING_COST)
+    """Compatibilité 1.x : bénéfice avec le seul prix d'achat + coût fixe par vente."""
+    return net(sale_price, cost + per_sale_cost())

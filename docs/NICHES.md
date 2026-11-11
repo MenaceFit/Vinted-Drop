@@ -1,4 +1,66 @@
-# Analyse des niches Vinted — novembre 2026
+# Analyse des niches Vinted / Depop — novembre 2026
+
+## 🖤 Mode alternative et Depop — recherche du 11 novembre 2026
+
+**Objectif : au moins 20 € de bénéfice net par article**, après les 3 € de coût fixe par vente (emballage,
+dépôt…) et les frais de la plateforme. Achat sur AliExpress ou Shein, revente sur Vinted et Depop.
+
+### Ce qu'il faut savoir sur les frais
+
+| Plateforme | Frais vendeur (vendeur en France) | Prix pour garder 20 € sur un article acheté 15 € |
+|---|---|--:|
+| Vinted (particulier) | 0 € (l'acheteur paie la protection) | 38 € |
+| Depop | 10 % Depop + PayPal ≈ 2,9 % + 0,35 € | 44 € |
+
+Source : aide Depop « Seller fees and charges » (Depop est sans commission seulement au Royaume-Uni, aux
+États-Unis et en Australie). Les frais PayPal dépendent de ton compte : règle `DEPOP_FEE_PCT` si besoin.
+
+### Méthode
+
+1. **Tendances** : rapport Depop 2026 « The Edited Self » (Napoleon jacket +1 202 %, références médiévales
+   +240 %, bandage dresses +542 %) et blog « Trending on Depop » de septembre 2026 (médiéval, whimsigoth).
+2. **Fournisseurs** : pages AliExpress France triées par nombre de commandes. On garde le **nombre exact de
+   commandes**, la note, et le **prix normal** (prix le plus bas des 30 derniers jours), pas le prix des soldes
+   du 11.11 ni l'offre « nouvel utilisateur ».
+3. **Revente** : prix des annonces Depop (20 à 32 annonces par recherche, relevé du 11/11/2026). Ce sont des
+   prix demandés, souvent d'occasion : la médiane est une base prudente.
+4. **Calcul** : bénéfice = prix de revente − frais de la plateforme − achat − 3 €.
+
+Vinted n'a pas été relevé automatiquement (protection anti-robot, que l'outil ne contourne pas) : dès que ta
+boutique est connectée, l'analyse du marché remplace l'estimation Vinted par les vrais prix.
+Shein affiche un CAPTCHA aux robots : pour Shein, seuls les prix sont repris, les avis sont à vérifier.
+
+### ✅ Ce qui passe les 20 €
+
+| Produit | Achat | Preuve fournisseur | Revente Depop (médiane) | Bénéfice estimé |
+|---|--:|---|--:|--:|
+| [Veste militaire « Napoléon » vert olive](https://fr.aliexpress.com/item/1005010797735275.html) | 15,22 € | 5,0★ · 189 commandes | 60 € | ≈ 34 € (Depop) |
+| [Veste militaire noire, tresse dorée](https://fr.aliexpress.com/item/1005010797770493.html) | 15,22 € | 5,0★ · 166 commandes | 60 € | ≈ 34 € (Depop) |
+| [Bottes longues plateforme gothiques](https://fr.aliexpress.com/item/1005009246535321.html) | 18,04 € | 4,7★ · 513 commandes | 60 € | ≈ 31 € (Depop) |
+| [Bottes hautes plateforme punk](https://fr.aliexpress.com/item/1005008233415503.html) | 25,59 € | 4,7★ · 1 833 commandes | 60 € | ≈ 23 € (Depop) |
+| Tenue whimsigoth : [corset jacquard](https://fr.aliexpress.com/item/1005007010172732.html) + [jupe longue steampunk](https://fr.aliexpress.com/item/4000993183359.html) | 29,31 € | 4,9★ · 14 812 et 483 commandes | ~62 € (estimation du lot) | ≈ 30 € |
+| [Ensemble Renaissance 3 pièces](https://fr.aliexpress.com/item/1005011898384992.html) | 14,35 € | 4,8★ · 267 commandes | 44 € | ≈ 20 € (Depop) |
+
+### ❌ Testé et écarté (sous 20 € au prix médian)
+
+| Article | Achat | Revente Depop (médiane) | Pourquoi |
+|---|--:|--:|---|
+| Corsets gothiques seuls | 13-17 € | 26 € | trop d'offre : **à vendre en tenue complète** |
+| Jeans baggy Y2K | 14-25 € | 30 € | marché saturé |
+| Robes gothic lolita | 16-35 € | 35 € | panier trop bas |
+| Mary Jane plateforme | 17-27 € | 33 € | panier trop bas |
+| Sweats zippés à strass | 32-41 € | 40 € | prix d'achat trop haut |
+| Veste similicuir AliExpress (16 088 commandes) | 59 € | 54 € | elle se vend moins cher qu'elle ne s'achète |
+| Vestes Napoléon « haut de gamme » | 46-53 € | 60 € | seulement si tu vends au-dessus de 80 € |
+
+### Conseils
+
+- **Depop** : écris aussi les mots-clés en anglais (napoleon jacket, platform boots, whimsigoth) : le
+  dashboard prépare l'annonce Depop avec 5 hashtags et le prix qui garde le même bénéfice que sur Vinted.
+- **Jamais de nom de marque** dans les annonces (New Rock, Demonia…) : « bottes plateforme gothiques » suffit.
+- **Lots** : deux articles dans un seul colis = un seul coût fixe de 3 €. C'est ce qui rend corsets et jupes rentables.
+- Vérifie la fiche fournisseur avant d'acheter : prix et stock changent vite, surtout après les soldes du 11.11.
+
 
 ## 🎯 Classement de novembre — version finale (3 novembre 2026)
 

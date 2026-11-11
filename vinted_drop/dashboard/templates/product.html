@@ -75,10 +75,20 @@
         <div><div class="muted small">Bénéfice estimé</div><div class="num good" style="font-weight:700">{{ rec.profit_at_min|eur }} → {{ rec.profit_at_price|eur }}</div></div>
         <div><div class="muted small">Marge</div><div class="num" style="font-weight:700">{{ rec.margin_pct }} %</div></div>
       </div>
+      {% if rec.platforms %}<div class="table-wrap mt"><table class="small" style="white-space:nowrap"><thead><tr><th>Plateforme</th><th class="r">Prix</th><th class="r">Mini</th><th class="r">Frais</th><th class="r">Bénéfice</th></tr></thead><tbody>
+        {% for key, pf in rec.platforms.items() %}<tr><td>{{ pf.label }}</td><td class="r num">{{ pf.price|eur }}</td><td class="r num">{{ pf.min_price|eur }}</td>
+          <td class="r num faint">{{ pf.fees_at_price|eur }}</td><td class="r num {{ 'good' if pf.profit_at_min >= (rec.min_profit or 0) else 'bad' }}" title="au prix mini → au prix affiché">{{ pf.profit_at_min|round|int }} → {{ pf.profit_at_price|round|int }} €</td></tr>{% endfor %}</tbody></table></div>
+        <p class="help">Frais compris : Vinted {{ platforms.vinted.pct|num }} % · Depop {{ platforms.depop.pct|num }} % + {{ platforms.depop.fixed|eur }} (commission + PayPal). Coût fixe par vente inclus dans le coût de revient.</p>{% endif %}
       {% if rec.reasons %}<ul class="small muted" style="padding-left:18px;margin:12px 0 0">{% for r in rec.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
       {% for w in rec.warnings or [] %}<div class="alert warn" style="margin:10px 0 0">{{ w }}</div>{% endfor %}
       <form method="post" action="/produit/{{ p.id }}/prix-conseille" class="mt"><button class="btn ghost sm">Appliquer ce prix</button></form>
     </div>
+    {% if depop %}<div class="card reveal">
+      <div class="card-head"><h2>{{ icon('copy') }} Annonce Depop</h2><span class="badge plain">{{ depop.price|eur }}</span></div>
+      <p class="help">Depop n'a pas d'API ouverte aux vendeurs en France : copie ce texte dans l'app Depop. Prix conseillé {{ depop.price|eur }} (mini {{ depop.min_price|eur }}) : même bénéfice qu'au prix Vinted, {{ depop.fees_at_price|eur }} de frais Depop + PayPal compris.</p>
+      <textarea id="depop-text" rows="9" class="w-full" readonly>{{ depop.text }}</textarea>
+      <div class="mt"><button type="button" class="btn ghost sm" data-copy="#depop-text">Copier le texte</button></div>
+    </div>{% endif %}
 
     <div class="card reveal">
       <div class="card-head"><h2>{{ icon('wallet') }} Fiche financière</h2>{% if sheet.sold %}<span class="badge sold">vendu</span>{% endif %}</div>
@@ -91,8 +101,9 @@
       {% if not sale %}<form method="post" action="/produit/{{ p.id }}/action/vendu" class="row end mt">
         <div><label>Prix de vente</label><input name="sale_price" inputmode="decimal" value="{{ p.price or '' }}" style="width:110px"></div>
         <div><label>Acheteur</label><input name="buyer" placeholder="optionnel" style="width:130px"></div>
+        <div><label>Plateforme</label><select name="platform">{% for key, pf in platforms.items() %}<option value="{{ key }}">{{ pf.label }}</option>{% endfor %}</select></div>
         <button class="btn" data-confirm="Enregistrer cette vente ? Une commande fournisseur sera créée.">Marquer vendu</button></form>
-      {% else %}<p class="small muted mt">Vendu le {{ sale.sold_at|dt('%d/%m/%Y %H:%M') }}{% if sale.buyer %} à {{ sale.buyer }}{% endif %} · <a href="/commandes">voir la commande</a></p>{% endif %}
+      {% else %}<p class="small muted mt">Vendu sur {{ sheet.platform_label }} le {{ sale.sold_at|dt('%d/%m/%Y %H:%M') }}{% if sale.buyer %} à {{ sale.buyer }}{% endif %} · <a href="/commandes">voir la commande</a></p>{% endif %}
     </div>
 
     <div class="card reveal">

@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-03",
+ "updated": "2026-11-11",
  "method": "Score /10 = demande Vinted (recherches, volume d'annonces vendues) x faible concurrence x saisonnalité x marge possible (prix d'achat Shein/Temu vs prix Vinted constatés). Mois = mois où la niche est la plus forte.",
  "niches": [
   {
@@ -141,7 +141,15 @@
     "Killstar",
     "Dark in Love",
     "Restyle"
-   ]
+   ],
+   "depop_tags": [
+    "goth",
+    "gothic",
+    "alt",
+    "darkromantic",
+    "witchy"
+   ],
+   "alt": true
   },
   {
    "id": "fausse-fourrure",
@@ -285,17 +293,20 @@
    "name": "Médiéval / renaissance / fée",
    "persona": "femme 20-30 ans, cheveux longs ondulés",
    "months": [
-    9,
-    10,
+    3,
+    4,
     5,
     6,
-    7
+    7,
+    8,
+    9,
+    10
    ],
    "demand": 6,
    "competition": 3,
-   "buy_price": "15-30 €",
-   "sell_price": "35-55 €",
-   "why": "Compte Luna de la vidéo. Hors Halloween : fêtes médiévales, GN, mariages à thème au printemps/été.",
+   "buy_price": "14-21 €",
+   "sell_price": "26-44 €",
+   "why": "« Medieval grails » est une tendance montante sur Depop (septembre 2026) et les références médiévales sont en hausse de 240 % (rapport Depop 2026). Fêtes médiévales d'avril à septembre, puis Halloween.",
    "keywords": [
     "robe médiévale",
     "robe renaissance",
@@ -305,7 +316,23 @@
    "brands": [
     "Axes Femme",
     "Restyle"
-   ]
+   ],
+   "tip": "Les ensembles Renaissance 3 pièces à ~14 € (4,8★) laissent environ 20 € sur Depop au prix médian (44 €). Évite les robes à plus de 30 € d'achat.",
+   "depop": {
+    "p25": 26,
+    "median": 44,
+    "p75": 70,
+    "n": 24,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "medieval",
+    "renaissance",
+    "fairycore",
+    "whimsigoth",
+    "cottagecore"
+   ],
+   "alt": true
   },
   {
    "id": "saint-valentin",
@@ -874,7 +901,7 @@
    "demand": 8,
    "competition": 5,
    "buy_price": "30-45 €",
-   "sell_price": "75-110 €",
+   "sell_price": "54-80 €",
    "brands": [
     "Zara",
     "The Kooples",
@@ -886,7 +913,22 @@
     "veste longue simili cuir",
     "manteau cuir femme",
     "veste cuir marron"
-   ]
+   ],
+   "depop": {
+    "p25": 40,
+    "median": 54,
+    "p75": 60,
+    "n": 24,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "leatherjacket",
+    "fauxleather",
+    "biker",
+    "vintage",
+    "y2k"
+   ],
+   "tip": "Relevé Depop : médiane 54 € (souvent d'occasion). Rentable seulement pour un achat sous 30 € ; la veste AliExpress à 16 088 commandes (59 €) ne l'est pas."
   },
   {
    "id": "costume-homme-mariage",
@@ -1035,6 +1077,365 @@
     "veste à poils",
     "veste teddy femme"
    ]
+  },
+  {
+   "id": "veste-militaire-napoleon",
+   "name": "Vestes militaires « Napoléon » (col montant, brandebourgs)",
+   "persona": "femme ou homme 18-30 ans, style alternatif / médiéval chic",
+   "months": [
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3,
+    4
+   ],
+   "demand": 8,
+   "competition": 4,
+   "buy_price": "14-16 €",
+   "sell_price": "41-60 €",
+   "brands": [],
+   "why": "Recherches Depop « Napoleon jacket » +1 202 % (rapport tendances Depop 2026) et tendance médiévale (+240 %, « Medieval grails » sur Depop en septembre 2026). Modèles AliExpress à ~15 € notés 5,0★ ; revente médiane 60 € sur Depop.",
+   "tip": "Achète les modèles à ~15 € (5,0★). Les versions à 45-55 € ne laissent pas 20 € au prix médian : à réserver aux annonces très soignées (25 % des annonces Depop dépassent 115 €).",
+   "keywords": [
+    "veste napoléon",
+    "veste militaire femme",
+    "veste hussard",
+    "napoleon jacket",
+    "military jacket"
+   ],
+   "depop": {
+    "p25": 41,
+    "median": 60,
+    "p75": 115,
+    "n": 23,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "napoleonjacket",
+    "militaryjacket",
+    "medieval",
+    "goth",
+    "vintage"
+   ],
+   "alt": true
+  },
+  {
+   "id": "bottes-plateforme-goth",
+   "name": "Bottes plateforme gothiques (genou / mi-mollet)",
+   "persona": "femme 16-30 ans, goth / grunge / alt",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 8,
+   "competition": 5,
+   "buy_price": "18-26 €",
+   "sell_price": "25-60 €",
+   "brands": [],
+   "why": "Les chaussures gardent leur valeur sur Depop : médiane 60 € pour « gothic platform boots » (27 annonces). Modèles AliExpress à 18-26 € avec 500 à 1 800 commandes (4,7★). Pics à Halloween et pendant les festivals.",
+   "tip": "N'écris jamais de nom de marque (New Rock, Demonia…) : « bottes plateforme gothiques » suffit. Photo de la semelle et guide des pointures dans l'annonce.",
+   "keywords": [
+    "bottes plateforme",
+    "bottes gothiques",
+    "bottes compensées punk",
+    "platform boots",
+    "goth boots"
+   ],
+   "depop": {
+    "p25": 25,
+    "median": 60,
+    "p75": 95,
+    "n": 27,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "platformboots",
+    "gothboots",
+    "goth",
+    "grunge",
+    "alt"
+   ],
+   "alt": true
+  },
+  {
+   "id": "tenue-whimsigoth-lot",
+   "name": "Tenues whimsigoth en lot (corset + jupe longue)",
+   "persona": "femme 18-30 ans, whimsigoth / dark romantic",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 7,
+   "competition": 4,
+   "buy_price": "26-33 €",
+   "sell_price": "55-70 €",
+   "brands": [],
+   "why": "« Whimsigoth » est une tendance montante sur Depop (septembre 2026) et « Vamp Romantic » une tendance Pinterest 2026. Vendus seuls, corsets et jupes ne laissent pas 20 € ; en tenue complète, le panier monte. Prix de vente du lot = estimation (pas de relevé direct).",
+   "tip": "Corset jacquard (14 812 commandes, 4,9★) + jupe longue steampunk (4,9★) ≈ 30 € : vends la tenue complète, photo portée, vise 60 € et plus. Un seul envoi = un seul coût fixe.",
+   "keywords": [
+    "tenue gothique",
+    "corset jupe longue",
+    "whimsigoth",
+    "tenue victorienne",
+    "dark romantic"
+   ],
+   "depop_tags": [
+    "whimsigoth",
+    "corset",
+    "goth",
+    "darkromantic",
+    "victorian"
+   ],
+   "alt": true,
+   "bundle_cost": 29.31,
+   "bundle_note": "corset jacquard 16,17 € + jupe longue steampunk 13,14 €"
+  },
+  {
+   "id": "corset-goth",
+   "name": "Corsets gothiques seuls (à vendre en lot)",
+   "persona": "femme 16-30 ans, goth / alt",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 8,
+   "competition": 8,
+   "buy_price": "13-17 €",
+   "sell_price": "18-26 €",
+   "brands": [],
+   "why": "Énorme volume chez les fournisseurs (jusqu'à 14 812 commandes) mais beaucoup d'offre : médiane Depop 26 € seulement.",
+   "tip": "Seul, un corset laisse environ 4 à 9 € : sous ton minimum. À intégrer dans une tenue (voir « Tenues whimsigoth en lot »).",
+   "keywords": [
+    "corset gothique",
+    "bustier corset",
+    "corset top"
+   ],
+   "depop": {
+    "p25": 18,
+    "median": 26,
+    "p75": 39,
+    "n": 24,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "corset",
+    "goth",
+    "corsettop",
+    "alt",
+    "victorian"
+   ],
+   "alt": true
+  },
+  {
+   "id": "jeans-baggy-y2k",
+   "name": "Jeans baggy Y2K (seuls)",
+   "persona": "16-25 ans, streetwear / skate",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 8,
+   "competition": 9,
+   "buy_price": "14-25 €",
+   "sell_price": "22-30 €",
+   "brands": [],
+   "why": "Très demandés mais saturés : médiane Depop 30 € (26 annonces), face à un achat de 14 à 25 €.",
+   "tip": "Sous 20 € de bénéfice au prix médian. Seuls les modèles brodés vendus au-dessus de 50 € passent.",
+   "keywords": [
+    "jean baggy",
+    "baggy jeans y2k",
+    "jean large"
+   ],
+   "depop": {
+    "p25": 22,
+    "median": 30,
+    "p75": 50,
+    "n": 26,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "baggyjeans",
+    "y2k",
+    "skater",
+    "streetwear",
+    "vintage"
+   ],
+   "alt": true
+  },
+  {
+   "id": "robe-lolita-goth",
+   "name": "Robes gothic lolita",
+   "persona": "femme 16-28 ans, J-fashion",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 6,
+   "competition": 6,
+   "buy_price": "16-35 €",
+   "sell_price": "23-35 €",
+   "brands": [],
+   "why": "Communauté fidèle mais prix Depop modestes (médiane 35 €) pour des robes AliExpress à 16-35 €.",
+   "tip": "Seulement pour les modèles à 16 € vendus au-dessus de 45 €.",
+   "keywords": [
+    "robe lolita",
+    "gothic lolita",
+    "robe gothique japonaise"
+   ],
+   "depop": {
+    "p25": 23,
+    "median": 35,
+    "p75": 58,
+    "n": 21,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "gothiclolita",
+    "lolita",
+    "jfashion",
+    "goth",
+    "kawaii"
+   ],
+   "alt": true
+  },
+  {
+   "id": "sweat-zip-strass",
+   "name": "Sweats zippés à strass Y2K / grunge",
+   "persona": "16-25 ans, y2k grunge",
+   "months": [
+    9,
+    10,
+    11,
+    12,
+    1,
+    2,
+    3
+   ],
+   "demand": 7,
+   "competition": 7,
+   "buy_price": "32-41 €",
+   "sell_price": "34-40 €",
+   "brands": [],
+   "why": "Médiane Depop 40 € (32 annonces) pour un achat de 32 à 41 € : pas rentable.",
+   "tip": "À éviter.",
+   "keywords": [
+    "sweat strass",
+    "zip hoodie y2k",
+    "sweat squelette strass"
+   ],
+   "depop": {
+    "p25": 34,
+    "median": 40,
+    "p75": 52,
+    "n": 32,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "y2k",
+    "rhinestone",
+    "ziphoodie",
+    "grunge",
+    "goth"
+   ],
+   "alt": true
+  },
+  {
+   "id": "mary-jane-plateforme",
+   "name": "Mary Jane plateforme gothiques",
+   "persona": "femme 16-28 ans, goth / lolita",
+   "months": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "demand": 6,
+   "competition": 6,
+   "buy_price": "17-27 €",
+   "sell_price": "15-33 €",
+   "brands": [],
+   "why": "Médiane Depop 33 € (22 annonces) : trop proche du prix d'achat.",
+   "tip": "À éviter seules ; possible en lot avec une robe.",
+   "keywords": [
+    "mary jane plateforme",
+    "chaussures lolita"
+   ],
+   "depop": {
+    "p25": 15,
+    "median": 33,
+    "p75": 58,
+    "n": 22,
+    "date": "2026-11-11"
+   },
+   "depop_tags": [
+    "maryjanes",
+    "platform",
+    "goth",
+    "lolita",
+    "alt"
+   ],
+   "alt": true
   }
  ]
 }

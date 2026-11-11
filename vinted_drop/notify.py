@@ -54,11 +54,12 @@ def send(text: str, photo_path=None, buttons=None, category=None, dedupe=None, w
 def sale_message(sale: dict) -> str:
     link = sale.get("supplier_url")
     return (
-        f"💸 <b>Vente !</b> {sale.get('shop_name') or ''}\n"
+        f"💸 <b>Vente{' Depop' if sale.get('platform') == 'depop' else ''} !</b> {sale.get('shop_name') or ''}\n"
         f"{sale.get('title') or 'Produit #' + str(sale['product_id'])}\n"
         f"Taille : {sale.get('size') or '?'}\n"
         f"Prix : {sale['sale_price']:.2f} € · Achat : {sale['cost']:.2f} € · "
-        f"<b>Bénéfice : {sale['profit']:.2f} €</b>\n"
+        f"<b>Bénéfice : {sale['profit']:.2f} €</b>"
+        + (f" (frais {sale['fees']:.2f} € déduits)" if sale.get("fees") else "") + "\n"
         + (f'🛒 <a href="{link}">Commander chez {sale.get("supplier") or "le fournisseur"}</a>\n' if link else "")
         + f"Vente #{sale['id']}" + (" · détectée sur Vinted" if sale.get("source") == "vinted" else "")
     )

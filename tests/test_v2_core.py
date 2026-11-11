@@ -45,7 +45,7 @@ def test_sale_profit_counts_all_costs_and_no_double_sale():
     sid, pid = _sold_product(cost=10, price=60, fees=2, ship=1)
     sale_id = db.record_sale(pid, 60)
     sale = db.get_sale(sale_id)
-    assert sale["profit"] == round(60 - (10 + 2 + 1 + config.PACKAGING_COST), 2)
+    assert sale["profit"] == round(60 - (10 + 2 + 1 + config.COST_PER_SALE), 2)
     with pytest.raises(db.AlreadySold):
         db.record_sale(pid, 60)
     assert db.stats()["sales"] == 1
@@ -106,7 +106,7 @@ def test_finance_summary_sheet_and_exports():
     s, e = db.period_range("30d")
     f = finance.summary(s, e)
     sheet = finance.product_sheet(pid)
-    assert sheet["total_cost"] == 9 + 2 + 5 + 0.5 and sheet["profit"] == round(95 - 16.5, 2)
+    assert sheet["total_cost"] == 9 + 2 + 5 + 3 and sheet["profit"] == round(95 - 19, 2)
     assert f["ai_costs"] == 0.10 and f["expenses"] == 3
     assert f["net_profit"] == round(f["profit"] - 0.10 - 3, 2)
     types = {t["type"] for t in finance.transactions(s, e)}

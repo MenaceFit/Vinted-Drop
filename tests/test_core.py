@@ -30,12 +30,12 @@ def test_sale_flow_and_stats():
     db.update_product(pid, status="published", price=34.9, min_price=29)
     sale_id = db.record_sale(pid, 32.0)
     sale = db.get_sale(sale_id)
-    assert sale["profit"] == 19.5
+    assert sale["profit"] == 17.0          # 32 - 12 - 3 € de coût fixe par vente (Vinted : 0 frais)
     assert db.get_product(pid)["status"] == "sold"
     s = db.stats()
     assert s["sales"] == 1 and s["revenue"] == 32.0
     assert db.today_stats()["sales"] == 1
-    assert db.shop_breakdown()[0]["profit"] == 19.5
+    assert db.shop_breakdown()[0]["profit"] == 17.0
     assert len(db.daily_series(30)) == 30
 
 

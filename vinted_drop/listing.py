@@ -91,3 +91,51 @@ def prepare(product_id: int) -> dict:
     if db.get_product(product_id).get("photos"):
         db.update_product(product_id, status="ready")
     return result
+
+
+# ---------------- Depop ----------------
+def _tag(word: str) -> str:
+    import re
+    import unicodedata
+    w = unicodedata.normalize("NFKD", str(word)).encode("ascii", "ignore").decode().lower()
+    return re.sub(r"[^a-z0-9]", "", w)
+
+
+def depop_listing(product_id: int) -> dict:
+    """Annonce Depop prête à copier (Depop n'a pas d'API vendeur ouverte en France : publication à la main).
+
+    Description : titre en 1re ligne (Depop n'a pas de champ titre), détails, taille, état, envoi,
+    mention des photos, puis 5 hashtags (mots-clés de la niche en anglais + mots-clés du produit).
+    Prix : celui qui laisse le même bénéfice qu'au prix Vinted, frais Depop compris."""
+    from . import niches
+    p = db.get_product(product_id)
+    if not p:
+        raise ValueError(f"Produit #{product_id} introuvable")
+    niche = niches.get(p["niche"]) if p.get("niche") else None
+    tags = []
+    for w in (niche or {}).get("depop_tags", []) + list(p.get("keywords") or []):
+        t = _tag(w)
+        if t and t not in tags and len(t) <= 25:
+            tags.append(t)
+    lines = [p.get("title") or p.get("supplier_title") or "Article neuf"]
+    if p.get("description"):
+        body = p["description"].split("#")[0].strip()      # sans les hashtags Vinted
+        if body and body != lines[0]:
+            lines += ["", body]
+    lines += [""]
+    if p.get("size"):
+        lines.append(f"Taille : {p['size']}")
+    lines.append("État : neuf")
+    lines.append(f"Envoi : {db.get_setting('ship_delay') or 'rapide'}")
+    if db.get_setting("photo_disclosure") != "off" and DISCLOSURE not in "\n".join(lines):
+        lines += ["", DISCLOSURE]
+    if tags:
+        lines += ["", " ".join(f"#{t}" for t in tags[:5])]
+    try:
+        rec = pricing.recommend_for(product_id)
+    except Exception:
+        rec = pricing.compute_prices(p.get("cost") or 0)
+    dp = rec.get("platforms", {}).get("depop", {})
+    return {"text": "\n".join(lines), "price": dp.get("price"), "min_price": dp.get("min_price"),
+            "profit_at_price": dp.get("profit_at_price"), "fees_at_price": dp.get("fees_at_price"),
+            "hashtags": tags[:5]}

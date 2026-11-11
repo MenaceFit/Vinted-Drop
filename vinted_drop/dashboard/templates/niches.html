@@ -20,7 +20,8 @@
         <div class="row" style="gap:6px;margin-top:5px">
           {% if n.in_season %}<span class="badge solid">En saison</span>{% elif n.months and (n.months|select('in', [month % 12 + 1, (month + 1) % 12 + 1])|list) %}<span class="badge sold">Bientôt</span>{% endif %}
           <span class="badge plain">confiance {{ pot.confidence }}</span>
-          {% if pot.est_profit is not none %}<span class="badge {{ 'published' if pot.meets_min_profit else 'error' }}">≈ {{ pot.est_profit|round|int }} € / vente</span>{% endif %}
+          {% if pot.est_profit is not none %}<span class="badge {{ 'published' if pot.meets_min_profit else 'error' }}">≈ {{ pot.est_profit|round|int }} € / vente{% if pot.best_platform %} · {{ 'Depop' if pot.best_platform == 'depop' else 'Vinted' }}{% endif %}</span>{% endif %}
+          {% if n.alt %}<span class="badge plain">alternatif</span>{% endif %}
           {% if pot.trend and pot.trend.demand_pct is not none %}<span class="badge plain">demande {{ '%+.0f'|format(pot.trend.demand_pct) }} %</span>{% endif %}
         </div></div>
     </div>
@@ -35,6 +36,8 @@
     <div class="small">
       <p style="margin:0 0 8px">{{ n.why }}</p>
       <div class="muted">Achat ~{{ n.buy_price }} · vente ~{{ n.sell_price }}{% if pot.market and pot.market.median %} · <b>médiane Vinted {{ pot.market.median|eur }}</b> ({{ pot.market.sample }} annonces, {{ pot.market.total|num }} au total){% endif %}</div>
+      {% if n.depop %}<div class="muted" style="margin-top:4px">Depop (relevé du {{ n.depop.date }}, {{ n.depop.n }} annonces) : 25 % sous {{ n.depop.p25|eur }} · <b>médiane {{ n.depop.median|eur }}</b> · 25 % au-dessus de {{ n.depop.p75|eur }}</div>{% endif %}
+      {% if n.tip %}<div class="alert info" style="margin:6px 0 0">{{ n.tip }}</div>{% endif %}
       <div class="muted" style="margin-top:4px">Recherches : {{ n.keywords|join(', ') }}</div>
       {% set brands = (pot.market.brands if pot.market and pot.market.brands else n.brands) %}
       {% if brands %}<div class="muted" style="margin-top:4px">Marques associées{{ ' (relevées)' if pot.market and pot.market.brands }} : {{ brands|join(', ') }}</div>{% endif %}

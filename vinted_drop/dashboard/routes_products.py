@@ -114,7 +114,12 @@ def product(request: Request, pid: int):
     except Exception:
         rec = pricing.compute_prices(p["cost"] or 0)
     running = bool(tasks.active(product_id=pid))
+    try:
+        depop = listing.depop_listing(pid)
+    except Exception:
+        depop = None
     return render(request, "product.html", p=p, shops=db.list_shops(), rec=rec, sheet=finance.product_sheet(pid),
+                  depop=depop, platforms=config.PLATFORMS,
                   running=running, statuses=db.PRODUCT_STATUSES, shots=photos.SHOTS, default_kinds=photos.default_kinds(p),
                   gallery=photos.summary(p), providers=available(), photo_cost=db.product_cost(pid),
                   settings=db.all_settings(), qa_min=config.PHOTO_QA_MIN, scenes=photos.SCENE_LABELS,
@@ -184,6 +189,7 @@ def apply_recommended(pid: int):
 
 @router.post("/produit/{pid}/action/{action}")
 def product_action(pid: int, action: str, sale_price: str = Form(""), buyer: str = Form(""),
+                   platform: str = Form("vinted"),
                    style: str = Form("")):
     p = db.get_product(pid)
     if not p:
@@ -218,8 +224,8 @@ def product_action(pid: int, action: str, sale_price: str = Form(""), buyer: str
         if not price:
             return redirect(f"/produit/{pid}", err="Prix de vente manquant")
         try:
-            sid = db.record_sale(pid, price, buyer or None)
-        except db.AlreadySold as e:
+            sid = db.record_sale(pid, price, buyer or None, platform=platform if platform in config.PLATFORMS else "vinted")
+        except (db.AlreadySold, ValueError) as e:
             return redirect(f"/produit/{pid}", err=str(e))
         notify.notify_sale(db.get_sale(sid))
         return redirect(f"/produit/{pid}", ok="Vente enregistrée : commande fournisseur créée")

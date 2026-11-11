@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230b0b0b'/><text x='50' y='68' font-size='58' text-anchor='middle' font-family='Arial' font-weight='800' fill='white'>V</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/app.css?v=21">
+<link rel="stylesheet" href="/static/app.css?v=22">
 <script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 </head>
 <body data-running="{{ '1' if running is defined and running is sameas true else '0' }}">
@@ -23,7 +23,7 @@
 {% set active = {'product':'products','shop':'shops'}.get(page, page) %}
 <div class="app">
   <aside class="sidebar" id="sidebar">
-    <a class="brand" href="/"><span class="logo">V</span> Vinted Drop <span class="badge plain tiny" style="margin-left:auto">2.0</span></a>
+    <a class="brand" href="/"><span class="logo">V</span> Vinted Drop <span class="badge plain tiny" style="margin-left:auto">2.2</span></a>
     {% for gname, items in groups %}
     <div class="nav-group">{{ gname }}</div>
     <nav class="nav">{% for key, href, label, ic in items %}
@@ -65,7 +65,7 @@
 </nav>
 <div class="palette" id="palette"><div class="box"><input placeholder="Rechercher (produit, #id, boutique, acheteur)…" autocomplete="off"><div class="res"></div></div></div>
 <div class="toasts">{% if error %}<span data-toast="{{ error }}" data-kind="err"></span>{% endif %}</div>
-<script src="/static/app.js?v=21" defer></script>
+<script src="/static/app.js?v=22" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

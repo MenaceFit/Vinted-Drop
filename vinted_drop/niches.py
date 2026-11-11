@@ -69,9 +69,10 @@ def ranked(month: int | None = None, profitable_only=False):
     month = month or date.today().month
     perf = {r["niche"]: r for r in db.niche_breakdown()}
     min_profit = float(db.get_setting("min_profit") or config.MIN_PROFIT)
+    per_sale = db.cost_per_sale()
     out = []
     for n in load():
-        pot = market.potential(n, month, perf.get(n["id"]), min_profit)
+        pot = market.potential(n, month, perf.get(n["id"]), min_profit, per_sale)
         out.append({**n, "score": pot["score"], "potential": pot, "in_season": month in n["months"],
                     "perf": perf.get(n["id"]), "live": pot["market"]})
     if profitable_only:
@@ -84,38 +85,67 @@ def _midpoint(price_range: str):
     return sum(nums) / len(nums) if nums else None
 
 
-def product_score(item: dict, niche: dict | None, month: int) -> dict:
+def _profit_settings():
+    try:
+        return float(db.get_setting("min_profit") or config.MIN_PROFIT), db.cost_per_sale()
+    except Exception:          # base pas encore créée
+        return config.MIN_PROFIT, config.COST_PER_SALE
+
+
+def product_score(item: dict, niche: dict | None, month: int, min_profit: float | None = None,
+                  per_sale: float | None = None) -> dict:
     """Score /100 d'un produit gagnant :
-    preuve de vente (avis, note, ventes) 45 % · saison de la niche 35 % · marge estimée 20 %."""
+    preuve de vente (avis, note, commandes) 45 % · saison de la niche 35 % · bénéfice estimé 20 %.
+
+    Bénéfice estimé = meilleure plateforme : Vinted (prix de vente estimé de la niche) ou Depop (médiane relevée),
+    après frais de la plateforme et coût fixe par vente."""
+    from . import pricing
+    if min_profit is None or per_sale is None:
+        min_profit, per_sale = _profit_settings()
     reviews = item.get("reviews") or 0
     proof = min(1, math.log10(reviews + 1) / 4)                 # 10 000 avis = max
     if item.get("rating"):
         proof = proof * 0.7 + max(0, (item["rating"] - 4) / 1) * 0.3
-    if item.get("sold"):
-        proof = max(proof, 0.8)
+    sold = _sold_count(item.get("sold"))
+    if sold:
+        proof = max(proof, min(1, 0.55 + 0.1 * math.log10(sold + 1)))   # 100 commandes ≈ 0,75 · 10 000 ≈ 0,95
+    elif item.get("sold"):
+        proof = max(proof, 0.8)                                 # « best-seller » sans chiffre
     niche_part = min(1, score(niche, month) / 8) if niche else 0.4
-    sell = _midpoint(niche.get("sell_price")) if niche else None
-    margin = None
-    if item.get("cost") and sell:
-        margin = sell / item["cost"]
-        margin_part = min(1, max(0, (margin - 1.2) / 1.8))      # x3 = max
+    sells = {}
+    if niche:
+        if _midpoint(niche.get("sell_price")):
+            sells["vinted"] = _midpoint(niche.get("sell_price"))
+        if (niche.get("depop") or {}).get("median"):
+            sells["depop"] = niche["depop"]["median"]
+    # niche « en lot » : on vend la tenue complète, le bénéfice se calcule sur le coût de toute la tenue
+    unit_cost = (niche or {}).get("bundle_cost") or item.get("cost")
+    profits = {k: pricing.net(v, unit_cost + per_sale, k) for k, v in sells.items()} if item.get("cost") else {}
+    best = max(profits, key=profits.get) if profits else None
+    if best:
+        margin_part = min(1, max(0, profits[best] / (min_profit * 1.5)))
     else:
         margin_part = 0.5
     total = round(100 * (0.45 * proof + 0.35 * niche_part + 0.20 * margin_part))
-    return {"score": total, "multiplier": round(margin, 1) if margin else None, "est_sell": sell}
+    sell = sells.get(best) if best else (sells.get("vinted") or sells.get("depop"))
+    return {"score": total, "multiplier": round(sell / item["cost"], 1) if sell and item.get("cost") else None,
+            "est_sell": sell, "est_profit": profits.get(best) if best else None, "best_platform": best,
+            "profits": profits, "meets_min_profit": bool(best and profits[best] >= min_profit),
+            "bundle_cost": (niche or {}).get("bundle_cost")}
 
 
 def winning_products(niche_id: str | None = None, month: int | None = None, ranked_only=False):
     items = _read("winning_products.json")
     month = month or date.today().month
     by_id = {n["id"]: n for n in load()}
+    min_profit, per_sale = _profit_settings()
     out = []
     for i in items:
         if niche_id and i["niche"] != niche_id:
             continue
         n = by_id.get(i["niche"])
-        out.append({**i, **product_score(i, n, month), "niche_name": n["name"] if n else i["niche"],
-                    "in_season": bool(n and month in n["months"])})
+        out.append({**i, **product_score(i, n, month, min_profit, per_sale),
+                    "niche_name": n["name"] if n else i["niche"], "in_season": bool(n and month in n["months"])})
     return sorted(out, key=lambda x: x["score"], reverse=True)
 
 
