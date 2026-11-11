@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Form, HTTPException, Request
 
-from .. import comfyui, config, db, finance, listing, notify, photos, pricing, publisher, supplier, tasks
+from .. import comfyui, config, db, finance, listing, notify, photos, pricing, publisher, studio, supplier, tasks
 from ..image_providers import available
 from .common import background, redirect, render
 
@@ -275,7 +275,7 @@ def studio_page(request: Request):
                   local=comfyui.status(timeout=2), today_cost=db.cost_today(), budget=budget,
                   personas=db.list_personas(), providers=available(), sets=photos.SETS, shots=photos.SHOTS,
                   running=running, qa_min=config.PHOTO_QA_MIN, gen_stats=db.generation_stats(30),
-                  history=db.list_generations(limit=30), scenes=photos.SCENE_LABELS,
+                  history=db.list_generations(limit=30), scenes=photos.SCENE_LABELS, studio_bgs=studio.BACKGROUNDS,
                   models={"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL,
                           "local": comfyui.settings()["unet"].split(".")[0]})
 
@@ -284,7 +284,7 @@ def studio_page(request: Request):
 async def studio_settings(request: Request):
     form = await request.form()
     for k in ("photo_provider", "photo_set", "photo_clean", "photo_qa", "daily_budget", "budget_alert_pct",
-              "photo_scene", "photo_disclosure"):
+              "photo_scene", "photo_disclosure", "studio_bg"):
         if k in form:
             db.set_setting(k, form[k])
     db.log_event("settings", "Réglages photo modifiés")

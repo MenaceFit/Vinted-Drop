@@ -1,4 +1,48 @@
-# Photos gratuites sur ton PC (0 € par image)
+# Photos gratuites (0 € par image)
+
+Trois méthodes, toutes réglables depuis le dashboard, page **« Photos gratuites »** :
+
+| Méthode | Ce qu'il faut | Photos | Limite |
+|---|---|---|---|
+| **① Studio instantané** | rien : n'importe quel PC | à plat, cintre, détail (la vraie photo détourée sur fond studio) | pas de photo portée |
+| **② Hugging Face** | un compte gratuit huggingface.co + un jeton « Read » | toutes, y compris portées (IA Qwen-Image-Edit-2511) | quota GPU gratuit : quelques photos par jour |
+| **③ Ton PC (ComfyUI)** | carte NVIDIA 8 Go+ | toutes | aucune |
+
+Le **mode 100 % gratuit** (un clic) enchaîne ton PC → Hugging Face → studio instantané et **n'appelle jamais
+Gemini ni OpenAI**, quel que soit le budget.
+
+## ① Studio instantané (le plus simple)
+
+À partir de la photo du fournisseur : le vêtement est détouré, posé sur un fond studio propre (gris clair,
+blanc cassé, beige lin, rose poudré, vert sauge ou noir — automatique : noir pour les niches goth) avec une
+ombre douce, plus un gros plan net du tissu. Moins d'une seconde par photo, 0 €, aucune IA générative :
+c'est la vraie photo du produit, donc aucun risque de vêtement inventé et rien à contrôler.
+
+- **Détourage basique** (inclus) : parfait sur fond blanc ou uni, le cas de la plupart des photos fournisseur.
+  Sur un fond chargé, la photo est simplement recadrée proprement sur le fond studio.
+- **Détourage IA** (bouton « Installer le détourage IA », ~200 Mo) : rembg (licence MIT) avec le modèle
+  IS-Net (Apache 2.0), sur le processeur, marche sur tous les fonds.
+- Studio photo → fournisseur « Studio instantané », ou bouton « Voir un aperçu » sur la page.
+
+## ② Hugging Face (IA gratuite sans carte graphique)
+
+Le bot appelle le Space officiel **Qwen/Qwen-Image-Edit-2511**. Hugging Face prête un GPU gratuitement dans
+la limite d'un quota quotidien (documentation ZeroGPU, novembre 2026) : **2 min sans compte, 5 min avec un
+compte gratuit, 40 min en PRO**. Une photo prend 20 à 60 s de GPU : compte quelques photos par jour.
+
+1. Crée un compte gratuit sur https://huggingface.co/join.
+2. Crée un jeton « Read » sur https://huggingface.co/settings/tokens.
+3. Page Photos gratuites → colle le jeton (il est chiffré en base) → coche « Activer » → « Tester la connexion ».
+
+Quand le quota est épuisé, le bot fait une pause de 3 h sur Hugging Face et passe au suivant (ton PC ou le
+studio instantané). Moins d'étapes = plus de photos par jour (24 conseillé, 40 = qualité maximale).
+Les photos du fournisseur sont envoyées aux serveurs de Hugging Face.
+
+**Pourquoi pas Gemini gratuit ?** La grille officielle de Google (novembre 2026) indique « Free Tier : Not
+available » pour tous ses modèles d'image : Gemini reste payant (≈ 0,034 € l'image en 1K).
+
+## ③ Ton PC (ComfyUI)
+
 
 Le bot génère les photos sur ta propre carte graphique avec **ComfyUI** et **Qwen-Image-Edit-2511**
 (licence Apache 2.0 : usage commercial autorisé). Chaque photo coûte 0 €, hors électricité.

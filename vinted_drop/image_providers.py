@@ -26,13 +26,18 @@ class ImageError(RuntimeError):
 
 
 PAID = ("gemini", "openai")
+FREE = ("local", "hf")
+LABELS = {"local": "Ton PC (ComfyUI)", "hf": "Hugging Face (gratuit)", "gemini": "Gemini", "openai": "OpenAI",
+          "studio": "Studio instantané"}
 
 
 def available() -> list[str]:
     out = []
-    from . import comfyui
+    from . import comfyui, hf_space
     if comfyui.url():
         out.append("local")
+    if hf_space.enabled():
+        out.append("hf")
     if config.GEMINI_API_KEY:
         out.append("gemini")
     if config.OPENAI_API_KEY:
@@ -45,7 +50,16 @@ def order(provider: str) -> list[str]:
     if not keys:
         raise ImageError("Aucun générateur d'images : branche ComfyUI (gratuit, page Photos gratuites), "
                          "ou mets GEMINI_API_KEY / OPENAI_API_KEY dans .env")
-    if provider in ("openai", "gemini", "local"):
+    if provider == "gratuit":                     # jamais de fournisseur payant
+        free = [k for k in keys if k in FREE]
+        if not free:
+            raise ImageError("Aucun générateur IA gratuit branché (ComfyUI ou Hugging Face)")
+        return free
+    if provider in FREE:                          # « uniquement » : jamais de secours payant
+        if provider not in keys:
+            raise ImageError(f"{LABELS.get(provider, provider)} n'est pas branché (page Photos gratuites)")
+        return [provider]
+    if provider in ("openai", "gemini"):
         if provider not in keys:
             raise ImageError(f"Clé manquante pour {provider} dans .env")
         return [provider] + [k for k in keys if k != provider]  # l'autre en secours
@@ -169,7 +183,7 @@ def generate(prompt: str, refs, out_path: Path, provider="auto", aspect="3:4", k
     """Génère une image et l'enregistre. Renvoie {"path", "provider", "model", "cost", "fallback_from"}."""
     refs = [Path(r) for r in (refs or [])]
     errors = []
-    from . import comfyui
+    from . import comfyui, hf_space
     for name in order(provider):
         cost = config.COST_PER_IMAGE.get(name, 0.05)
         left = budget_left() if name in PAID else None
@@ -180,18 +194,20 @@ def generate(prompt: str, refs, out_path: Path, provider="auto", aspect="3:4", k
         try:
             if name == "local":
                 raw = comfyui.generate(prompt, refs, aspect)
+            elif name == "hf":
+                raw = hf_space.generate(prompt, refs, aspect)
             elif name == "gemini":
                 raw = gemini_generate(prompt, refs, aspect)
             else:
                 raw = openai_generate(prompt, refs, aspect)
-        except (ImageError, comfyui.ComfyError, requests.RequestException) as e:
+        except (ImageError, comfyui.ComfyError, hf_space.HFError, requests.RequestException) as e:
             errors.append(f"{name} : {e}")
             continue
         out_path = Path(out_path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(raw)
         model = {"gemini": config.GEMINI_IMAGE_MODEL, "openai": config.OPENAI_IMAGE_MODEL,
-                 "local": comfyui.settings()["unet"].split(".")[0]}[name]
+                 "local": comfyui.settings()["unet"].split(".")[0], "hf": hf_space.space()}[name]
         db.log_cost(name, model, kind, cost, product_id)
         if name in PAID:
             _budget_alert()

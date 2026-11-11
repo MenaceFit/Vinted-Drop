@@ -3,7 +3,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import JSONResponse
 
 from .. import comfy_manager as cm
-from .. import comfyui, config, db, tasks
+from .. import comfyui, config, db, hf_space, studio, tasks
 from .common import background, redirect, render
 
 router = APIRouter()
@@ -14,6 +14,8 @@ PAGE = "/photos-gratuites"
 def page(request: Request):
     state = cm.check()
     return render(request, "comfyui.html", s=state, test=cm.last_test(), settings=db.all_settings(),
+                  hf=hf_space.check(), rembg=studio.rembg_available(), studio_bgs=studio.BACKGROUNDS,
+                  studio_test=db.get_json_setting("_studio_test", None),
                   config_port=config.DASHBOARD_PORT,
                   running=bool(tasks.active(dedupe_key="comfy:download") or tasks.active(dedupe_key="comfy:test")),
                   gen=db.generation_stats())
@@ -109,3 +111,60 @@ def test():
 def free(qa_off: str = Form("")):
     done = cm.free_mode(qa_off == "on")
     return redirect(PAGE, ok="Mode 100 % gratuit : " + " · ".join(done))
+
+
+# ---------------- studio instantané ----------------
+def _studio_test() -> dict:
+    """Aperçu avant / après sur la photo fournisseur du dernier produit (ou un vêtement dessiné)."""
+    import time
+    ref = cm._test_reference()
+    bg = db.get_setting("studio_bg")
+    bg = bg if bg in studio.BACKGROUNDS else "gris"
+    t0 = time.time()
+    out = studio.render("plat", ref, config.MEDIA_DIR / "studio_test.jpg", bg)
+    studio.render("detail", ref, config.MEDIA_DIR / "studio_test_detail.jpg", bg)
+    res = {"seconds": round(time.time() - t0, 1), "cutout": out["cutout"], "at": db.now(), "ref": ref.name,
+           "bg": bg}
+    db.set_setting("_studio_test", __import__("json").dumps(res))
+    return res
+
+
+@router.post(f"{PAGE}/studio")
+def studio_save(studio_bg: str = Form("auto")):
+    db.set_setting("studio_bg", studio_bg if studio_bg in studio.BACKGROUNDS else "auto")
+    return redirect(PAGE + "#studio", ok="Fond enregistré")
+
+
+@router.post(f"{PAGE}/studio-test")
+def studio_test():
+    try:
+        res = _studio_test()
+    except Exception as e:
+        return redirect(PAGE + "#studio", err=f"Aperçu impossible : {e}")
+    return redirect(PAGE + "#studio", ok=f"Aperçu prêt en {res['seconds']} s (détourage {res['cutout']})")
+
+
+@router.post(f"{PAGE}/rembg")
+def rembg_install():
+    background("studio", studio.install_rembg, label="Installation du détourage IA (rembg)", dedupe_key="studio:rembg")
+    return redirect(PAGE + "#studio", ok="Installation lancée (quelques minutes, voir Activité).")
+
+
+# ---------------- Hugging Face ----------------
+@router.post(f"{PAGE}/hf")
+def hf_save(token: str = Form(""), enabled: str = Form(""), steps: str = Form("24"), space: str = Form(""),
+            clear_token: str = Form("")):
+    try:
+        hf_space.save(token_value=("" if clear_token == "on" else token) if (token or clear_token == "on") else None,
+                      enabled_value=enabled == "on", steps_value=int(steps or 24), space_value=space or None)
+    except (hf_space.HFError, ValueError) as e:
+        return redirect(PAGE + "#hf", err=str(e))
+    db.log_event("settings", "Réglages Hugging Face modifiés")
+    return redirect(PAGE + "#hf", ok="Hugging Face " + ("activé" if enabled == "on" else "désactivé"))
+
+
+@router.post(f"{PAGE}/hf-test")
+def hf_test():
+    r = hf_space.ping()
+    return redirect(PAGE + "#hf", ok=f"Space {hf_space.space()} joignable") if r["ok"] else redirect(
+        PAGE + "#hf", err=f"Space injoignable : {r['error']}")

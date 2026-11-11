@@ -198,8 +198,8 @@ def test_queue_actions_free_mode_and_page(comfy):
     assert [p for p, _ in Fake.posted] == ["/interrupt", "/queue", "/free"]
     assert image_providers.available()[0] == "local"
     cm.free_mode(qa_off=True)
-    assert db.get_setting("photo_provider") == "local" and db.get_setting("daily_budget") == "0"
-    assert db.get_setting("photo_qa") == "off"
+    assert db.get_setting("photo_provider") == "gratuit" and db.get_setting("photo_qa") == "off"
+    assert image_providers.order("gratuit") == ["local"]          # jamais Gemini / OpenAI
     with TestClient(app_mod.app) as c:
         h = {"origin": "http://testserver"}
         r = c.get("/photos-gratuites")

@@ -1,10 +1,10 @@
-# Vinted Drop 2.3
+# Vinted Drop 2.4
 
 Plateforme de gestion pour boutiques Vinted en dropshipping : boutiques, produits, photos IA, annonces,
 ventes, commandes fournisseurs, finances, analyse du marché et pilote automatique, depuis un dashboard web
 et un bot Telegram.
 
-> Nouveau en 2.3 (photos gratuites gérées depuis le dashboard, nouvelles niches) : voir [CHANGELOG.md](CHANGELOG.md). Tu viens de la 1.x ? Suis [docs/MIGRATION.md](docs/MIGRATION.md).
+> Nouveau en 2.4 (photos gratuites sans carte graphique : studio instantané et Hugging Face) : voir [CHANGELOG.md](CHANGELOG.md). Tu viens de la 1.x ? Suis [docs/MIGRATION.md](docs/MIGRATION.md).
 
 ## Ce que fait l'outil
 
@@ -13,7 +13,7 @@ et un bot Telegram.
 | **Centre de contrôle** | CA, bénéfice net, ventes, annonces actives, brouillons, capital engagé, marge, panier moyen, dépenses fournisseurs, coûts IA. Filtres aujourd'hui / 7 j / 30 j / 90 j / année / période personnalisée, comparaison avec la période précédente. Chiffres en direct. |
 | **Boutiques** | Environnement par boutique : compte Vinted, niche, modèle photo, style d'annonce, horaires de publication, quota, objectif mensuel, bénéfice minimum. Fiche boutique et page de comparaison. |
 | **Connexion Vinted** | Page dédiée pour coller le token (cookie de session) de chaque compte, test de connexion, apprentissage d'un modèle d'annonce. Token **chiffré** en base. |
-| **Photos gratuites** | Page dédiée pour ComfyUI sur ton PC : détection, carte graphique, choix du modèle (Qwen-Image-Edit-2511 qualité ou léger 8 Go), téléchargement des modèles en un clic avec reprise, démarrage de ComfyUI, image test, file d'attente, mode 100 % gratuit. |
+| **Photos gratuites** | Trois méthodes à 0 € : studio instantané (vraie photo détourée sur fond studio, n'importe quel PC), Hugging Face (IA gratuite sans carte graphique, quota quotidien), et ComfyUI sur ton PC : détection, carte graphique, choix du modèle (Qwen-Image-Edit-2511 qualité ou léger 8 Go), téléchargement des modèles en un clic avec reprise, démarrage de ComfyUI, image test, file d'attente, mode 100 % gratuit. |
 | **Studio photo IA** | Ton PC (ComfyUI, gratuit) → Gemini → OpenAI. Analyse du vêtement, nettoyage de l'image fournisseur, 5 prises de vue, décors et poses, modèle récurrent par boutique, **contrôle qualité** contre l'image d'origine (photo refusée si infidèle), historique des générations, avant / après, budget journalier avec alerte. |
 | **Annonces** | Titre, description, caractéristiques, mots-clés, catégorie, marque. 4 styles rédactionnels, anti-répétition. Prix conseillé (coût complet, marché, demande, historique, bénéfice minimum) avec niveau de confiance. |
 | **Depop** | Prix Depop conseillé (même bénéfice qu'au prix Vinted, frais 10 % + PayPal compris), annonce Depop prête à copier, ventes Depop enregistrées avec leurs frais, finances par plateforme. |
@@ -63,7 +63,7 @@ Le dashboard s'ouvre sur http://localhost:8000. La liste « Mise en route » de 
 | `python -m vinted_drop.cli autopilot` | pilote automatique seul, sans Telegram |
 | `python -m vinted_drop.cli check` | vérifie la configuration |
 | `python -m vinted_drop.cli backup` | sauvegarde la base (`--restore fichier.db` pour restaurer) |
-| `python -m pytest -q` | lance les 95 tests (aucun appel réseau) |
+| `python -m pytest -q` | lance les 106 tests (aucun appel réseau) |
 
 Raccourcis du dashboard : `Ctrl K` ou `/` recherche globale, `g` puis `a` accueil, `p` produits, `s` studio,
 `v` ventes, `c` commandes, `f` finances, `b` boutiques, `m` marché, `o` opportunités, `t` activité, `r` pilote.

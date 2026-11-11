@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.4.0 — Photos gratuites sans carte graphique — 11 novembre 2026
+
+### Corrigé (important)
+- Le bouton « mode 100 % gratuit » de la 2.3 mettait le budget payant à 0, ce qui veut dire « illimité » :
+  si le PC était éteint, Gemini ou OpenAI pouvaient être appelés sans limite. Le mode gratuit utilise
+  maintenant un fournisseur « gratuit » qui exclut tout service payant, et les bases concernées sont
+  corrigées automatiquement au démarrage.
+- « Mon PC uniquement » ne bascule plus jamais sur un service payant.
+
+### Nouveau
+- **Studio instantané** : la vraie photo fournisseur détourée sur un fond studio (6 fonds, noir automatique
+  pour le goth), ombre douce, gros plan du tissu. Sans IA générative ni carte graphique, < 1 s, 0 €,
+  couleurs d'origine conservées. Détourage basique inclus ; détourage IA (rembg) installable en un clic.
+- **Hugging Face** : génération IA gratuite via le Space officiel Qwen-Image-Edit-2511 (quota GPU quotidien),
+  jeton chiffré en base, pause automatique quand le quota est épuisé, test de connexion.
+- **Mode 100 % gratuit** : ton PC → Hugging Face → studio instantané ; en dernier recours, les photos à
+  plat et détail sont toujours produites gratuitement.
+- Page Photos gratuites réorganisée en 3 méthodes, aperçu avant/après du studio.
+- Studio photo et fiche produit : nouveaux choix de fournisseur (100 % gratuit, studio instantané, Hugging Face).
+
+### Changements
+- `requirements.txt` : ajout de `gradio_client` (Apache 2.0). `pip install -r requirements.txt` après mise à jour.
+- `.env` (facultatifs) : `HF_TOKEN`, `HF_SPACE`.
+
 ## 2.3.0 — Photos gratuites pilotées depuis le dashboard — 11 novembre 2026
 
 ### Photos gratuites (ComfyUI sur ton PC)

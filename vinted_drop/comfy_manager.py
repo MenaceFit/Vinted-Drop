@@ -445,13 +445,12 @@ def last_test() -> dict | None:
 
 
 def free_mode(qa_off=False) -> list[str]:
-    """Mode 100 % gratuit pour les images : ton PC uniquement, budget IA payant à 0 €."""
-    db.set_setting("photo_provider", "local")
-    db.set_setting("daily_budget", "0")
-    done = ["Photos : ton PC uniquement", "Budget IA payant : 0 € (aucun secours payant)"]
+    """Mode 100 % gratuit : IA gratuites uniquement (ton PC, Hugging Face), puis studio instantané.
+    Aucun fournisseur payant n'est jamais appelé, quel que soit le budget."""
+    db.set_setting("photo_provider", "gratuit")
+    done = ["Photos : ton PC → Hugging Face → studio instantané", "Aucun fournisseur payant (Gemini, OpenAI)"]
     if qa_off:
         db.set_setting("photo_qa", "off")
         done.append("Contrôle qualité IA coupé (vérifie les photos toi-même)")
     db.log_event("settings", "Mode 100 % gratuit activé : " + ", ".join(done))
     return done
-

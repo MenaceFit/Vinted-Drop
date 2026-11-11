@@ -1,10 +1,60 @@
 {% extends "base.html" %}{% from "_ui.html" import icon, badge %}
 {% block title %}Photos gratuites{% endblock %}
-{% block heading %}Photos gratuites · ComfyUI{% endblock %}
-{% block subtitle %}<p class="muted">Tes photos générées sur ta carte graphique, avec Qwen-Image-Edit (licence Apache 2.0, usage commercial autorisé) : 0 € par image. Tout se règle ici.</p>{% endblock %}
+{% block heading %}Photos gratuites{% endblock %}
+{% block subtitle %}<p class="muted">Trois façons d'avoir des photos à 0 €, de la plus simple à la plus puissante. Le mode « 100 % gratuit » les enchaîne automatiquement et n'appelle jamais de service payant.</p>{% endblock %}
 {% block content %}
 {% set st = s.status %}{% set pr = s.presets[s.preset] %}{% set dl = s.download %}
-<div class="grid g4">
+<div class="grid g3">
+  <a class="card reveal" href="#studio" style="text-decoration:none;color:inherit"><div class="card-head"><h2>① Studio instantané</h2><span class="badge published">prêt</span></div>
+    <p class="small">La vraie photo fournisseur, détourée sur un fond studio propre + un gros plan. Quelques secondes, n'importe quel PC, aucune IA générative.</p>
+    <p class="tiny faint">Photos à plat, cintre et détail · pas de photo portée · détourage {{ 'IA' if rembg else 'basique (fonds unis)' }}</p></a>
+  <a class="card reveal" href="#hf" style="text-decoration:none;color:inherit"><div class="card-head"><h2>② Hugging Face</h2><span class="badge {{ 'published' if hf.enabled else 'plain' }}">{{ 'activé' if hf.enabled else 'à activer' }}</span></div>
+    <p class="small">L'IA Qwen-Image-Edit-2511 sur les serveurs de Hugging Face, sans carte graphique. Gratuit avec un compte, dans la limite d'un quota GPU quotidien.</p>
+    <p class="tiny faint">Photos portées possibles · quelques photos par jour · {{ hf.today }} aujourd'hui</p></a>
+  <a class="card reveal" href="#pc" style="text-decoration:none;color:inherit"><div class="card-head"><h2>③ Ton PC (ComfyUI)</h2><span class="badge {{ 'published' if s.ready else ('sold' if st.ok else 'plain') }}">{{ 'prêt' if s.ready else ('presque prêt' if st.ok else 'à brancher') }}</span></div>
+    <p class="small">La même IA sur ta carte graphique NVIDIA : illimité, rapide, rien ne sort de chez toi.</p>
+    <p class="tiny faint">Toutes les photos · 8 Go de VRAM minimum</p></a>
+</div>
+
+<div class="card mt reveal"><div class="card-head"><h2>Mode 100 % gratuit</h2><span class="badge {{ 'published' if settings.photo_provider == 'gratuit' else 'plain' }}">{{ 'activé' if settings.photo_provider == 'gratuit' else 'fournisseur actuel : ' ~ settings.photo_provider }}</span></div>
+  <p class="small">Ton PC si ComfyUI est branché, sinon Hugging Face, sinon le studio instantané. <b>Gemini et OpenAI ne sont jamais appelés</b>, quel que soit le budget.</p>
+  <form method="post" action="/photos-gratuites/gratuit" class="row"><label class="row nowrap" style="gap:8px;font-weight:400"><input type="checkbox" name="qa_off" style="width:auto"> Couper aussi le contrôle qualité IA (texte, quelques millièmes d'euro par photo)</label>
+    <button class="btn">{{ icon('check') }} Activer le mode gratuit</button></form></div>
+
+<div class="grid g2 mt">
+  <div class="card reveal" id="studio"><div class="card-head"><h2>① Studio instantané</h2>{% if studio_test %}<span class="badge plain">{{ studio_test.seconds }} s · 0 €</span>{% endif %}</div>
+    {% if studio_test %}<div class="grid" style="grid-template-columns:1fr 1fr;gap:8px">
+      <img src="/media/studio_test.jpg?t={{ studio_test.at|replace(' ', '') }}" alt="Photo à plat sur fond studio" style="width:100%;border-radius:10px">
+      <img src="/media/studio_test_detail.jpg?t={{ studio_test.at|replace(' ', '') }}" alt="Gros plan sur le tissu" style="width:100%;border-radius:10px"></div>
+      <p class="help">Détourage {{ studio_test.cutout }} · fond {{ studio_bgs[studio_test.bg][2] if studio_test.bg in studio_bgs else studio_test.bg }} · à partir de {{ 'la photo fournisseur du dernier produit' if studio_test.ref != 'comfy_test_ref.png' else 'un vêtement dessiné' }}.</p>{% endif %}
+    <form method="post" action="/photos-gratuites/studio" class="row end">
+      <div><label>Fond</label><select name="studio_bg"><option value="auto" {{ 'selected' if settings.studio_bg in (none, '', 'auto') }}>Automatique (noir pour le goth)</option>
+        {% for k, v in studio_bgs.items() %}<option value="{{ k }}" {{ 'selected' if settings.studio_bg == k }}>{{ v[2] }}</option>{% endfor %}</select></div>
+      <button class="btn ghost">Enregistrer</button></form>
+    <div class="row mt"><form method="post" action="/photos-gratuites/studio-test"><button class="btn">{{ icon('camera', 14) }} Voir un aperçu</button></form>
+      {% if not rembg %}<form method="post" action="/photos-gratuites/rembg"><button class="btn ghost">{{ icon('download', 13) }} Installer le détourage IA (~200 Mo)</button></form>{% endif %}</div>
+    <p class="help">{% if rembg %}Détourage IA installé (rembg, sur le processeur) : marche sur tous les fonds.{% else %}Détourage basique : parfait sur fond blanc ou uni ; sur un fond chargé, la photo est simplement recadrée sur le fond studio. Le détourage IA (rembg, licence MIT, modèle Apache 2.0) gère tous les fonds.{% endif %}
+      Aucune IA générative : c'est la vraie photo du produit, sans risque de vêtement inventé.</p></div>
+
+  <div class="card reveal" id="hf"><div class="card-head"><h2>② Hugging Face (gratuit)</h2>{% if hf.quota_until %}<span class="badge sold">quota épuisé · reprise {{ hf.quota_until[11:16] }}</span>{% elif hf.enabled %}<span class="badge published">activé</span>{% endif %}</div>
+    <ol class="small" style="padding-left:18px;margin:0 0 8px"><li>Crée un compte gratuit sur <a href="https://huggingface.co/join" target="_blank" rel="noopener">huggingface.co</a>.</li>
+      <li>Crée un jeton « Read » sur <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener">huggingface.co/settings/tokens</a> et colle-le ici.</li>
+      <li>Coche « Activer » : les photos passent par Hugging Face quand ton PC n'est pas branché.</li></ol>
+    <form method="post" action="/photos-gratuites/hf">
+      <label>Jeton Hugging Face {% if hf.has_token %}<span class="badge published">enregistré (chiffré)</span>{% endif %}</label>
+      <input name="token" type="password" autocomplete="off" placeholder="{{ 'laisser vide pour garder le jeton actuel' if hf.has_token else 'hf_…' }}" class="w-full">
+      <div class="row mt"><div><label>Étapes</label><input name="steps" inputmode="numeric" value="{{ hf.steps }}" style="width:80px"></div>
+        <div style="flex:1"><label>Space</label><input name="space" value="{{ hf.space }}" class="w-full"></div></div>
+      <p class="help">Moins d'étapes = plus de photos par jour mais un rendu moins fin (24 conseillé, 40 = qualité maximale).</p>
+      <label class="row nowrap" style="gap:8px;font-weight:400"><input type="checkbox" name="enabled" style="width:auto" {{ 'checked' if hf.enabled }}> Activer Hugging Face</label>
+      {% if hf.has_token %}<label class="row nowrap" style="gap:8px;font-weight:400"><input type="checkbox" name="clear_token" style="width:auto"> Supprimer le jeton enregistré</label>{% endif %}
+      <div class="row mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div></form>
+    <form method="post" action="/photos-gratuites/hf-test" class="mt"><button class="btn ghost sm">{{ icon('refresh', 13) }} Tester la connexion</button></form>
+    <p class="help">Quota GPU gratuit (doc Hugging Face) : 2 min/jour sans compte, 5 min avec un compte gratuit, 40 min en PRO. Une photo prend 20 à 60 s de GPU. Aujourd'hui : {{ hf.today }} photo(s){% if hf.avg_s %}, {{ hf.avg_s }} s en moyenne{% endif %}. Les photos du fournisseur sont envoyées aux serveurs de Hugging Face.</p></div>
+</div>
+
+<h2 class="mt" id="pc" style="font-size:18px;margin-top:28px">③ Ton PC (ComfyUI)</h2>
+<div class="grid g4 mt">
   <div class="card kpi hero reveal"><div class="label">{{ icon('home', 14) }} ComfyUI</div>
     <div class="value" style="font-size:20px">{% if s.ready %}Prêt{% elif st.ok %}Presque prêt{% else %}Hors ligne{% endif %}</div>
     <div class="sub">{{ s.url or 'pas encore branché' }}{% if st.version %} · v{{ st.version }}{% endif %}</div></div>
@@ -73,12 +123,7 @@
     {% if not test %}<p class="small muted">Génère une photo à plat à partir de la photo fournisseur de ton dernier produit (ou d'un vêtement dessiné). Le premier essai est plus long : ComfyUI charge le modèle en mémoire.</p>{% endif %}
     <form method="post" action="/photos-gratuites/test" class="row mt"><button class="btn" {{ 'disabled' if not st.ok }}>{{ icon('camera', 14) }} Générer une image test</button><a class="btn ghost" href="/activite">Suivre dans Activité</a></form></div>
 
-  <div class="card reveal"><div class="card-head"><h2>5 · Mode 100 % gratuit</h2></div>
-    <p class="small">Photos uniquement sur ton PC et budget IA payant à 0 € : aucune image n'est jamais facturée. Si le PC est éteint, les photos attendent la prochaine préparation.</p>
-    <p class="help">Actuellement : fournisseur <b>{{ settings.photo_provider }}</b> · budget payant <b>{{ settings.daily_budget }} €/jour</b> · contrôle qualité <b>{{ 'activé' if settings.photo_qa != 'off' else 'coupé' }}</b>. Le contrôle qualité et la rédaction des annonces utilisent encore OpenAI/Gemini en texte (quelques millièmes d'euro par photo) : coupe le contrôle si tu veux 0 € absolu.</p>
-    <form method="post" action="/photos-gratuites/gratuit"><label class="row nowrap" style="gap:8px;font-weight:400"><input type="checkbox" name="qa_off" style="width:auto"> Couper aussi le contrôle qualité IA</label>
-      <div class="mt"><button class="btn">{{ icon('check') }} Activer le mode gratuit</button></div></form>
-    <div class="card-head mt"><h2>File d'attente</h2></div>
+  <div class="card reveal"><div class="card-head"><h2>5 · File d'attente</h2></div>
     <div class="row">{% for a, l in [('interrompre','Interrompre la génération'),('vider','Vider la file'),('liberer','Libérer la mémoire vidéo')] %}<form method="post" action="/photos-gratuites/file/{{ a }}"><button class="btn ghost sm" {{ 'disabled' if not st.ok }}>{{ l }}</button></form>{% endfor %}</div>
     {% if gen %}<div class="table-wrap mt"><table class="small"><thead><tr><th>Fournisseur (30 j)</th><th class="r">Images</th><th class="r">Durée moy.</th><th class="r">Coût</th></tr></thead><tbody>
       {% for g in gen %}<tr><td>{{ 'Ton PC' if g.provider == 'local' else g.provider }}</td><td class="r num">{{ g.n }}</td><td class="r num">{{ g.avg_s or '—' }} s</td><td class="r num">{{ (g.eur or 0)|eur }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}

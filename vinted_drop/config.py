@@ -54,7 +54,12 @@ PHOTO_QA_MIN = int(os.getenv("PHOTO_QA_MIN", "7"))
 # Estimation du coût par image (€) pour le suivi des dépenses
 COST_PER_IMAGE = {"openai": float(os.getenv("COST_IMAGE_OPENAI", "0.05")),
                   "gemini": float(os.getenv("COST_IMAGE_GEMINI", "0.03")),
-                  "local": 0.0}
+                  "local": 0.0, "hf": 0.0, "studio": 0.0}
+
+# --- Photos gratuites sans carte graphique : Space Hugging Face (quota GPU gratuit, ~5 min/jour par compte) ---
+# Jeton « read » gratuit : https://huggingface.co/settings/tokens (réglable aussi dans le dashboard)
+HF_TOKEN = os.getenv("HF_TOKEN", "")
+HF_SPACE = os.getenv("HF_SPACE", "Qwen/Qwen-Image-Edit-2511")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_ALLOWED_CHAT_IDS = set()  # rempli plus bas avec _chat_id

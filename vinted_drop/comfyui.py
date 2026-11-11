@@ -116,7 +116,7 @@ def _gpu_name(dev):
 def status(timeout=5) -> dict:
     """État du serveur ComfyUI : {"ok", "gpu", "vram_gb", "vram_free_gb", "ram_gb", "version", "error"}."""
     if not url():
-        return {"ok": False, "error": "ComfyUI n'est pas encore branché (page Photos gratuites → Détecter)"}
+        return {"ok": False, "error": "ComfyUI n'est pas encore branché : lance-le puis clique « Détecter »"}
     try:
         r = requests.get(f"{url()}/system_stats", timeout=timeout)
         r.raise_for_status()

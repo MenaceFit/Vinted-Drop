@@ -27,7 +27,10 @@
   <div class="card reveal"><div class="card-head"><h2>Réglages photo</h2></div>
   <form method="post" action="/studio/reglages">
     <label>Fournisseur</label><select name="photo_provider" class="w-full">
-      {% for v, l in [('auto','Auto : ' ~ (providers|join(' → ') if providers else '—')),('local','Mon PC uniquement (gratuit)'),('gemini','Gemini uniquement'),('openai','OpenAI uniquement')] %}<option value="{{ v }}" {{ 'selected' if settings.photo_provider==v }}>{{ l }}</option>{% endfor %}</select>
+      {% for v, l in [('gratuit','100 % gratuit : ton PC → Hugging Face → studio instantané'),('studio','Studio instantané uniquement (sans IA, n\'importe quel PC)'),('auto','Auto : ' ~ (providers|join(' → ') if providers else '—')),('local','Mon PC uniquement (gratuit)'),('hf','Hugging Face uniquement (gratuit, quota)'),('gemini','Gemini (payant)'),('openai','OpenAI (payant)')] %}<option value="{{ v }}" {{ 'selected' if settings.photo_provider==v }}>{{ l }}</option>{% endfor %}</select>
+    <label>Fond du studio instantané</label><select name="studio_bg" class="w-full">
+      <option value="auto" {{ 'selected' if settings.studio_bg in (none, '', 'auto') }}>Automatique (noir pour le goth, gris clair sinon)</option>
+      {% for k, v in studio_bgs.items() %}<option value="{{ k }}" {{ 'selected' if settings.studio_bg==k }}>{{ v[2] }}</option>{% endfor %}</select>
     <label>Jeu de photos par défaut</label><select name="photo_set" class="w-full">
       <option value="standard" {{ 'selected' if settings.photo_set=='standard' }}>Standard : portée, à plat, détail (3)</option>
       <option value="complet" {{ 'selected' if settings.photo_set=='complet' }}>Complet : 2 portées, à plat, cintre, détail (5)</option></select>
@@ -42,7 +45,7 @@
       <option value="off" {{ 'selected' if settings.photo_disclosure=='off' }}>Pas de mention</option></select>
     <div class="row"><div><label>Budget payant / jour (€)</label><input name="daily_budget" inputmode="decimal" value="{{ settings.daily_budget }}" style="width:120px"></div>
       <div><label>Alerte à (%)</label><input name="budget_alert_pct" inputmode="numeric" value="{{ settings.budget_alert_pct }}" style="width:90px"></div></div>
-    <p class="help">Au-delà du budget, seul ton PC génère. 0 = illimité.</p>
+    <p class="help">Budget des fournisseurs payants (Gemini, OpenAI) en mode Auto. 0 = illimité. En mode « 100 % gratuit », ils ne sont jamais appelés.</p>
     <div class="mt"><button class="btn">{{ icon('check') }} Enregistrer</button></div>
   </form></div>
 

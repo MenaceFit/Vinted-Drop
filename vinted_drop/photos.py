@@ -14,7 +14,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from . import ai, config, db
+from . import ai, config, db, studio
 from .image_providers import ImageError, generate
 
 FIDELITY = (
@@ -266,7 +266,44 @@ class PhotoRejected(ImageError):
     """Aucune tentative n'a atteint la fidélité minimale : la photo n'est pas gardée."""
 
 
+def _free_ai() -> list[str]:
+    from .image_providers import FREE, available
+    return [k for k in available() if k in FREE]
+
+
+def studio_mode(provider=None) -> bool:
+    """Studio instantané utilisé pour tout : choisi explicitement, ou mode gratuit sans IA gratuite branchée."""
+    prov = _provider(provider)
+    return prov == "studio" or (prov == "gratuit" and not _free_ai())
+
+
+def _studio_shot(p, kind, n):
+    """Photo « studio instantané » : la vraie photo fournisseur détourée sur fond propre (0 €, sans IA)."""
+    from . import niches
+    t0 = time.time()
+    niche = niches.get(p["niche"]) if p.get("niche") else None
+    bg = studio.background_for(niche, db.get_setting("studio_bg"))
+    out = studio.render(kind, abs_media(p["supplier_image"]), product_dir(p["id"]) / f"{kind}_{n}.jpg", bg)
+    res = {"provider": "studio", "model": f"studio · détourage {out['cutout']} · fond {bg}", "cost": 0.0}
+    qa = {"fidelity": None, "realism": None, "issues": [], "verdict": "photo réelle"}
+    _record(p, kind, "studio", res, time.time() - t0, 1, qa, "accepted", path=rel(out["path"]))
+    return {"path": out["path"], "provider": "studio", "model": res["model"], "qa": qa, "kind": kind,
+            "duration": round(time.time() - t0, 1), "cost": 0.0, "ok": True, "tries": 1}
+
+
 def _shot(p, kind, provider, product_ref, persona, n, original, scene="auto", pose="auto"):
+    if studio_mode(provider):
+        return _studio_shot(p, kind, n)
+    try:
+        return _ai_shot(p, kind, provider, product_ref, persona, n, original, scene, pose)
+    except ImageError:
+        # mode gratuit : si l'IA gratuite échoue (PC éteint, quota épuisé), la vraie photo détourée prend le relais
+        if _provider(provider) == "gratuit" and kind in studio.KINDS:
+            return _studio_shot(p, kind, n)
+        raise
+
+
+def _ai_shot(p, kind, provider, product_ref, persona, n, original, scene="auto", pose="auto"):
     spec = SHOTS[kind]
     decor = SCENES.get(scene) or (persona or {}).get("decor") or DEFAULT_DECOR
     persona_refs = [abs_media(x) for x in ((persona or {}).get("refs") or ([persona["reference_image"]] if persona and persona.get("reference_image") else []))]
@@ -345,9 +382,17 @@ def generate_product_photos(product_id: int, kinds=None, provider=None, scene="a
         raise ValueError("Ce produit n'a pas encore d'image fournisseur (envoie la photo au bot ou sur le dashboard).")
     kinds = list(kinds or default_kinds(p))
     original = abs_media(p["supplier_image"])
-    persona = persona_for(p)
-    p = {**p, "garment": analyze_garment(p)}
-    product_ref = clean_reference(p, provider)
+    if studio_mode(provider):
+        # pas de photo portée sans IA : on garde les prises possibles (à plat, cintre, détail)
+        keep = [k for k in kinds if k in studio.KINDS]
+        if len(keep) < len(kinds) and "cintre" not in keep:     # la portée devient une photo sur fond n° 2
+            keep.append("cintre")
+        kinds = list(dict.fromkeys(keep or ["plat", "cintre", "detail"]))
+        persona, product_ref = None, original                   # aucune IA appelée : 0 € et rapide
+    else:
+        persona = persona_for(p)
+        p = {**p, "garment": analyze_garment(p)}
+        product_ref = clean_reference(p, provider)
     existing = list(p.get("photos") or [])
     errors = []
 
@@ -386,9 +431,13 @@ def regenerate_photo(product_id: int, relpath: str, provider=None) -> str:
     if kind not in SHOTS:
         kind = "plat"
     scene = (p.get("photo_meta") or {}).get(relpath, {}).get("scene") or "auto"
-    p = {**p, "garment": analyze_garment(p)}
-    res = _shot(p, kind, provider, clean_reference(p, provider), persona_for(p), int(time.time() * 1000) % 100000,
-                abs_media(p["supplier_image"]), scene)
+    n = int(time.time() * 1000) % 100000
+    if studio_mode(provider):
+        res = _shot(p, kind if kind in studio.KINDS else "plat", provider, None, None, n, None, scene)
+    else:
+        p = {**p, "garment": analyze_garment(p)}
+        res = _shot(p, kind, provider, clean_reference(p, provider), persona_for(p), n,
+                    abs_media(p["supplier_image"]), scene)
     with _lock:
         cur = db.get_product(product_id)
         photos, meta = list(cur["photos"]), dict(cur.get("photo_meta") or {})

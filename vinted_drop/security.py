@@ -55,6 +55,7 @@ _SECRET_PATTERNS = [
     re.compile(r"\b\d{8,10}:[A-Za-z0-9_-]{30,}\b"),           # token Telegram
     re.compile(r"sk-[A-Za-z0-9_-]{16,}"),                     # clé OpenAI
     re.compile(r"AIza[0-9A-Za-z_-]{20,}"),                    # clé Google
+    re.compile(r"hf_[A-Za-z0-9]{20,}"),                       # jeton Hugging Face
     re.compile(r"(access_token_web|refresh_token_web|_vinted_fr_session)=[^;\s]+"),
 ]
 

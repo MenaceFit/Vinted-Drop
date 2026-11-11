@@ -38,12 +38,12 @@
       <form method="post" action="/produit/{{ p.id }}/studio" class="mt">
         <div class="chips">{% for k, sh in shots.items() %}<label class="chip check"><input type="checkbox" name="kinds" value="{{ k }}" {{ 'checked' if k in default_kinds }}> {{ sh.label }}</label>{% endfor %}</div>
         <div class="row mt">
-          <select name="provider"><option value="">Fournisseur : {{ settings.photo_provider }}</option>{% for v, l in [('local','Mon PC (gratuit)'),('gemini','Gemini'),('openai','OpenAI')] %}{% if v in providers %}<option value="{{ v }}">{{ l }}</option>{% endif %}{% endfor %}</select>
+          <select name="provider"><option value="">Fournisseur : {{ settings.photo_provider }}</option><option value="gratuit">100 % gratuit</option><option value="studio">Studio instantané (sans IA)</option>{% for v, l in [('local','Mon PC (gratuit)'),('hf','Hugging Face (gratuit)'),('gemini','Gemini'),('openai','OpenAI')] %}{% if v in providers %}<option value="{{ v }}">{{ l }}</option>{% endif %}{% endfor %}</select>
           <select name="scene">{% for k, l in scenes.items() %}<option value="{{ k }}" {{ 'selected' if settings.photo_scene == k }}>{{ l }}</option>{% endfor %}</select>
           <select name="pose">{% for k, l in poses.items() %}<option value="{{ k }}">Pose : {{ l }}</option>{% endfor %}</select>
           <button class="btn">{{ icon('spark') }} Générer</button>
         </div>
-        {% if not providers %}<p class="help bad">Configure COMFYUI_URL (gratuit), GEMINI_API_KEY ou OPENAI_API_KEY dans .env.</p>{% endif %}
+        {% if not providers %}<p class="help">Aucune IA branchée : le studio instantané fait des photos à plat et détail gratuites à partir de la photo fournisseur. Pour les photos portées, va sur <a href="/photos-gratuites">Photos gratuites</a>.</p>{% endif %}
         <p class="help">Chaque photo est comparée à l'image fournisseur ; sous {{ qa_min }}/10 elle est refaite puis refusée si elle reste infidèle.</p>
       </form>{% endif %}
     </div>

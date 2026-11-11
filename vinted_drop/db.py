@@ -244,7 +244,16 @@ def init():
             c.executescript(INDEXES)
             _backfill_orders(c)
             _defaults_v22(c)
+            _repair_free_mode(c)
         _columns_cache.clear()
+
+
+def _repair_free_mode(c):
+    """2.4 : l'ancien « mode 100 % gratuit » (PC uniquement + budget 0) laissait passer un secours payant,
+    car un budget de 0 veut dire « illimité ». On le remplace par le fournisseur « gratuit » (jamais payant)."""
+    get = lambda k: (c.execute("SELECT value FROM settings WHERE key=?", (k,)).fetchone() or {"value": None})["value"]
+    if get("photo_provider") == "local" and get("daily_budget") == "0":
+        c.execute("UPDATE settings SET value='gratuit' WHERE key='photo_provider'")
 
 
 def _defaults_v22(c):
@@ -922,6 +931,8 @@ DEFAULT_SETTINGS = {
     "photo_clean": "auto",
     "photo_qa": "on",
     "photo_scene": "auto",        # décor des photos portées
+    "studio_bg": "auto",          # fond du studio instantané (auto = noir pour le goth, gris sinon)
+    "hf_enabled": "off",          # Space Hugging Face gratuit (quota GPU quotidien)
     "daily_budget": "2",
     "budget_alert_pct": "80",
     "ship_delay": "envoi sous 5 à 8 jours",
